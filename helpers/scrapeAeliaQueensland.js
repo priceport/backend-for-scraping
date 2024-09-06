@@ -1,9 +1,12 @@
-const spirits = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/spirits");
-const processDataForSpirits = require("./data_processing/aelia/spirits");
-const updateDBEntry = require("./update_db_entry/aelia/spirits");
+
+const spirits = require("../scripts/scraping_scripts/url_checker/Aelia_queensland_url_checker/spirits");
+const processDataForSpirits = require("./data_processing/aelia_queensland/spirits");
+const updateDBEntry = require("./update_db_entry/aelia_queensland/spirits");
 
 
-const scrapeAelia = async () =>{
+
+
+const scrapeAeliaQueensland = async () =>{
     let spiritsData;
 
     try{
@@ -28,7 +31,7 @@ const scrapeAelia = async () =>{
 
 }
 
-module.exports = scrapeAelia;
+module.exports = scrapeAeliaQueensland;
 
 
 

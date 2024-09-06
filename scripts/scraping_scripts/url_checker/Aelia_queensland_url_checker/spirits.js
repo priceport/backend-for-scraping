@@ -5,7 +5,7 @@ const spirits = async ()=>{
 
     console.log("in spirits");
     let pageNo = 1;
-    const url = 'https://www.aeliadutyfree.co.nz/auckland/spirits.html?p=';
+    const url = 'https://www.aeliadutyfree.co.nz/queenstown/spirits.html?p=';
   
     const browser = await puppeteer.launch({headless:false});
     const page = await browser.newPage();
@@ -46,7 +46,7 @@ const spirits = async ()=>{
               promo, 
               url, 
               category:'liquor',
-              source:{website_base:"https://www.aeliadutyfree.co.nz/auckland",location:"auckland",tag:"duty-free"}, 
+              source:{website_base:"https://www.aeliadutyfree.co.nz/queenstown",location:"queenstown",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
