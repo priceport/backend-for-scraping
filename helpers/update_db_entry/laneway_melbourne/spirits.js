@@ -10,21 +10,38 @@ const updateDBEntry = async (data) =>{
     while(iterator<data?.length){
 
         try{
-            let {url,category,title,brand,price,unit,quantity,sub_category,img} = data[iterator];
+            let {url,category,title,brand,source,last_check,price,unit,quantity,sub_category,img,promo} = data[iterator];
 
-            let product = await pool.query("SELECT * FROM product_from_aelia_auckland WHERE url = $1",[url]);
+            console.log(url);
+            let product = await pool.query("SELECT * FROM product_from_laneway_melbourne WHERE url = $1",[url]);
+            let price_obj;
 
             if(product.rowCount==0){
                 //if no create one
-                product = await pool.query(`insert into product_from_aelia_auckland(title,brand,description,url,image_url,qty,unit,category,sub_category) values($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,sub_category]);
-                await pool.query(`insert into price_from_aelia_auckland(prod_id,date,price) values($1, current_date, $2) returning *`,[product?.rows[0]?.id,price[0].price]);
+                product = await pool.query(`insert into product_from_laneway_melbourne(title,brand,description,url,image_url,qty,unit,category) values($1, $2, $3, $4, $5, $6, $7, $8) returning *`,[title,brand,"No desc",url,img,quantity,unit,category]);
+                
                 //promo insertion logic
             }
             else{
                 //if yes update last check
-                await pool.query('update product_from_aelia_auckland set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
-                await pool.query(`insert into price_from_aelia_auckland(prod_id,date,price) values($1, current_date, $2) returning *`,[product?.rows[0]?.id,price[0].price]);
+                await pool.query('update product_from_laneway_melbourne set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
             }
+
+            await pool.query(`insert into price_from_laneway_melbourne(prod_id,date,price) values($1, current_date, $2) returning *`,[product?.rows[0]?.id,price[0].price]);
+
+            if(promo=="Spend $200 Get 10% off*"){
+
+                if(price[0].price >= 200)
+                await pool.query(`insert into promotion_from_laneway_melbourne(prod_id,text,price) values($1,$2,$3)`,[product?.rows[0]?.id,"Spend $200 Get 10% off*",(price[0].price*0.9)]);
+
+                if(price[0].price >= 350)
+                await pool.query(`insert into promotion_from_laneway_melbourne(prod_id,text,price) values($1,$2,$3)`,[product?.rows[0]?.id,"Spend $350 Get 15% off*",(price[0].price*0.85)]);
+
+                if(price[0].price >= 500)
+                await pool.query(`insert into promotion_from_laneway_melbourne(prod_id,text,price) values($1,$2,$3)`,[product?.rows[0]?.id,"Spend $500 Get 20% off*",(price[0].price*0.8)]);
+            }
+            else console.log("different promo:"+promo);
+
             db_ops+=1;
             
         }catch(err){

@@ -4,7 +4,7 @@ const Product = require("../../../models/productModel");
 
 const updateDBEntry = async (data) =>{
     
-    let iterator = 1;
+    let iterator = 0;
     let db_ops = 0;
 
     while(iterator<data?.length){

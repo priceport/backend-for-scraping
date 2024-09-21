@@ -2,8 +2,8 @@ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
 const spirits = async ()=>{
-    let pageNo = 1;
-    const url = 'https://www.aeliadutyfree.co.nz/auckland/spirits.html?p=';
+    let pageNo = 5;
+    const url = 'https://laneway.melbourneairport.com.au/liquor.html?p=';
   
     const browser = await puppeteer.launch({headless:false});
     const page = await browser.newPage();
@@ -11,7 +11,7 @@ const spirits = async ()=>{
 
     while(true){
         await waitForXTime(2000);
-        await page.goto(url+pageNo, { waitUntil: 'networkidle2', timeout:0 });
+        await page.goto(url+pageNo, { waitUntil: 'networkidle2', timeout:0});
       
         const products = await page.evaluate(() => {
           // Adjust the selectors according to the page structure
@@ -20,18 +20,18 @@ const spirits = async ()=>{
       
           productElements.forEach(product => {
             const titleElement = product.querySelector('.product-item-link');
-            const brandElement = product.querySelector('.product-item-brand'); // Adjust if the brand selector is different
+            const brandElement = product.querySelector('.product-brand'); // Adjust if the brand selector is different
             const priceElement = product.querySelector('.price');
-            const promoElement = product.querySelector('.amasty-label-container > img');
+            const promoElement = product.querySelector('.promot-cart');
             const urlElement = product.querySelector('.product-item-info > a');
-            const imgElement = product.querySelector('.product-image-wrapper img');
+            const imgElement = product.querySelector('.product-image-photo');
       
             const title = titleElement ? titleElement.innerText.trim() : null;
             const brand = brandElement ? brandElement.innerText.trim() : null;
-            const price = priceElement ? priceElement.innerText.trim() : null;
-            const promo = promoElement ? promoElement.src.trim() : null;
+            const price = priceElement ? priceElement.innerText.replace("A$","").trim() : null;
+            const promo = promoElement ? promoElement.innerText.trim() : null;
             const url = urlElement ? urlElement.href.trim() : null;
-            const img = imgElement ? imgElement.src.trim() : null;
+            const img = imgElement ? imgElement.dataset.src.trim() : null;
       
             if(!title&&!brand&&!price&&!promo&&!url){}
             else
@@ -42,12 +42,12 @@ const spirits = async ()=>{
               promo, 
               url, 
               category:'liquor',
-              source:{website_base:"https://www.aeliadutyfree.co.nz/auckland",location:"auckland",tag:"duty-free"}, 
+              source:{website_base:"https://laneway.melbourneairport.com.au/liquor.html",location:"melbourne",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
               unit:undefined,
-              subcategory:'spirits',
+              subcategory:'liquor',
               img
             });
           });
@@ -55,17 +55,15 @@ const spirits = async ()=>{
           return productList;
         });
 
-        allProducts.push(...products);
-
-        if(products?.length==0){ 
+          if(products?.length==0||pageNo == 7){ 
             await page.close();
             await browser.close();
             console.log("length in scraper:"+allProducts?.length);
             return allProducts;
-        }
+          }
             
-        pageNo+=1;
-          
+          pageNo+=1;
+          allProducts.push(...products);
         }
 }
 

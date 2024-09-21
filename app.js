@@ -14,6 +14,7 @@ const cron = require('node-cron');
 //custom modules
 const AppError = require("./utils/appError.js");
 const globalErrorHandler = require("./controllers/errorController.js");
+const mappingRouter = require("./routes/mapping.routes.js");
 // const userRouter = require("./routes/user.routes.js");
 // const projectRouter = require("./routes/project.routes.js");
 // const agentRouter = require("./routes/agent.routes.js");
@@ -75,6 +76,7 @@ app.use(
 
 
 //attaching routers
+app.use("/api/v1/mapping",mappingRouter);
 // app.use("/api/v1/user",userRouter);
 // app.use("/api/v1/project",projectRouter);
 // app.use("/api/v1/agent",agentRouter);

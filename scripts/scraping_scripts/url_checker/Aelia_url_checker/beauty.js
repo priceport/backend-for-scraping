@@ -1,17 +1,21 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const spirits = async ()=>{
+const beauty = async ()=>{
+
+    console.log("in beauty");
     let pageNo = 1;
-    const url = 'https://www.aeliadutyfree.co.nz/auckland/spirits.html?p=';
+    const url = 'https://www.aeliadutyfree.co.nz/auckland/beauty.html?p=';
   
     const browser = await puppeteer.launch({headless:false});
     const page = await browser.newPage();
+    console.log("page opened");
     const allProducts = [];
+
 
     while(true){
         await waitForXTime(2000);
-        await page.goto(url+pageNo, { waitUntil: 'networkidle2', timeout:0 });
+        await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
       
         const products = await page.evaluate(() => {
           // Adjust the selectors according to the page structure
@@ -41,13 +45,13 @@ const spirits = async ()=>{
               price,
               promo, 
               url, 
-              category:'liquor',
+              category:'beauty',
               source:{website_base:"https://www.aeliadutyfree.co.nz/auckland",location:"auckland",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
               unit:undefined,
-              subcategory:'spirits',
+              subcategory:'beauty',
               img
             });
           });
@@ -55,18 +59,16 @@ const spirits = async ()=>{
           return productList;
         });
 
-        allProducts.push(...products);
-
-        if(products?.length==0){ 
+          if(products?.length==0 || pageNo==10){ 
             await page.close();
             await browser.close();
             console.log("length in scraper:"+allProducts?.length);
             return allProducts;
-        }
+          }
             
-        pageNo+=1;
-          
+          pageNo+=1;
+          allProducts.push(...products);
         }
 }
 
-module.exports = spirits;
+module.exports = beauty;

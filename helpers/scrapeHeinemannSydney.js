@@ -1,12 +1,12 @@
-const beauty = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/beauty");
-const spirits = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/spirits");
-const wine = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/wine");
-const processDataForSpirits = require("./data_processing/aelia/spirits");
-const updateDBEntry = require("./update_db_entry/aelia/spirits");
 
+const spirits = require("../scripts/scraping_scripts/url_checker/Heinmann_sydney/spirits");
+const spiritsMultibuy = require("../scripts/scraping_scripts/url_checker/Heinmann_sydney/spirits_multibuy");
+const processDataForSpirits = require("./data_processing/heinemann_sydney/spirits");
+const updateDBEntry = require("./update_db_entry/heinemann/spirits");
+const fs = require("fs");
 
-const scrapeAelia = async () =>{
-    let spiritsData=[],wineData=[],beautyData=[];
+const scrapeHeinemannSydney = async () =>{
+    let spiritsData;
 
     try{
         spiritsData = await spirits();
@@ -14,19 +14,11 @@ const scrapeAelia = async () =>{
         console.log(err);
     }
 
-    // try{
-    //     wineData = await wine();
-    // }catch(err){
-    //     console.log(err);
-    // }
-
-    // try{
-    //     beautyData = await beauty();
-    // }catch(err){
-    //     console.log(err);
-    // }
-
-    spiritsData = [...spiritsData,...wineData,...beautyData];
+    try{
+        spiritsData = await spiritsMultibuy(spiritsData);
+    }catch(err){
+        console.log(err);
+    }
 
     try{
         spiritsData = await processDataForSpirits(spiritsData);
@@ -40,11 +32,11 @@ const scrapeAelia = async () =>{
         console.log(err);
     }
     
-    console.log("entries updated for aelia auckland");
+    console.log("entries updated for heinemann sydney");
 
 }
 
-module.exports = scrapeAelia;
+module.exports = scrapeHeinemannSydney;
 
 
 

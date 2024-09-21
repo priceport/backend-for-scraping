@@ -20,7 +20,7 @@ function parseProductTitle(input) {
         const match = input.match(regex);
         if (match) {
             return {
-                title: match[1]?.trim(),
+                title: input,
                 quantity: match[2] ? parseFloat(match[2]) : null,
                 unit: match[4] || null,
             };

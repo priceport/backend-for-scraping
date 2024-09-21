@@ -1,32 +1,18 @@
-const beauty = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/beauty");
-const spirits = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/spirits");
-const wine = require("../scripts/scraping_scripts/url_checker/Aelia_url_checker/wine");
-const processDataForSpirits = require("./data_processing/aelia/spirits");
-const updateDBEntry = require("./update_db_entry/aelia/spirits");
+const spirits = require("../scripts/scraping_scripts/url_checker/Laneway_melbourne_url_checker/spirits");
+const processDataForSpirits = require("./data_processing/laneway_melbourne/spirits");
+const updateDBEntry = require("./update_db_entry/laneway_melbourne/spirits");
+
+// const updateDBEntry = require("./update_db_entry/aelia/spirits");
 
 
-const scrapeAelia = async () =>{
-    let spiritsData=[],wineData=[],beautyData=[];
+const scrapeLanewayMelbourne = async () =>{
+    let spiritsData;
 
     try{
         spiritsData = await spirits();
     }catch(err){
         console.log(err);
     }
-
-    // try{
-    //     wineData = await wine();
-    // }catch(err){
-    //     console.log(err);
-    // }
-
-    // try{
-    //     beautyData = await beauty();
-    // }catch(err){
-    //     console.log(err);
-    // }
-
-    spiritsData = [...spiritsData,...wineData,...beautyData];
 
     try{
         spiritsData = await processDataForSpirits(spiritsData);
@@ -44,7 +30,7 @@ const scrapeAelia = async () =>{
 
 }
 
-module.exports = scrapeAelia;
+module.exports = scrapeLanewayMelbourne;
 
 
 
