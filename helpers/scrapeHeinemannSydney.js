@@ -1,233 +1,171 @@
+//scraping script imports
+const fragrance = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/fragrance");
+const makeup = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/makeup");
+const skincare = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/skincare");
+const spirits = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/spirits");
+const spiritsMultibuy = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/spirits_multibuy");
+const wine = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/wine");
 
-const spirits = require("../scripts/scraping_scripts/url_checker/Heinmann_sydney/spirits");
-const spiritsMultibuy = require("../scripts/scraping_scripts/url_checker/Heinmann_sydney/spirits_multibuy");
+//processing script imports
 const processDataForSpirits = require("./data_processing/heinemann_sydney/spirits");
+const logError = require("./logError");
+
+//db update imports
 const updateDBEntry = require("./update_db_entry/heinemann/spirits");
-const fs = require("fs");
 
-const scrapeHeinemannSydney = async () =>{
-    let spiritsData;
+const scrapeHeinemannSydney = async (start,end,state) =>{
+    console.log("scraping started for heinemann sydney at:"+Date.now());
 
+    //variable initialization
+    let spiritsData=[],wineData=[],fragranceData=[],makeupData=[],skincareData=[];
+
+    //scrape each category
+    if(!state.sydney.spirits)
     try{
-        spiritsData = await spirits();
+        spiritsData = await spirits(start,end);
+        console.log(`${spiritsData?.length} data items scraped for spirits`);
     }catch(err){
-        console.log(err);
+        console.log("There was an error while scraping spirits");
+        logError(err);
+    }
+
+    if(!state.sydney.spirits&&spiritsData?.length==0)
+    try{
+        spiritsData = await spirits(start,end);
+        console.log(`${spiritsData?.length} data items scraped for spirits`);
+
+        if(spiritsData?.length==0){
+            state.sydney.spirits = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping spirits");
+        logError(err);
     }
 
     try{
         spiritsData = await spiritsMultibuy(spiritsData);
     }catch(err){
-        console.log(err);
+        logError(err);
     }
 
+    if(!state.sydney.wine)
+    try{
+        wineData = await wine(start,end);
+        console.log(`${wineData?.length} data items scraped for wine`);     
+    }catch(err){
+        console.log("There was an error while scraping wine");
+        logError(err);
+    }
+
+    if(!state.sydney.wine&&wineData?.length==0)
+    try{
+        wineData = await wine(start,end);
+        console.log(`${wineData?.length} data items scraped for wine`);
+
+        if(wineData?.length==0){
+            state.sydney.wine = true;
+        }        
+    }catch(err){
+        console.log("There was an error while scraping wine");
+        logError(err);
+    }
+
+    try{
+        wineData = await spiritsMultibuy(wineData);
+    }catch(err){
+        logError(err);
+    }
+
+    if(!state.sydney.fragrance)
+    try{
+        fragranceData = await fragrance(start,end);
+        console.log(`${fragranceData?.length} data items scraped for fragrance`);
+    }catch(err){
+        console.log("There was an error while scraping fragrance");
+        logError(err);
+    }
+
+    if(!state.sydney.fragrance&&fragranceData?.length==0)
+    try{
+        fragranceData = await fragrance(start,end);
+        console.log(`${fragranceData?.length} data items scraped for fragrance`);
+
+        if(fragranceData?.length==0){
+            state.sydney.fragrance = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping fragrance");
+        logError(err);
+    }
+
+    if(!state.sydney.makeup)
+    try{
+        makeupData = await makeup(start,end);
+        console.log(`${makeupData?.length} data items scraped for makeup`);
+
+    }catch(err){
+        console.log("There was an error while scraping makeup");
+        logError(err);
+    }
+
+    if(!state.sydney.makeup&&makeupData?.length==0)
+    try{
+        makeupData = await makeup(start,end);
+        console.log(`${makeupData?.length} data items scraped for makeup`);
+
+        if(makeupData?.length==0){
+            state.sydney.makeup = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping makeup");
+        logError(err);
+    }
+
+    if(!state.sydney.skincare)
+    try{
+        skincareData = await skincare(start,end);
+        console.log(`${skincareData?.length} data items scraped for skincare`);
+    }catch(err){
+        console.log("There was an error while scraping skincare");
+        logError(err);
+    }
+
+    if(!state.sydney.skincare&&skincareData?.length==0)
+    try{
+        skincareData = await skincare(start,end);
+        console.log(`${skincareData?.length} data items scraped for skincare`);
+
+        if(skincareData?.length==0){
+            state.sydney.skincare = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping skincare");
+        logError(err);
+    }
+
+    //merge data
+    spiritsData = [...spiritsData,...wineData,...fragranceData,...makeupData,...skincareData];
+
+    //process data
     try{
         spiritsData = await processDataForSpirits(spiritsData);
+        console.log(`data items proccessed`);
     }catch(err){
-        console.log(err);
+        console.log("There was an error while proccessing data");
+        logError(err);
     }
 
+    //update db
     try{
         await updateDBEntry(spiritsData);
+        console.log(`data items updated`);
     }catch(err){
-        console.log(err);
+        console.log("There was an error while updating data");
+        logError(err);
     }
     
     console.log("entries updated for heinemann sydney");
-
+    return spiritsData?.length==0;
 }
 
 module.exports = scrapeHeinemannSydney;
-
-
-
-
-//testing
-        // spiritsData = [
-        //     {
-        //       title: 'The Cardrona Single Malt Whisky The Falcon Single Malt 700ml',
-        //       brand: 'THE CARDRONA SINGLE MALT WHISKY',
-        //       price: '$300.00',
-        //       promo: 'https://www.aeliadutyfree.co.nz/media/amasty/amlabel/Travel_Exclusive_-_Black_1__1.png',
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/the-cardrona-single-malt-whisky-the-falcon-single-malt-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Balvenie Creation Of A Classic 700ml',
-        //       brand: 'BALVENIE',
-        //       price: '$139.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/balvenie-creation-of-a-classic-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Aberfeldy 12 Year Old Madeira Whiskey 700ml',
-        //       brand: 'ABERFELDY',
-        //       price: '$112.00',
-        //       promo: 'https://www.aeliadutyfree.co.nz/media/amasty/amlabel/Travel_Exclusive_-_Black_1__1.png',
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/aberfeldy-12-year-old-madeira-whiskey-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Dancing Sands Feijoa Vodka 700ml',
-        //       brand: 'DANCING SANDS',
-        //       price: '$50.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/dancing-sands-feijoa-vodka-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Broken Shed Premium Vodka 1.75L',
-        //       brand: 'BROKEN SHED',
-        //       price: '$110.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/broken-shed-premium-vodka-1-75l.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Howling Wolf Spiced Rum 700ml',
-        //       brand: 'HOWLING WOLF',
-        //       price: '$65.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/howling-wolf-spiced-rum-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Jura The Bay 12YO 1L',
-        //       brand: 'JURA',
-        //       price: '$136.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/jura-the-bay-12yo-1l.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Jura The Road 1L',
-        //       brand: 'JURA',
-        //       price: '$103.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/jura-the-road-1l.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Fettercairn 12YO PX 1L',
-        //       brand: 'FETTERCAIRN',
-        //       price: '$152.00',
-        //       promo: null,
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/fettercairn-12yo-px-1l.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201778,
-        //       last_check: 1723032201778,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Dalmore The Quintet 700ml',
-        //       brand: 'DALMORE',
-        //       price: '$233.00',
-        //       promo: 'https://www.aeliadutyfree.co.nz/media/amasty/amlabel/Travel_Exclusive_-_Black_1__1.png',
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/dalmore-the-quintet-700ml.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201779,
-        //       last_check: 1723032201779,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     },
-        //     {
-        //       title: 'Dalmore The Quartet 1L',
-        //       brand: 'DALMORE',
-        //       price: '$206.00',
-        //       promo: 'https://www.aeliadutyfree.co.nz/media/amasty/amlabel/Travel_Exclusive_-_Black_1__1.png',
-        //       url: 'https://www.aeliadutyfree.co.nz/auckland/dalmore-the-quartet-1l.html',
-        //       category: 'liquour',
-        //       source: {
-        //         webite_base: 'https://www.aeliadutyfree.co.nz/auckland',
-        //         location: 'auckland',
-        //         tag: 'duty-free'
-        //       },
-        //       date: 1723032201779,
-        //       last_check: 1723032201779,
-        //       mapping_ref: null,
-        //       subcategory: 'spirits'
-        //     }
-        //   ]

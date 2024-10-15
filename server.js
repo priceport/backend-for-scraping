@@ -6,14 +6,14 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 //Connecting to our mongodb 
-let uri = process.env.DB_URI || "";
-uri = uri.replace("<password>",process.env.DB_PASS);
-mongoose.connect(uri,{
-    useUnifiedTopology: true,
-    useNewUrlParser: true,
-  })
-  .then(() => console.log('DB connection successful!'))
-  .catch(err => console.log(err));
+// let uri = process.env.DB_URI || "";
+// uri = uri.replace("<password>",process.env.DB_PASS);
+// mongoose.connect(uri,{
+//     useUnifiedTopology: true,
+//     useNewUrlParser: true,
+//   })
+//   .then(() => console.log('DB connection successful!'))
+//   .catch(err => console.log(err));
 
 //Starting server on given port
 const PORT = process.env.PORT || 3000;

@@ -15,17 +15,10 @@ const cron = require('node-cron');
 const AppError = require("./utils/appError.js");
 const globalErrorHandler = require("./controllers/errorController.js");
 const mappingRouter = require("./routes/mapping.routes.js");
-// const userRouter = require("./routes/user.routes.js");
-// const projectRouter = require("./routes/project.routes.js");
-// const agentRouter = require("./routes/agent.routes.js");
-// const dealRouter = require("./routes/deal.routes.js");
-// const expenseRouter = require("./routes/expense.routes.js");
 const scrapingService = require("./helpers/scrapingService.js");
 
 //node modules
 const path = require("path");
-
-
 
 const app = express();
 
@@ -77,25 +70,19 @@ app.use(
 
 //attaching routers
 app.use("/api/v1/mapping",mappingRouter);
-// app.use("/api/v1/user",userRouter);
-// app.use("/api/v1/project",projectRouter);
-// app.use("/api/v1/agent",agentRouter);
-// app.use("/api/v1/deal",dealRouter);
-// app.use("/api/v1/expense",expenseRouter);
 
 //Throwing error if no matched route found
 app.all('*', (req, res, next) => {
     next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
-setTimeout(()=>scrapingService(),5000);
 //Global error handler
 app.use(globalErrorHandler);
 
-// Schedule the cron job to run every morning at 7 AM Canadian time (Eastern Time Zone)
-// cron.schedule('0 7 * * *', scrapingService, {
-//   scheduled: true,
-//   timezone: 'America/Toronto', // Set the time zone to Canadian time
-// });
+// Schedule the task to run at 12 AM New Zealand Time
+cron.schedule('0 0 * * *', scrapingService, {
+  scheduled: true,
+  timezone: 'Pacific/Auckland', // New Zealand timezone
+});
 
 module.exports = app;

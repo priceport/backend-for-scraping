@@ -6,8 +6,18 @@ const pool = require("../configs/postgresql.config");
 const source = {
     auckland:"PRODUCT_FROM_AELIA_AUCKLAND",
     queenstown:"PRODUCT_FROM_AELIA_QUEENSLAND",
-    melbourne:"PRODUCT_FROM_LANEWAY_MELBOURNE",
-    sydney:"PRODUCT_FROM_HEINEMANN_SYDNEY"
+    chirstchurch:"PRODUCT_FROM_AELIA_CHRISTCHURCH",
+    melbourne:"PRODUCT_FROM_LOTTE_MELBOURNE",
+    sydney:"PRODUCT_FROM_HEINEMANN_SYDNEY",
+    beauty_bliss:"PRODUCT_FROM_BEAUTY_BLISS",
+    big_barrel:"PRODUCT_FROM_BIG_BARREL",
+    chemist_warehouse:"PRODUCT_FROM_CHEMIST_WAREHOUSE",
+    farmers:"PRODUCT_FROM_FARMERS",
+    brisbane:"PRODUCT_FROM_LOTTE_BRISBANE",
+    mecca:"PRODUCT_FROM_MECCA",
+    nz_liquor:"PRODUCT_FROM_NZLIQUOR",
+    sephora:"PRODUCT_FROM_SEPHORA",
+    whisky_and_more:"PRODUCT_FROM_WHISKY_AND_MORE"
 }
 const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     if(!req.query.source){
@@ -33,7 +43,6 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
 });
 
 const getSimilarityByTitleFromSource = catchAsync(async (req,res,next)=>{
-    console.log(req.query);
     if(!req.query.title||!req.query.source){
         return next(
             new AppError(`Something missing from request query!`,400)

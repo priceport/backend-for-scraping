@@ -1,0 +1,87 @@
+const puppeteer = require('puppeteer');
+const waitForXTime = require('../../../../helpers/waitForXTime');
+
+
+const beauty = async (start,end)=>{
+    let pageNo = start;
+    const url = "https://melbourne.lottedutyfree.com.au/collections/beauty?page=";
+    const browser = await puppeteer.launch({headless:true,  args: ['--no-sandbox', '--disable-setuid-sandbox']});
+    const page = await browser.newPage();
+
+    // Enable request interception to block unnecessary resources
+    await page.setRequestInterception(true);
+
+    // Only allow 'document' (HTML) requests
+    page.on('request', (req) => {
+          const resourceType = req.resourceType();
+ 
+          if (resourceType === 'document') {
+          req.continue();
+          } else {
+          req.abort();  // Block other resources like JS, CSS, images, etc.
+          }
+    });
+    
+    const allProducts = [];
+
+    while(true){
+        await waitForXTime(2000);
+        await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
+
+        // Scrape the product details
+    const products = await page.evaluate(() => {
+        const productElements = document.querySelectorAll('.sf__col-item');
+          const productList = [];
+      
+          productElements.forEach(product => {
+            const titleElement = product.querySelector('h3 > a');
+            const brandElement = product.querySelector('.sf__pcard-vendor'); // Adjust if the brand selector is different
+            const priceElement = product.querySelector('.f-price__regular-container .f-price-item');
+            const promoElement = product.querySelectorAll('.bundle-offers-block');
+            const urlElement = product.querySelector('.sf__pcard');
+            const imgElement = product.querySelector('.sf__pcard');
+            const promo2Element = product.querySelector('.collection_page_coupon_text');
+      
+            const title = titleElement ? titleElement.innerText.trim() : null;
+            const brand = brandElement ? brandElement.innerText.trim() : null;
+            const price = priceElement ? priceElement.innerText.trim() : null;
+            const promo = promoElement ? Array.from(promoElement)?.map(promo=> promo.querySelector(".bundle-offers-text a").innerText.trim()): null;
+            const url = urlElement ? urlElement.dataset.url : null;
+            const img = imgElement ? imgElement.dataset.image : null;
+            const promo2 = promo2Element ? promo2Element.innerText.trim() : null;
+      
+            if(!title&&!brand&&!price&&!promo&&!url){}
+            else
+            productList.push({ 
+              title, 
+              brand, 
+              price,
+              promo, 
+              url, 
+              category:'beauty',
+              source:{website_base:"https://melbourne.lottedutyfree.com.au/",location:"melbourne",tag:"duty-free"}, 
+              date:Date.now(),
+              last_check:Date.now(),
+              mapping_ref:null,
+              unit:undefined,
+              subcategory:'beauty',
+              img,
+              promo2
+            });
+          });
+        return productList;
+    });
+
+    allProducts.push(...products);
+
+    if(products?.length==0 ||pageNo==end){ 
+        await page.close();
+        await browser.close();
+        return allProducts;
+      }
+        
+    pageNo+=1;
+ }
+}
+
+module.exports = beauty;

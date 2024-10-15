@@ -1,0 +1,84 @@
+const puppeteer = require('puppeteer');
+const waitForXTime = require('../../../../helpers/waitForXTime');
+
+const tools = async (start,end)=>{
+    let pageNo = start;
+    const url = 'https://beautybliss.co.nz/product-category/brushes/?SkipCount=replace_me';
+  
+    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
+    const page = await browser.newPage();
+
+    // Enable request interception to block unnecessary resources
+    await page.setRequestInterception(true);
+
+    // Only allow 'document' (HTML) requests
+    page.on('request', (req) => {
+         const resourceType = req.resourceType();
+
+         if (resourceType === 'document') {
+         req.continue();
+         } else {
+         req.abort();  // Block other resources like JS, CSS, images, etc.
+         }
+    });
+    
+    const allProducts = [];
+
+    while(true){
+        await waitForXTime(2000);
+        await page.goto(url.replace("replace_me",(pageNo==1?0:(28 * (pageNo-1))-1)), { waitUntil: 'networkidle2' });
+      
+        const products = await page.evaluate(() => {
+          const productElements = document.querySelectorAll('.card-deck > .card');
+          const productList = [];
+      
+          productElements.forEach(product => {
+            const titleElement = product.querySelector('.product-title');
+            const brandElement = product.querySelector('.brand');
+            const priceElement = product.querySelector('strong');
+            // const promoElement = product.querySelectorAll('.amasty-label-container > img');
+            const urlElement = product.querySelector('a');
+            const imgElement = product.querySelector('a > .secondary > img');
+      
+            const title = titleElement ? titleElement.innerText.trim() : null;
+            const brand = brandElement ? brandElement.innerText.trim() : null;
+            const price = priceElement ? priceElement.innerText.trim() : null;
+            // const promo = promoElement ? Array.from(promoElement)?.map(promo=>promo.src.trim()) : null;
+            const url = urlElement ? urlElement.href.trim() : null;
+            const img = imgElement ? imgElement.dataset.src.trim() : null;
+      
+            if(!title&&!brand&&!price&&!url){}
+            else
+            productList.push({ 
+              title, 
+              brand, 
+              price,
+              promo:null, 
+              url, 
+              category:'beauty',
+              source:{website_base:"https://beautybliss.co.nz",location:"new-zealand",tag:"domestic"}, 
+              date:Date.now(),
+              last_check:Date.now(),
+              mapping_ref:null,
+              unit:undefined,
+              subcategory:'tools',
+              img
+            });
+          });
+      
+          return productList;
+        });
+
+        allProducts.push(...products);
+
+          if(products?.length==0||pageNo==end){ 
+            await page.close();
+            await browser.close();
+            return allProducts;
+          }
+            
+          pageNo+=1;
+        }
+}
+
+module.exports = tools;
