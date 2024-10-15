@@ -79,6 +79,9 @@ app.all('*', (req, res, next) => {
 //Global error handler
 app.use(globalErrorHandler);
 
+//testing pupetter as well as ci/cd
+scrapingService();
+
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('0 0 * * *', scrapingService, {
   scheduled: true,
