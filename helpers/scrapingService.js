@@ -20,7 +20,7 @@ const scrapingService =async ()=>{
    console.log("scraping started at:"+Date.now());
 
    let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false;
-   let start_page=40, end_page = 40;
+   let start_page=1, end_page = 1;
 
    let internalStates = {
       auckland:{
