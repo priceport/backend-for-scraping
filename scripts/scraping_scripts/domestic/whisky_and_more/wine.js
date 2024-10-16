@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const wine = async (start,end)=>{
+const wine = async (start,end,browser)=>{
 
     let pageNo = start;
     const url = 'https://www.whiskyandmore.co.nz/collections/wine?page=';
   
-    const browser = await puppeteer.launch({headless:true,ignoreHTTPSErrors: true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
     
     // Enable request interception to block unnecessary resources
@@ -74,7 +73,6 @@ const wine = async (start,end)=>{
 
           if(products?.length==0||pageNo==end){ 
             await page.close();
-            await browser.close();
             return allProducts;
           }
             

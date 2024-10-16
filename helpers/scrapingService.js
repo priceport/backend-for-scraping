@@ -202,13 +202,13 @@ const scrapingService =async ()=>{
          logError(err);
       }
 
-      if(!doneSephora)
-      try{
-         doneSephora = await scrapeSephora(start_page,end_page,internalStates,browser);
-      }catch(err){
-         console.log("There was an error while scraping from sephora");
-         logError(err);
-      }
+      // if(!doneSephora)
+      // try{
+      //    doneSephora = await scrapeSephora(start_page,end_page,internalStates,browser);
+      // }catch(err){
+      //    console.log("There was an error while scraping from sephora");
+      //    logError(err);
+      // }
 
       if(!doneBeautyBliss)
       try{
