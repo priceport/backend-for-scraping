@@ -1,13 +1,15 @@
 
-const ErrorStack = require('./../models/errorModel.js');
+// const ErrorStack = require('./../models/errorModel.js');
 
 const saveError = async err => {
-  const newError = await ErrorStack.create({
-    status: err.status,
-    error: err,
-    message: err.message,
-    stack: err.stack
-  });
+  // const newError = await ErrorStack.create({
+  //   status: err.status,
+  //   error: err,
+  //   message: err.message,
+  //   stack: err.stack
+  // });
+
+  let newError = {id:1};
 
   return newError.id;
 };
