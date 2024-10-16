@@ -5,7 +5,7 @@ const hair = async (start,end)=>{
     let pageNo = start;
     const url = 'https://www.sephora.nz/categories/hair?page=replace_me&view=120';
   
-    const browser = await puppeteer.launch({headless:false,args:  ['--disable-http2','--no-sandbox', '--disable-setuid-sandbox']});
+    const browser = await puppeteer.launch({headless:true,args:  ['--disable-http2','--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
