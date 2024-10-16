@@ -18,7 +18,7 @@ const logError = require("./logError");
 const updateDBEntry = require("./update_db_entry/chemist_warehouse/beauty");
 
 
-const scrapeChemistWarehouse = async (start,end) =>{
+const scrapeChemistWarehouse = async (start,end,browser) =>{
     console.log("scraping started for chemist warehouse at:"+Date.now());
 
     //variable initialization
@@ -27,7 +27,7 @@ const scrapeChemistWarehouse = async (start,end) =>{
     //scrape each category
     if(start==1)
     try{
-        data = await fragrance(start,end);
+        data = await fragrance(start,end,browser);
         console.log(`${data?.length} data items scraped for fragrance`);
     }catch(err){
         console.log("There was an error while scraping fragrance");
@@ -36,7 +36,7 @@ const scrapeChemistWarehouse = async (start,end) =>{
 
     if(start==2)
     try{
-        data = await beauty(start,end);
+        data = await beauty(start,end,browser);
         console.log(`${data?.length} data items scraped for beauty`);
     }catch(err){
         console.log("There was an error while scraping beauty");
@@ -45,7 +45,7 @@ const scrapeChemistWarehouse = async (start,end) =>{
 
     if(start==3)
     try{
-        data = await skin_care(start,end);
+        data = await skin_care(start,end,browser);
         console.log(`${data?.length} data items scraped for skincare`);
     }catch(err){
         console.log("There was an error while scraping skincare");
@@ -54,7 +54,7 @@ const scrapeChemistWarehouse = async (start,end) =>{
 
     if(start==4)
     try{
-        data = await cosmetics(start,end);
+        data = await cosmetics(start,end,browser);
         console.log(`${data?.length} data items scraped for cosmetics`);
     }catch(err){
         console.log("There was an error while scraping cosmetics");
@@ -63,7 +63,7 @@ const scrapeChemistWarehouse = async (start,end) =>{
 
     if(start==5)
     try{
-        data = await hair_care(start,end);
+        data = await hair_care(start,end,browser);
         console.log(`${data?.length} data items scraped for hair care`);
     }catch(err){
         console.log("There was an error while scraping hair care");

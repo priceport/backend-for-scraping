@@ -14,7 +14,7 @@ const updateDBEntry = require("./update_db_entry/mecca/beauty");
 const logError = require("./logError");
 
 
-const scrapeMecca = async (start,end,state) =>{
+const scrapeMecca = async (start,end,state,browser) =>{
     console.log("scraping started for mecca at:"+Date.now());
 
     //variable initialization
@@ -23,7 +23,7 @@ const scrapeMecca = async (start,end,state) =>{
     //scrape each category
     if(!state.mecca.makeup)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
 
     }catch(err){
@@ -33,7 +33,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.makeup&&makeupData?.length==0)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
 
         if(makeupData?.length==0){
@@ -46,7 +46,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.skincare)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
     }catch(err){
         console.log("There was an error while scraping skincare");
@@ -55,7 +55,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.skincare&&skincareData?.length==0)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
 
         if(skincareData?.length==0){
@@ -68,7 +68,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.hair)
     try{
-        hairData = await hair(start,end);
+        hairData = await hair(start,end,browser);
         console.log(`${hairData?.length} data items scraped for hair`);
     }catch(err){
         console.log("There was an error while scraping hair");
@@ -77,7 +77,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.hair&&hairData?.length==0)
     try{
-        hairData = await hair(start,end);
+        hairData = await hair(start,end,browser);
         console.log(`${hairData?.length} data items scraped for hair`);
 
         if(hairData?.length==0){
@@ -90,7 +90,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.fragrance)
     try{
-        fragranceData = await fragrance(start,end);
+        fragranceData = await fragrance(start,end,browser);
         console.log(`${fragranceData?.length} data items scraped for fragrance`);
     }catch(err){
         console.log("There was an error while scraping fragrance");
@@ -99,7 +99,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.fragrance&&fragranceData?.length==0)
     try{
-        fragranceData = await fragrance(start,end);
+        fragranceData = await fragrance(start,end,browser);
         console.log(`${fragranceData?.length} data items scraped for fragrance`);
 
         if(fragranceData?.length==0){
@@ -112,7 +112,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.body)
     try{
-        bodyData = await body(start,end);
+        bodyData = await body(start,end,browser);
         console.log(`${bodyData?.length} data items scraped for body`);
     }catch(err){
         console.log("There was an error while scraping body");
@@ -121,7 +121,7 @@ const scrapeMecca = async (start,end,state) =>{
 
     if(!state.mecca.body&&bodyData?.length==0)
     try{
-        bodyData = await body(start,end);
+        bodyData = await body(start,end,browser);
         console.log(`${bodyData?.length} data items scraped for body`);
 
         if(bodyData?.length==0){

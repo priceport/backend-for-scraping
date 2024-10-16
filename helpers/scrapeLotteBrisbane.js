@@ -10,7 +10,7 @@ const logError = require("./logError");
 //db update imports
 const updateDBEntry = require("./update_db_entry/lotte_brisbane/spirits");
 
-const scrapeLotteBrisbane = async (start,end,state) =>{
+const scrapeLotteBrisbane = async (start,end,state,browser) =>{
     console.log("scraping started for lotte brisbane at:"+Date.now());
 
     //variable initialization
@@ -19,7 +19,7 @@ const scrapeLotteBrisbane = async (start,end,state) =>{
     //scrape each category
     if(!state.brisbane.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
     }catch(err){
@@ -29,7 +29,7 @@ const scrapeLotteBrisbane = async (start,end,state) =>{
 
     if(!state.brisbane.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -42,7 +42,7 @@ const scrapeLotteBrisbane = async (start,end,state) =>{
 
     if(!state.brisbane.beauty)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
     }catch(err){
@@ -52,7 +52,7 @@ const scrapeLotteBrisbane = async (start,end,state) =>{
 
     if(!state.brisbane.beauty&&beautyData?.length==0)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
         if(beautyData?.length==0){

@@ -12,7 +12,7 @@ const logError = require("./logError");
 //db update imports
 const updateDBEntry = require("./update_db_entry/whiskyandmore/blended_whisky");
 
-const scrapeWhiskyAndMore = async (start,end,state) =>{
+const scrapeWhiskyAndMore = async (start,end,state,browser) =>{
     console.log("scraping started for whisky and more at:"+Date.now());
 
     //variable initialization
@@ -21,7 +21,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
     //scrape each category
     if(!state.whiskyAndMore.whisky)
     try{
-        whiskyData = await blended_whisky(start,end);
+        whiskyData = await blended_whisky(start,end,browser);
         console.log(`${whiskyData?.length} data items scraped for whisky`);
 
     }catch(err){
@@ -31,7 +31,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.whisky&&whiskyData?.length==0)
     try{
-        whiskyData = await blended_whisky(start,end);
+        whiskyData = await blended_whisky(start,end,browser);
         console.log(`${whiskyData?.length} data items scraped for whisky`);
 
         if(whiskyData?.length==0){
@@ -44,7 +44,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.malt)
     try{
-        maltData = await single_malt(start,end);
+        maltData = await single_malt(start,end,browser);
         console.log(`${maltData?.length} data items scraped for malt`);
 
     }catch(err){
@@ -54,7 +54,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.malt&&maltData?.length==0)
     try{
-        maltData = await single_malt(start,end);
+        maltData = await single_malt(start,end,browser);
         console.log(`${maltData?.length} data items scraped for malt`);
 
         if(maltData?.length==0){
@@ -67,7 +67,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.intlWhisky)
     try{
-        intlWhiskyData = await international_whisky(start,end);
+        intlWhiskyData = await international_whisky(start,end,browser);
         console.log(`${intlWhiskyData?.length} data items scraped for intl whisky`);
     }catch(err){
         console.log("There was an error while scraping intl whisky");
@@ -76,7 +76,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.intlWhisky&&intlWhiskyData?.length==0)
     try{
-        intlWhiskyData = await international_whisky(start,end);
+        intlWhiskyData = await international_whisky(start,end,browser);
         console.log(`${intlWhiskyData?.length} data items scraped for intl whisky`);
 
         if(intlWhiskyData?.length==0){
@@ -89,7 +89,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.beer)
     try{
-        beerData = await craft_beer(start,end);
+        beerData = await craft_beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
 
     }catch(err){
@@ -99,7 +99,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.beer&&beerData?.length==0)
     try{
-        beerData = await craft_beer(start,end);
+        beerData = await craft_beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
 
         if(beerData?.length==0){
@@ -112,7 +112,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
     }catch(err){
@@ -122,7 +122,7 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
 
     if(!state.whiskyAndMore.wine&&whiskyData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(whiskyData?.length==0){

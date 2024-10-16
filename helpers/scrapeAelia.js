@@ -11,7 +11,7 @@ const logError = require("./logError");
 const updateDBEntry = require("./update_db_entry/aelia/spirits");
 
 
-const scrapeAelia = async (start,end,state) =>{
+const scrapeAelia = async (start,end,state,browser) =>{
     console.log("scraping started for aelia auckland at:"+Date.now());
 
     //variable initialization
@@ -20,7 +20,7 @@ const scrapeAelia = async (start,end,state) =>{
     //scrape each category
     if(!state.auckland.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
     }catch(err){
@@ -31,7 +31,7 @@ const scrapeAelia = async (start,end,state) =>{
 
     if(!state.auckland.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -44,7 +44,7 @@ const scrapeAelia = async (start,end,state) =>{
 
     if(!state.auckland.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
     }catch(err){
@@ -54,7 +54,7 @@ const scrapeAelia = async (start,end,state) =>{
 
     if(!state.auckland.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){
@@ -67,7 +67,7 @@ const scrapeAelia = async (start,end,state) =>{
 
     if(!state.auckland.beauty)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
     }catch(err){
@@ -77,7 +77,7 @@ const scrapeAelia = async (start,end,state) =>{
 
     if(!state.auckland.beauty&&beautyData?.length==0)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
         if(beautyData?.length==0){

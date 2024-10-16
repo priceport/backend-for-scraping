@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const deodorants = async (start,end)=>{
+const deodorants = async (start,end, browser)=>{
     let pageNo = start;
     const default_url = 'https://www.farmers.co.nz/beauty/perfume/deodorants-body-sprays';
     const url = 'https://www.farmers.co.nz/beauty/perfume/deodorants-body-sprays/Page-replace_me-SortingAttribute-SortBy-asc';
   
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -80,7 +79,6 @@ const deodorants = async (start,end)=>{
 
           if(products?.length==0||pageNo==end){ 
             await page.close();
-            await browser.close();
             return allProducts;
           }
             

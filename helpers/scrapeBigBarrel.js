@@ -12,7 +12,7 @@ const special = require("../scripts/scraping_scripts/domestic/bigbarrel/special"
 const logError = require("./logError");
 
 
-const scrapeBigBarrel = async (start,end,state) =>{
+const scrapeBigBarrel = async (start,end,state,browser) =>{
     console.log("scraping started for big barrel at:"+Date.now());
 
     //variable initialization
@@ -21,7 +21,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
     // //scrape each category
     if(!state.bigBarrel.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
     }catch(err){
         console.log("There was an error while scraping spirits");
@@ -30,7 +30,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
 
     if(!state.bigBarrel.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -43,7 +43,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
 
     if(!state.bigBarrel.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
     }catch(err){
         console.log("There was an error while scraping wine");
@@ -52,7 +52,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
 
     if(!state.bigBarrel.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){
@@ -65,7 +65,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
 
     if(!state.bigBarrel.beer)
     try{
-        beerData = await beer(start,end);
+        beerData = await beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
     }catch(err){
         console.log("There was an error while scraping beer");
@@ -74,7 +74,7 @@ const scrapeBigBarrel = async (start,end,state) =>{
 
     if(!state.bigBarrel.beer&&beerData?.length==0)
     try{
-        beerData = await beer(start,end);
+        beerData = await beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
 
         if(beerData?.length==0){
@@ -85,18 +85,18 @@ const scrapeBigBarrel = async (start,end,state) =>{
         logError(err);
     }
 
-    if(!state.bigBarrel.special&&specialData?.length==0)
+    if(!state.bigBarrel.special)
     try{
-        specialData = await special(start,end);
+        specialData = await special(start,end,browser);
         console.log(`${specialData?.length} data items scraped for special`);
     }catch(err){
         console.log("There was an error while scraping special");
         logError(err);
     }
 
-    if(!state.bigBarrel.special)
+    if(!state.bigBarrel.special&&specialData?.length==0)
     try{
-        specialData = await special(start,end);
+        specialData = await special(start,end,browser);
         console.log(`${specialData?.length} data items scraped for special`);
 
         if(specialData?.length==0){

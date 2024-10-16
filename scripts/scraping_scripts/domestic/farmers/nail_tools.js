@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const nail_tools = async (start,end)=>{
+const nail_tools = async (start,end,browser)=>{
     let pageNo = start;
     const default_url = 'https://www.farmers.co.nz/beauty/nail-care/nail-care-tools';
     const url = 'https://www.farmers.co.nz/beauty/nail-care/nail-care-tools/Page-replace_me-SortingAttribute-SortBy-asc';
   
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -80,7 +79,6 @@ const nail_tools = async (start,end)=>{
 
           if(products?.length==0||pageNo==end){ 
             await page.close();
-            await browser.close();
             return allProducts;
           }
             

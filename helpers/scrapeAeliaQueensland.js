@@ -10,7 +10,7 @@ const processDataForSpirits = require("./data_processing/aelia/spirits");
 const updateDBEntry = require("./update_db_entry/aelia_queensland/spirits");
 const logError = require("./logError");
 
-const scrapeAeliaQueensland = async (start,end,state) =>{
+const scrapeAeliaQueensland = async (start,end,state,browser) =>{
     console.log("scraping started for aelia queensland at:"+Date.now());
 
     //variable initialization
@@ -19,7 +19,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
     //scrape each category
     if(!state.queensland.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
     }catch(err){
         console.log("There was an error while scraping spirits");
@@ -28,7 +28,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
 
     if(!state.queensland.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -41,7 +41,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
 
     if(!state.queensland.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
     }catch(err){
         console.log("There was an error while scraping wine");
@@ -50,7 +50,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
 
     if(!state.queensland.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){
@@ -63,7 +63,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
 
     if(!state.queensland.beauty)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
     }catch(err){
         console.log("There was an error while scraping beauty");
@@ -72,7 +72,7 @@ const scrapeAeliaQueensland = async (start,end,state) =>{
 
     if(!state.queensland.beauty&&beautyData?.length==0)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
         if(beautyData?.length==0){

@@ -11,7 +11,7 @@ const logError = require("./logError");
 const updateDBEntry = require("./update_db_entry/aelia_christchurch/spirits");
 
 
-const scrapeAeliaChristchurch = async (start,end,state) =>{
+const scrapeAeliaChristchurch = async (start,end,state,browser) =>{
     console.log("scraping started for aelia christchurch at:"+Date.now());
 
     //variable initialization
@@ -20,7 +20,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
     //scrape each category
     if(!state.christchurch.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
     }catch(err){
@@ -30,7 +30,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
 
     if(!state.christchurch.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -43,7 +43,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
 
     if(!state.christchurch.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
     }catch(err){
@@ -53,7 +53,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
 
     if(!state.christchurch.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){
@@ -66,7 +66,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
 
     if(!state.christchurch.beauty)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
     }catch(err){
@@ -76,7 +76,7 @@ const scrapeAeliaChristchurch = async (start,end,state) =>{
 
     if(!state.christchurch.beauty&&beautyData?.length==0)
     try{
-        beautyData = await beauty(start,end);
+        beautyData = await beauty(start,end,browser);
         console.log(`${beautyData?.length} data items scraped for beauty`);
 
         if(beautyData?.length==0){

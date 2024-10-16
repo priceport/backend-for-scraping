@@ -13,7 +13,7 @@ const logError = require("./logError");
 //db update imports
 const updateDBEntry = require("./update_db_entry/heinemann/spirits");
 
-const scrapeHeinemannSydney = async (start,end,state) =>{
+const scrapeHeinemannSydney = async (start,end,state,browser) =>{
     console.log("scraping started for heinemann sydney at:"+Date.now());
 
     //variable initialization
@@ -22,7 +22,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
     //scrape each category
     if(!state.sydney.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
     }catch(err){
         console.log("There was an error while scraping spirits");
@@ -31,7 +31,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -50,7 +50,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);     
     }catch(err){
         console.log("There was an error while scraping wine");
@@ -59,7 +59,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){
@@ -78,7 +78,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.fragrance)
     try{
-        fragranceData = await fragrance(start,end);
+        fragranceData = await fragrance(start,end,browser);
         console.log(`${fragranceData?.length} data items scraped for fragrance`);
     }catch(err){
         console.log("There was an error while scraping fragrance");
@@ -87,7 +87,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.fragrance&&fragranceData?.length==0)
     try{
-        fragranceData = await fragrance(start,end);
+        fragranceData = await fragrance(start,end,browser);
         console.log(`${fragranceData?.length} data items scraped for fragrance`);
 
         if(fragranceData?.length==0){
@@ -100,7 +100,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.makeup)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
 
     }catch(err){
@@ -110,7 +110,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.makeup&&makeupData?.length==0)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
 
         if(makeupData?.length==0){
@@ -123,7 +123,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.skincare)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
     }catch(err){
         console.log("There was an error while scraping skincare");
@@ -132,7 +132,7 @@ const scrapeHeinemannSydney = async (start,end,state) =>{
 
     if(!state.sydney.skincare&&skincareData?.length==0)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
 
         if(skincareData?.length==0){

@@ -1,11 +1,10 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const body = async (start,end)=>{
+const body = async (start,end,browser)=>{
     let pageNo = start;
     const url = 'https://www.mecca.com/en-nz/body-personal-care/?page=';
   
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -78,8 +77,7 @@ const body = async (start,end)=>{
         allProducts.push(...products);
 
           if(products?.length==0||pageNo==end){ 
-            // await page.close();
-            // await browser.close();
+            await page.close();
             return allProducts;
           }
             

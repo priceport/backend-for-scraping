@@ -39,7 +39,7 @@ const logError = require("./logError");
 //db update imports
 const updateDBEntry = require("./update_db_entry/farmers/beauty");
 
-const scrapeFarmers = async (start,end,state) =>{
+const scrapeFarmers = async (start,end,state,browser) =>{
     console.log("scraping started for farmers at:"+Date.now());
 
     //variable initialization
@@ -47,7 +47,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.face)
     try{
-        faceData = await face(start,end);
+        faceData = await face(start,end,browser);
         console.log(`${faceData?.length} data items scraped for face`);
     }catch(err){
         console.log("There was an error while scraping face");
@@ -56,7 +56,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.face&&faceData?.length==0)
     try{
-        faceData = await face(start,end);
+        faceData = await face(start,end,browser);
         console.log(`${faceData?.length} data items scraped for face`);
 
         if(faceData?.length==0){
@@ -69,7 +69,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.makeup)
     try{
-        makeupBagData = await makeup_bags(start,end);
+        makeupBagData = await makeup_bags(start,end,browser);
         console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
 
     }catch(err){
@@ -79,7 +79,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.makeup&&makeupBagData?.length==0)
     try{
-        makeupBagData = await makeup_bags(start,end);
+        makeupBagData = await makeup_bags(start,end,browser);
         console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
 
         if(makeupBagData?.length==0){
@@ -92,7 +92,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.lips)
     try{
-        lipsData = await lips(start,end);
+        lipsData = await lips(start,end,browser);
         console.log(`${lipsData?.length} data items scraped for lips`);
 
     }catch(err){
@@ -102,7 +102,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.lips&&lipsData?.length==0)
     try{
-        lipsData = await lips(start,end);
+        lipsData = await lips(start,end,browser);
         console.log(`${lipsData?.length} data items scraped for lips`);
 
         if(lipsData?.length==0){
@@ -115,7 +115,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.eyes)
     try{
-        eyesData = await eyes(start,end);
+        eyesData = await eyes(start,end,browser);
         console.log(`${eyesData?.length} data items scraped for eyes`);
 
     }catch(err){
@@ -125,7 +125,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.eyes&&eyesData?.length==0)
     try{
-        eyesData = await eyes(start,end);
+        eyesData = await eyes(start,end,browser);
         console.log(`${eyesData?.length} data items scraped for eyes`);
 
         if(eyesData?.length==0){
@@ -138,7 +138,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.tools)
     try{
-        toolsData = await tools(start,end);
+        toolsData = await tools(start,end,browser);
         console.log(`${toolsData?.length} data items scraped for tools`);
     }catch(err){
         console.log("There was an error while scraping tools");
@@ -147,7 +147,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.tools&&toolsData?.length==0)
     try{
-        toolsData = await tools(start,end);
+        toolsData = await tools(start,end,browser);
         console.log(`${toolsData?.length} data items scraped for tools`);
 
         if(toolsData?.length==0){
@@ -160,7 +160,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.tools2)
     try{
-        tools2Data = await tools2(start,end);
+        tools2Data = await tools2(start,end,browser);
         console.log(`${tools2Data?.length} data items scraped for tools2`);
 
     }catch(err){
@@ -170,7 +170,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.tools2&&tools2Data?.length==0)
     try{
-        tools2Data = await tools2(start,end);
+        tools2Data = await tools2(start,end,browser);
         console.log(`${tools2Data?.length} data items scraped for tools2`);
 
         if(tools2Data?.length==0){
@@ -183,7 +183,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.womenPerfume)
     try{
-        womensPerfumeData = await womensPerfume(start,end);
+        womensPerfumeData = await womensPerfume(start,end,browser);
         console.log(`${womensPerfumeData?.length} data items scraped for womens perfume`);
     }catch(err){
         console.log("There was an error while scraping womens perfume");
@@ -192,7 +192,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.womenPerfume&&womensPerfumeData?.length==0)
     try{
-        womensPerfumeData = await womensPerfume(start,end);
+        womensPerfumeData = await womensPerfume(start,end,browser);
         console.log(`${womensPerfumeData?.length} data items scraped for womens perfume`);
 
         if(womensPerfumeData?.length==0){
@@ -205,7 +205,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.menAfterShave)
     try{
-        menAftershaveData = await menAftershave(start,end);
+        menAftershaveData = await menAftershave(start,end,browser);
         console.log(`${menAftershaveData?.length} data items scraped for men after shave`);
     }catch(err){
         console.log("There was an error while scraping men after shave");
@@ -214,7 +214,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.menAfterShave&&menAftershaveData?.length==0)
     try{
-        menAftershaveData = await menAftershave(start,end);
+        menAftershaveData = await menAftershave(start,end,browser);
         console.log(`${menAftershaveData?.length} data items scraped for men after shave`);
 
         if(menAftershaveData?.length==0){
@@ -227,7 +227,7 @@ const scrapeFarmers = async (start,end,state) =>{
     
     if(!state.farmers.deodorant)
     try{
-        deodorantData = await deodorants(start,end);
+        deodorantData = await deodorants(start,end,browser);
         console.log(`${deodorantData?.length} data items scraped for deodorants`);
     }catch(err){
         console.log("There was an error while scraping deodorants");
@@ -236,7 +236,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.deodorant&&deodorantData?.length==0)
     try{
-        deodorantData = await deodorants(start,end);
+        deodorantData = await deodorants(start,end,browser);
         console.log(`${deodorantData?.length} data items scraped for deodorants`);
 
         if(deodorantData?.length==0){
@@ -249,7 +249,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.moisturiser)
     try{
-        moisturiserData = await moisturizers(start,end);
+        moisturiserData = await moisturizers(start,end,browser);
         console.log(`${moisturiserData?.length} data items scraped for moisturizers`);
     }catch(err){
         console.log("There was an error while scraping moisturizers");
@@ -258,7 +258,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.moisturiser&&moisturiserData?.length==0)
     try{
-        moisturiserData = await moisturizers(start,end);
+        moisturiserData = await moisturizers(start,end,browser);
         console.log(`${moisturiserData?.length} data items scraped for moisturizers`);
 
         if(moisturiserData?.length==0){
@@ -271,7 +271,7 @@ const scrapeFarmers = async (start,end,state) =>{
     
     if(!state.farmers.exfoliators)
     try{
-        exfoliatorsData = await exfoliators(start,end);
+        exfoliatorsData = await exfoliators(start,end,browser);
         console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
     }catch(err){
         console.log("There was an error while scraping exfoliators");
@@ -280,7 +280,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.exfoliators&&exfoliatorsData?.length==0)
     try{
-        exfoliatorsData = await exfoliators(start,end);
+        exfoliatorsData = await exfoliators(start,end,browser);
         console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
 
         if(exfoliatorsData?.length==0){
@@ -293,7 +293,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.cleansers)
     try{
-        cleansersData = await cleansers(start,end);
+        cleansersData = await cleansers(start,end,browser);
         console.log(`${cleansersData?.length} data items scraped for cleansers`);
     }catch(err){
         console.log("There was an error while scraping cleansers");
@@ -302,7 +302,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.cleansers&&cleansersData?.length==0)
     try{
-        cleansersData = await cleansers(start,end);
+        cleansersData = await cleansers(start,end,browser);
         console.log(`${cleansersData?.length} data items scraped for cleansers`);
 
         if(cleansersData?.length==0){
@@ -315,7 +315,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.toners)
     try{
-        tonersData = await toners(start,end);
+        tonersData = await toners(start,end,browser);
         console.log(`${tonersData?.length} data items scraped for toners`);
     }catch(err){
         console.log("There was an error while scraping toners");
@@ -324,7 +324,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.toners&&tonersData?.length==0)
     try{
-        tonersData = await toners(start,end);
+        tonersData = await toners(start,end,browser);
         console.log(`${tonersData?.length} data items scraped for toners`);
 
         if(tonersData?.length==0){
@@ -337,7 +337,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.treatments)
     try{
-        treatmentsData = await treatments(start,end);
+        treatmentsData = await treatments(start,end,browser);
         console.log(`${treatmentsData?.length} data items scraped for treatments`);
     }catch(err){
         console.log("There was an error while scraping treatments");
@@ -346,7 +346,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.treatments&&treatmentsData?.length==0)
     try{
-        treatmentsData = await treatments(start,end);
+        treatmentsData = await treatments(start,end,browser);
         console.log(`${treatmentsData?.length} data items scraped for treatments`);
 
         if(treatmentsData?.length==0){
@@ -359,7 +359,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.eyecream)
     try{
-        eyeCreamData = await eye_cream(start,end);
+        eyeCreamData = await eye_cream(start,end,browser);
         console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
     }catch(err){
         console.log("There was an error while scraping eye cream");
@@ -368,7 +368,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.eyecream&&eyeCreamData?.length==0)
     try{
-        eyeCreamData = await eye_cream(start,end);
+        eyeCreamData = await eye_cream(start,end,browser);
         console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
 
         if(eyeCreamData?.length==0){
@@ -381,7 +381,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.grooming)
     try{
-        groomingData = await grooming(start,end);
+        groomingData = await grooming(start,end,browser);
         console.log(`${groomingData?.length} data items scraped for grooming`);
 
     }catch(err){
@@ -391,7 +391,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.grooming&&groomingData?.length==0)
     try{
-        groomingData = await grooming(start,end);
+        groomingData = await grooming(start,end,browser);
         console.log(`${groomingData?.length} data items scraped for grooming`);
 
         if(groomingData?.length==0){
@@ -404,7 +404,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.nailtools)
     try{
-        nailToolsData = await nail_tools(start,end);
+        nailToolsData = await nail_tools(start,end,browser);
         console.log(`${nailToolsData?.length} data items scraped for nail tools`);
 
     }catch(err){
@@ -414,7 +414,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.nailtools&&nailToolsData?.length==0)
     try{
-        nailToolsData = await nail_tools(start,end);
+        nailToolsData = await nail_tools(start,end,browser);
         console.log(`${nailToolsData?.length} data items scraped for nail tools`);
 
         if(nailToolsData?.length==0){
@@ -427,7 +427,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.nailpolish)
     try{
-        nailPolishData = await nail_polish(start,end);
+        nailPolishData = await nail_polish(start,end,browser);
         console.log(`${nailPolishData?.length} data items scraped for nail polish`);
     }catch(err){
         console.log("There was an error while scraping nail polish");
@@ -436,7 +436,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.nailpolish&&nailPolishData?.length==0)
     try{
-        nailPolishData = await nail_polish(start,end);
+        nailPolishData = await nail_polish(start,end,browser);
         console.log(`${nailPolishData?.length} data items scraped for nail polish`);
 
         if(nailPolishData?.length==0){
@@ -449,7 +449,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.bodycare)
     try{
-        bodyCareData = await body_care(start,end);
+        bodyCareData = await body_care(start,end,browser);
         console.log(`${bodyCareData?.length} data items scraped for body care`);
     }catch(err){
         console.log("There was an error while scraping body care");
@@ -458,7 +458,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.bodycare&&bodyCareData?.length==0)
     try{
-        bodyCareData = await body_care(start,end);
+        bodyCareData = await body_care(start,end,browser);
         console.log(`${bodyCareData?.length} data items scraped for body care`);
 
         if(bodyCareData?.length==0){
@@ -471,7 +471,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.footcare)
     try{
-        footCareData = await foot_care(start,end);
+        footCareData = await foot_care(start,end,browser);
         console.log(`${footCareData?.length} data items scraped for foot care`);
     }catch(err){
         console.log("There was an error while scraping foot care");
@@ -480,7 +480,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.footcare&&footCareData?.length==0)
     try{
-        footCareData = await foot_care(start,end);
+        footCareData = await foot_care(start,end,browser);
         console.log(`${footCareData?.length} data items scraped for foot care`);
 
         if(footCareData?.length==0){
@@ -493,7 +493,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.bathcare)
     try{
-        bathCareData = await bath_care(start,end);
+        bathCareData = await bath_care(start,end,browser);
         console.log(`${bathCareData?.length} data items scraped for bath care`);
     }catch(err){
         console.log("There was an error while scraping bath care");
@@ -502,7 +502,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.bathcare&&bathCareData?.length==0)
     try{
-        bathCareData = await bath_care(start,end);
+        bathCareData = await bath_care(start,end,browser);
         console.log(`${bathCareData?.length} data items scraped for bath care`);
 
         if(bathCareData?.length==0){
@@ -515,7 +515,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.suncare)
     try{
-        sunCareData = await sun_care(start,end);
+        sunCareData = await sun_care(start,end,browser);
         console.log(`${sunCareData?.length} data items scraped for sun care`);
     }catch(err){
         console.log("There was an error while scraping sun care");
@@ -524,7 +524,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.suncare&&sunCareData?.length==0)
     try{
-        sunCareData = await sun_care(start,end);
+        sunCareData = await sun_care(start,end,browser);
         console.log(`${sunCareData?.length} data items scraped for sun care`);
 
         if(sunCareData?.length==0){
@@ -537,7 +537,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.haircare)
     try{
-        hairCareData = await hair_care(start,end);
+        hairCareData = await hair_care(start,end,browser);
         console.log(`${hairCareData?.length} data items scraped for hair care`);
     }catch(err){
         console.log("There was an error while scraping hair care");
@@ -546,7 +546,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.haircare&&hairCareData?.length==0)
     try{
-        hairCareData = await hair_care(start,end);
+        hairCareData = await hair_care(start,end,browser);
         console.log(`${hairCareData?.length} data items scraped for hair care`);
 
         if(hairCareData?.length==0){
@@ -559,7 +559,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.haircolor)
     try{
-        hairColorData = await hair_color(start,end);
+        hairColorData = await hair_color(start,end,browser);
         console.log(`${hairColorData?.length} data items scraped for hair color`);
     }catch(err){
         console.log("There was an error while scraping hair color");
@@ -568,7 +568,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.haircolor&&hairColorData?.length==0)
     try{
-        hairColorData = await hair_color(start,end);
+        hairColorData = await hair_color(start,end,browser);
         console.log(`${hairColorData?.length} data items scraped for hair color`);
 
         if(hairColorData?.length==0){
@@ -581,7 +581,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.hairaccessories)
     try{
-        hairAccesoriesData = await hair_accesories(start,end);
+        hairAccesoriesData = await hair_accesories(start,end,browser);
         console.log(`${hairAccesoriesData?.length} data items scraped for hair accesories`);
     }catch(err){
         console.log("There was an error while scraping hair accesories");
@@ -590,7 +590,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.hairaccessories&&hairAccesoriesData?.length==0)
     try{
-        hairAccesoriesData = await hair_accesories(start,end);
+        hairAccesoriesData = await hair_accesories(start,end,browser);
         console.log(`${hairAccesoriesData?.length} data items scraped for hair accesories`);
 
         if(hairAccesoriesData?.length==0){
@@ -603,7 +603,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.skincare)
     try{
-        wSkincareData = await wellness_skincare(start,end);
+        wSkincareData = await wellness_skincare(start,end,browser);
         console.log(`${wSkincareData?.length} data items scraped for wellness skincare`);
     }catch(err){
         console.log("There was an error while scraping wellness skincare");
@@ -612,7 +612,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.skincare&&wSkincareData?.length==0)
     try{
-        wSkincareData = await wellness_skincare(start,end);
+        wSkincareData = await wellness_skincare(start,end,browser);
         console.log(`${wSkincareData?.length} data items scraped for wellness skincare`);
 
         if(wSkincareData?.length==0){
@@ -625,7 +625,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.collegens)
     try{
-        collagensData = await collagen(start,end);
+        collagensData = await collagen(start,end,browser);
         console.log(`${collagensData?.length} data items scraped for collagen`);
 
         if(collagensData?.length==0){
@@ -638,7 +638,7 @@ const scrapeFarmers = async (start,end,state) =>{
 
     if(!state.farmers.collegens&&collagensData?.length==0)
     try{
-        collagensData = await collagen(start,end);
+        collagensData = await collagen(start,end,browser);
         console.log(`${collagensData?.length} data items scraped for collagen`);
 
         if(collagensData?.length==0){

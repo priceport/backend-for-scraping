@@ -4,11 +4,10 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 
 puppeteer.use(StealthPlugin());
 
-const beauty = async (start, end) => {
+const beauty = async (start, end,browser) => {
     let pageNo = 1;
     const url = 'https://www.chemistwarehouse.co.nz/shop-online/257/beauty';
 
-    const browser = await puppeteer.launch({ headless: true , args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     const allProducts = [];
@@ -81,9 +80,6 @@ const beauty = async (start, end) => {
 
         pageNo += 1;
     }
-
-    // Close the browser
-    await browser.close();
 
     return allProducts;
 };

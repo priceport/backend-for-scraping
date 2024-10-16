@@ -1,12 +1,11 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const eyes = async (start,end)=>{
+const eyes = async (start,end,browser)=>{
     let pageNo = start;
     const default_url = 'https://www.farmers.co.nz/beauty/makeup/eyes';
     const url = 'https://www.farmers.co.nz/beauty/makeup/eyes/Page-replace_me-SortingAttribute-SortBy-asc';
   
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -80,7 +79,6 @@ const eyes = async (start,end)=>{
 
           if(products?.length==0||pageNo==end){ 
             await page.close();
-            await browser.close();
             return allProducts;
           }
             

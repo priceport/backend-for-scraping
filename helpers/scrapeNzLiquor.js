@@ -11,7 +11,7 @@ const updateDBEntry = require("./update_db_entry/nzliquor/spirits");
 const logError = require("./logError");
 
 
-const scrapeNzLiquor = async (start,end,state) =>{
+const scrapeNzLiquor = async (start,end,state,browser) =>{
     console.log("scraping started for nz liquor at:"+Date.now());
 
     //variable initialization
@@ -20,7 +20,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
     // //scrape each category
     if(!state.nzLiquor.spirits)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
     }catch(err){
         console.log("There was an error while scraping spirits");
@@ -29,7 +29,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
 
     if(!state.nzLiquor.spirits&&spiritsData?.length==0)
     try{
-        spiritsData = await spirits(start,end);
+        spiritsData = await spirits(start,end,browser);
         console.log(`${spiritsData?.length} data items scraped for spirits`);
 
         if(spiritsData?.length==0){
@@ -42,7 +42,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
 
     if(!state.nzLiquor.beer)
     try{
-        beerData = await beer(start,end);
+        beerData = await beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
     }catch(err){
         console.log("There was an error while scraping beer");
@@ -51,7 +51,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
 
     if(!state.nzLiquor.beer&&beerData?.length==0)
     try{
-        beerData = await beer(start,end);
+        beerData = await beer(start,end,browser);
         console.log(`${beerData?.length} data items scraped for beer`);
 
         if(beerData?.length==0){
@@ -64,7 +64,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
 
     if(!state.nzLiquor.wine)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
     }catch(err){
         console.log("There was an error while scraping wine");
@@ -73,7 +73,7 @@ const scrapeNzLiquor = async (start,end,state) =>{
 
     if(!state.nzLiquor.wine&&wineData?.length==0)
     try{
-        wineData = await wine(start,end);
+        wineData = await wine(start,end,browser);
         console.log(`${wineData?.length} data items scraped for wine`);
 
         if(wineData?.length==0){

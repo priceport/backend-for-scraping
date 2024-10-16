@@ -13,7 +13,7 @@ const logError = require("./logError");
 const updateDBEntry = require("./update_db_entry/beauty_bliss/beauty");
 
 
-const scrapeBeautyBliss = async (start,end,state) =>{
+const scrapeBeautyBliss = async (start,end,state,browser) =>{
     console.log("scraping started for beauty bliss at:"+Date.now());
 
     //variable initialization
@@ -22,7 +22,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
     //scrape each category
     if(!state.beautyBliss.makeup)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
     }catch(err){
         console.log("There was an error while scraping makeup");
@@ -31,7 +31,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.makeup&&makeupData?.length==0)
     try{
-        makeupData = await makeup(start,end);
+        makeupData = await makeup(start,end,browser);
         console.log(`${makeupData?.length} data items scraped for makeup`);
 
         if(makeupData?.length==0){
@@ -44,7 +44,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.skincare)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
     }catch(err){
         console.log("There was an error while scraping skincare");
@@ -53,7 +53,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.skincare&&skincareData?.length==0)
     try{
-        skincareData = await skincare(start,end);
+        skincareData = await skincare(start,end,browser);
         console.log(`${skincareData?.length} data items scraped for skincare`);
 
         if(skincareData?.length==0){
@@ -66,7 +66,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.tools)
     try{
-        toolsData = await tools(start,end);
+        toolsData = await tools(start,end,browser);
         console.log(`${toolsData?.length} data items scraped for tools`);
     }catch(err){
         console.log("There was an error while scraping tools");
@@ -75,7 +75,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.tools&&toolsData?.length==0)
     try{
-        toolsData = await tools(start,end);
+        toolsData = await tools(start,end,browser);
         console.log(`${toolsData?.length} data items scraped for tools`);
 
         if(toolsData?.length==0){
@@ -88,7 +88,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.hair)
     try{
-        hairData = await hair(start,end);
+        hairData = await hair(start,end,browser);
         console.log(`${hairData?.length} data items scraped for hair`);
     }catch(err){
         console.log("There was an error while scraping hair");
@@ -97,7 +97,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.hair&&hairData?.length==0)
     try{
-        hairData = await hair(start,end);
+        hairData = await hair(start,end,browser);
         console.log(`${hairData?.length} data items scraped for hair`);
 
         if(hairData?.length==0){
@@ -110,7 +110,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.bath)
     try{
-        bathData = await bath(start,end);
+        bathData = await bath(start,end,browser);
         console.log(`${bathData?.length} data items scraped for bath`);
     }catch(err){
         console.log("There was an error while scraping bath");
@@ -119,7 +119,7 @@ const scrapeBeautyBliss = async (start,end,state) =>{
 
     if(!state.beautyBliss.bath&&bathData?.length==0)
     try{
-        bathData = await bath(start,end);
+        bathData = await bath(start,end,browser);
         console.log(`${bathData?.length} data items scraped for bath`);
 
         if(bathData?.length==0){

@@ -15,9 +15,12 @@ const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const waitForXTime = require("./waitForXTime");
+const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
    console.log("scraping started at:"+Date.now());
+
+   const browser = await puppeteer.launch({headless:false ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
    let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false;
    let start_page=1, end_page = 1;
@@ -129,7 +132,7 @@ const scrapingService =async ()=>{
 
       if(!doneAuckland)
       try{
-         doneAuckland = await scrapeAelia(start_page,end_page,internalStates);
+         doneAuckland = await scrapeAelia(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from aelia auckland");
          logError(err);
@@ -137,7 +140,7 @@ const scrapingService =async ()=>{
 
       if(!doneQueensland)
       try{
-         doneQueensland = await scrapeAeliaQueensland(start_page,end_page,internalStates);
+         doneQueensland = await scrapeAeliaQueensland(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from aelia queensland");
          logError(err);
@@ -145,7 +148,7 @@ const scrapingService =async ()=>{
 
       if(!doneSydney)
       try{
-         doneSydney = await scrapeHeinemannSydney(start_page,end_page,internalStates);
+         doneSydney = await scrapeHeinemannSydney(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from heinemann sydney");
          logError(err);
@@ -153,7 +156,7 @@ const scrapingService =async ()=>{
 
       if(!doneMelbourne)
       try{
-         doneMelbourne = await scrapeLotteMelbourne(start_page,end_page,internalStates);
+         doneMelbourne = await scrapeLotteMelbourne(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from lotte melbourne");
          logError(err);
@@ -161,7 +164,7 @@ const scrapingService =async ()=>{
 
       if(!doneBrisbane)
       try{
-         doneBrisbane = await scrapeLotteBrisbane(start_page,end_page,internalStates);
+         doneBrisbane = await scrapeLotteBrisbane(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from lotte brisbane");
          logError(err);
@@ -169,7 +172,7 @@ const scrapingService =async ()=>{
 
       if(!doneChristchurch)
       try{
-         doneChristchurch = await scrapeAeliaChristchurch(start_page,end_page,internalStates);
+         doneChristchurch = await scrapeAeliaChristchurch(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from aelia christchruch");
          logError(err);
@@ -177,7 +180,7 @@ const scrapingService =async ()=>{
 
       if(!doneWhiskyAndMore)
       try{
-         doneWhiskyAndMore = await scrapeWhiskyAndMore(start_page,end_page,internalStates);
+         doneWhiskyAndMore = await scrapeWhiskyAndMore(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from whisky and more");
          logError(err);
@@ -185,7 +188,7 @@ const scrapingService =async ()=>{
 
       if(!doneNzLiquor)
       try{
-         doneNzLiquor = await scrapeNzLiquor(start_page,end_page,internalStates);
+         doneNzLiquor = await scrapeNzLiquor(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from nz liquor");
          logError(err);
@@ -193,7 +196,7 @@ const scrapingService =async ()=>{
 
       if(!doneBigBarrel)
       try{
-         doneBigBarrel = await scrapeBigBarrel(start_page,end_page,internalStates);
+         doneBigBarrel = await scrapeBigBarrel(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from big barrel");
          logError(err);
@@ -201,7 +204,7 @@ const scrapingService =async ()=>{
 
       if(!doneSephora)
       try{
-         doneSephora = await scrapeSephora(start_page,end_page,internalStates);
+         doneSephora = await scrapeSephora(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from sephora");
          logError(err);
@@ -209,7 +212,7 @@ const scrapingService =async ()=>{
 
       if(!doneBeautyBliss)
       try{
-         doneBeautyBliss = await scrapeBeautyBliss(start_page,end_page,internalStates);
+         doneBeautyBliss = await scrapeBeautyBliss(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from beauty bliss");
          logError(err);
@@ -217,7 +220,7 @@ const scrapingService =async ()=>{
 
       if(!doneMecca)
       try{
-         doneMecca = await scrapeMecca(start_page,end_page,internalStates);
+         doneMecca = await scrapeMecca(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from mecca");
          logError(err);
@@ -225,7 +228,7 @@ const scrapingService =async ()=>{
 
       if(!doneFarmers)
       try{
-         await scrapeFarmers(start_page,end_page,internalStates);
+         await scrapeFarmers(start_page,end_page,internalStates,browser);
       }
       catch(err){
          console.log("There was an error while scraping from farmers");
@@ -234,7 +237,7 @@ const scrapingService =async ()=>{
 
       if((end_page/1)<=5)
       try{
-         await scrapeChemistWarehouse(end_page/1,end_page);
+         await scrapeChemistWarehouse(end_page/1,end_page,browser);
       }
       catch(err){
          console.log("There was an error while scraping from chemist warehouse");
@@ -246,6 +249,8 @@ const scrapingService =async ()=>{
       await waitForXTime(10000);
    }
    extract_unit_and_quantity();
+
+   await browser.close();
 }
 
 module.exports = scrapingService;

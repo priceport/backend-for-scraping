@@ -2,10 +2,9 @@ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
 
-const wine = async (start,end)=>{
+const wine = async (start,end,browser)=>{
     let pageNo = start-1;
     const url = "https://www.heinemann.com.au/en/sydt1/wine-sparkling-champagne/c/cat_1100/?q=%3Arelevance&page=";
-    const browser = await puppeteer.launch({headless:true,  args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -69,7 +68,6 @@ const wine = async (start,end)=>{
 
     if(products?.length==0||pageNo==(end-1)){ 
         await page.close();
-        await browser.close();
         return allProducts;
       }
         

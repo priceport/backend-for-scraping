@@ -1,11 +1,10 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-const skincare = async (start,end)=>{
+const skincare = async (start,end,browser)=>{
     let pageNo = start;
     const url = 'https://beautybliss.co.nz/product-category/skin-care/?SkipCount=replace_me';
   
-    const browser = await puppeteer.launch({headless:true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
 
     // Enable request interception to block unnecessary resources
@@ -73,7 +72,6 @@ const skincare = async (start,end)=>{
 
           if(products?.length==0||pageNo==end){ 
             await page.close();
-            await browser.close();
             return allProducts;
           }
             
