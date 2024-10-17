@@ -20,8 +20,6 @@ const puppeteer = require('puppeteer');
 const scrapingService =async ()=>{
    console.log("scraping started at:"+Date.now());
 
-   const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
-
    let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false;
    let start_page=1, end_page = 1;
 
@@ -129,6 +127,8 @@ const scrapingService =async ()=>{
    };
 
    while(!doneAuckland||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||end_page<=5){
+
+      const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
       if(!doneAuckland)
       try{
@@ -246,11 +246,12 @@ const scrapingService =async ()=>{
 
       end_page+=1;
       start_page+=1;
+
+      await browser.close();
+      
       await waitForXTime(10000);
    }
    extract_unit_and_quantity();
-
-   await browser.close();
 }
 
 module.exports = scrapingService;
