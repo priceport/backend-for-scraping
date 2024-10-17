@@ -235,20 +235,20 @@ const scrapingService =async ()=>{
          logError(err);
       }
 
-      if((end_page/1)<=5)
-      try{
-         await scrapeChemistWarehouse(end_page/1,end_page,browser);
-      }
-      catch(err){
-         console.log("There was an error while scraping from chemist warehouse");
-         logError(err);
-      }
+      // if((end_page/1)<=5)
+      // try{
+      //    await scrapeChemistWarehouse(end_page/1,end_page,browser);
+      // }
+      // catch(err){
+      //    console.log("There was an error while scraping from chemist warehouse");
+      //    logError(err);
+      // }
 
       end_page+=1;
       start_page+=1;
 
       await browser.close();
-      
+
       await waitForXTime(10000);
    }
    extract_unit_and_quantity();
