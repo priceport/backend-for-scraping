@@ -1,11 +1,16 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const logError = require('../../../../helpers/logError');
 
 
 const spirits = async (start,end,browser)=>{
     let pageNo = start;
     const url = "https://lottedutyfree.com.au/collections/liquor?page=";
     const page = await browser.newPage();
+    const allProducts = [];
+    
+    try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
@@ -20,11 +25,9 @@ const spirits = async (start,end,browser)=>{
           req.abort();  // Block other resources like JS, CSS, images, etc.
           }
     });
-    
-    const allProducts = [];
 
     while(true){
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
 
         // Scrape the product details
@@ -80,6 +83,11 @@ const spirits = async (start,end,browser)=>{
         
     pageNo+=1;
  }
+}catch(err){
+  logError(err);
+  await page.close();
+  return allProducts;
+}
 }
 
 module.exports = spirits;

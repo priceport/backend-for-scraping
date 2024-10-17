@@ -1,6 +1,8 @@
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const logError = require('../../../../helpers/logError');
 
 puppeteer.use(StealthPlugin());
 
@@ -12,11 +14,13 @@ const hair_care = async (start, end, browser) => {
 
     const allProducts = [];
 
+    try{
+
     // Navigate to the initial page
     await page.goto(url, { waitUntil: 'networkidle2' });
 
     while (true) {
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
 
         // Evaluate the product data from the current page
         const products = await page.evaluate(() => {
@@ -76,12 +80,18 @@ const hair_care = async (start, end, browser) => {
         await page.waitForSelector('.product__container', { visible: true });
 
         // Optionally, add a delay to ensure all content is loaded
-        await waitForXTime(3000);
+        await waitForXTime(constants.timeout);
 
         pageNo += 1;
     }
 
     return allProducts;
+
+    }catch(err){
+        logError(err);
+        await page.close();
+        return allProducts;
+    }
 };
 
 module.exports = hair_care;

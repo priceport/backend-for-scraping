@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const logError = require('../../../../helpers/logError');
 
 const beauty = async (start,end,browser)=>{
 
@@ -7,6 +9,9 @@ const beauty = async (start,end,browser)=>{
     const url = 'https://www.aeliadutyfree.co.nz/christchurch/beauty.html?p=';
   
     const page = await browser.newPage();
+    const allProducts = [];
+    
+    try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
@@ -22,11 +27,8 @@ const beauty = async (start,end,browser)=>{
           }
     });
     
-    const allProducts = [];
-
-
     while(true){
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
       
         const products = await page.evaluate(() => {
@@ -80,6 +82,12 @@ const beauty = async (start,end,browser)=>{
             
           pageNo+=1;
         }
+
+      }catch(err){
+        logError(err);
+        await page.close();
+        return allProducts;
+    }
 }
 
 module.exports = beauty;

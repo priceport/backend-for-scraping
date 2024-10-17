@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const logError = require('../../../../helpers/logError');
 
 const special = async (start,end,browser)=>{
 
@@ -7,7 +9,9 @@ const special = async (start,end,browser)=>{
     const url = 'https://bigbarrel.co.nz/en/special?pagenumber=replace_me&orderby=5&pagesize=48';
   
     const page = await browser.newPage();
+    const allProducts = [];
 
+    try{
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
@@ -22,10 +26,8 @@ const special = async (start,end,browser)=>{
          }
     });
 
-    const allProducts = [];
-
     while(true){
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
         await page.goto(url.replace("replace_me",pageNo), {  timeout: 0});
 
         const products = await page.evaluate(() => {
@@ -83,6 +85,12 @@ const special = async (start,end,browser)=>{
             
           pageNo+=1;
         }
+
+      }catch(err){
+        logError(err);
+        await page.close();
+        return allProducts;
+      }
 }
 
 module.exports = special;

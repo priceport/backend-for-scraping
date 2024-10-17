@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const logError = require('../../../../helpers/logError');
 
 const wine = async (start,end,browser)=>{
 
@@ -7,6 +9,9 @@ const wine = async (start,end,browser)=>{
     const url = 'https://nzliquor.online/collections/wine?page=';
   
     const page = await browser.newPage();
+    const allProducts = [];
+    
+    try{
 
     // Enable request interception to block unnecessary resources
     // await page.setRequestInterception(true);
@@ -22,10 +27,8 @@ const wine = async (start,end,browser)=>{
     //      }
     // });
 
-    const allProducts = [];
-
     while(true){
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
         await page.goto(url+pageNo, {  timeout: 0});
 
         const currentPageUrl = page.url();  // Gets the final URL after redirection
@@ -85,6 +88,12 @@ const wine = async (start,end,browser)=>{
             
           pageNo+=1;
         }
+
+      }catch(err){
+        logError(err);
+        await page.close();
+        return allProducts;
+    }
 }
 
 module.exports = wine;

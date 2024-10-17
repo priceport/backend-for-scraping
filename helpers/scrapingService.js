@@ -20,7 +20,7 @@ const puppeteer = require('puppeteer');
 const scrapingService =async ()=>{
    console.log("scraping started at:"+Date.now());
 
-   const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
+   const browser = await puppeteer.launch({headless:false ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
    let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false;
    let start_page=1, end_page = 1;

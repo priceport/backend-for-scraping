@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
 
 const makeup = async (start,end)=>{
     let pageNo = start;
@@ -25,7 +26,7 @@ const makeup = async (start,end)=>{
     const allProducts = [];
 
     while(true){
-        await waitForXTime(2000);
+        await waitForXTime(constants.timeout);
         await page.goto(url.replace("replace_me",pageNo), { waitUntil: 'networkidle2' });
       
         const products = await page.evaluate(() => {
