@@ -4,6 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 
 const bath_care = async (start,end,browser)=>{
+
+    if(start>=12) return [];
+
     let pageNo = start;
     const default_url = 'https://www.farmers.co.nz/beauty/bath-body-care/bath-shower-care';
     const url = 'https://www.farmers.co.nz/beauty/bath-body-care/bath-shower-care/Page-replace_me-SortingAttribute-SortBy-asc';

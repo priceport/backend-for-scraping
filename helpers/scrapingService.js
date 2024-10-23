@@ -20,7 +20,7 @@ const puppeteer = require('puppeteer');
 const scrapingService =async ()=>{
    console.log("scraping started at:"+Date.now());
 
-   let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false;
+   let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false;
    let start_page=1, end_page = 1;
 
    let internalStates = {
@@ -123,10 +123,17 @@ const scrapingService =async ()=>{
          hairaccessories:false,
          skincare:false,
          collegens:false
+      },
+      chemistWarehouse:{
+         fragrance:false,
+         beauty:false,
+         skincare:false,
+         cosmetic:false,
+         haircare:false
       }
    };
 
-   while(!doneAuckland||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||end_page<=5){
+   while(!doneAuckland||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||!doneChemistWarehouse){
 
       const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
@@ -202,14 +209,6 @@ const scrapingService =async ()=>{
          logError(err);
       }
 
-      // if(!doneSephora)
-      // try{
-      //    doneSephora = await scrapeSephora(start_page,end_page,internalStates,browser);
-      // }catch(err){
-      //    console.log("There was an error while scraping from sephora");
-      //    logError(err);
-      // }
-
       if(!doneBeautyBliss)
       try{
          doneBeautyBliss = await scrapeBeautyBliss(start_page,end_page,internalStates,browser);
@@ -228,26 +227,34 @@ const scrapingService =async ()=>{
 
       if(!doneFarmers)
       try{
-         await scrapeFarmers(start_page,end_page,internalStates,browser);
+         doneFarmers = await scrapeFarmers(start_page,end_page,internalStates,browser);
       }
       catch(err){
          console.log("There was an error while scraping from farmers");
          logError(err);
       }
 
-      // if((end_page/1)<=5)
-      // try{
-      //    await scrapeChemistWarehouse(end_page/1,end_page,browser);
-      // }
-      // catch(err){
-      //    console.log("There was an error while scraping from chemist warehouse");
-      //    logError(err);
-      // }
+      await browser.close();
+
+      if(!doneSephora)
+      try{
+         doneSephora = await scrapeSephora(start_page,end_page,internalStates);
+      }catch(err){
+         console.log("There was an error while scraping from sephora");
+         logError(err);
+      }
+
+      if(!doneChemistWarehouse)
+      try{
+         doneChemistWarehouse = await scrapeChemistWarehouse((((end_page/1)-1)*5)+1,(((end_page/1))*5),internalStates);
+      }
+      catch(err){
+         console.log("There was an error while scraping from chemist warehouse");
+         logError(err);
+      }
 
       end_page+=1;
       start_page+=1;
-
-      await browser.close();
 
       await waitForXTime(10000);
    }

@@ -1,6 +1,9 @@
-const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+
+puppeteer.use(StealthPlugin());
 
 const fragrance = async (start,end)=>{
     let pageNo = start;
@@ -8,6 +11,10 @@ const fragrance = async (start,end)=>{
   
     const browser = await puppeteer.launch({headless:true,args:  ['--disable-http2','--no-sandbox', '--disable-setuid-sandbox']});
     const page = await browser.newPage();
+
+    const allProducts = [];
+
+    try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
@@ -80,6 +87,12 @@ const fragrance = async (start,end)=>{
             
           pageNo+=1;
         }
+      }catch(err){
+        logError(err);
+        await page.close();
+        await browser.close();
+        return allProducts;
+      }
 }
 
 module.exports = fragrance;

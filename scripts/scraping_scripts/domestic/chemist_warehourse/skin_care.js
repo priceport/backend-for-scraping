@@ -18,8 +18,57 @@ const skin_care = async (start, end, browser) => {
 
     // Navigate to the initial page
     await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.product__container', { visible: true });
+
+    let activePageElement = await page.$(".pager__button--active.pager__button");
+        let skipMultiplePagesElement = await page.$$(".pager__button.pager__spacer");
+        let prevButtonElement = await page.$(".pager__button.pager__button--prev");
+        let nextBtn = await page.$('.pager__button--next');
+
+        skipMultiplePagesElement = skipMultiplePagesElement[skipMultiplePagesElement.length-1];
+
+        let activePage = await page.evaluate(el => el.innerText, activePageElement);
+
+        while(activePage!=start){
+            if(activePage<start)
+            await skipMultiplePagesElement.click();
+
+            if(activePage>start)
+            await prevButtonElement.click();
+
+            await page.waitForSelector('.product__container', { visible: true });
+
+            await waitForXTime(constants.timeout);
+
+            activePageElement = await page.$(".pager__button--active.pager__button");
+            activePage = await page.evaluate(el => el.innerText, activePageElement);
+            skipMultiplePagesElement = await page.$$(".pager__button.pager__spacer");
+            prevButtonElement = await page.$(".pager__button.pager__button--prev");
+            nextBtn = await page.$('.pager__button--next');
+
+            if(skipMultiplePagesElement?.length==1&&activePage>5){
+                while(nextBtn&&activePage!=start) {
+                    await nextBtn.click();
+
+                    await page.waitForSelector('.product__container', { visible: true });
+            
+                    await waitForXTime(constants.timeout);
+
+                    nextBtn = await page.$('.pager__button--next');
+                };
+
+                if(!nextBtn&&activePage!=start){
+                    await page.close();
+                    return [];
+                }
+            }
+
+            skipMultiplePagesElement = skipMultiplePagesElement[skipMultiplePagesElement.length-1];
+        }
 
     while (true) {
+        console.log("pageNo="+(start+pageNo-1));
+
         await waitForXTime(constants.timeout);
 
         // Evaluate the product data from the current page
@@ -67,9 +116,9 @@ const skin_care = async (start, end, browser) => {
         allProducts.push(...products);
 
         // Check for the next button
-        const nextBtn = await page.$('.pager__button--next');
+        nextBtn = await page.$('.pager__button--next');
 
-        if (!nextBtn) {
+        if (!nextBtn||(start+pageNo-1)>=end) {
             break;  // Exit the loop when there are no more pages
         }
 
@@ -85,6 +134,7 @@ const skin_care = async (start, end, browser) => {
         pageNo += 1;
     }
 
+    await page.close();
     return allProducts;
 
     }catch(err){

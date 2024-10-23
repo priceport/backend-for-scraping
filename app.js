@@ -80,7 +80,7 @@ app.all('*', (req, res, next) => {
 app.use(globalErrorHandler);
 
 //testing pupetter as well as ci/cd
-// scrapingService();
+scrapingService();
 
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('10 0 * * *', scrapingService, {
