@@ -15,6 +15,7 @@ const cron = require('node-cron');
 const AppError = require("./utils/appError.js");
 const globalErrorHandler = require("./controllers/errorController.js");
 const mappingRouter = require("./routes/mapping.routes.js");
+const userRouter = require("./routes/user.routes.js");
 const scrapingService = require("./helpers/scrapingService.js");
 
 //node modules
@@ -69,6 +70,7 @@ app.use(
 
 
 //attaching routers
+app.use("/api/v1/user",userRouter);
 app.use("/api/v1/mapping",mappingRouter);
 
 //Throwing error if no matched route found

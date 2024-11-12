@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Change Password OTP</title>
+    <style>
+        /* Add your CSS styles here */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: black;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            background-color: black;
+            box-shadow: 0 4px 8px 0 rgba(255, 255, 255, 0.2);
+            margin: 20px auto;
+            padding: 40px;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #eee;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #ccc;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .disclaimer {
+            color: #eee;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- <img class="logo" src="https://landing-page-generator.s3.ca-central-1.amazonaws.com/key2alogo+2.png" alt="Certified Reality Logo"> -->
+        <h1>Hello <%= firstName %>,</h1>
+        <p>Your one time password is:</p>
+        <p style="font-size: 40px;"><%= otp %></p>
+        <p>Note: OTP will only be valid for 10mins.</p>
+        <p>Warm Regards,<br/>Team Priceport<br/></p>
+    </div>
+</body>
+</html>
