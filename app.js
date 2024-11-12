@@ -20,8 +20,11 @@ const scrapingService = require("./helpers/scrapingService.js");
 
 //node modules
 const path = require("path");
+const checkMaintenance = require("./utils/checkMaintenance.js");
 
 const app = express();
+
+app.use(checkMaintenance);
 
 // Set EJS as the view engine and specify the views directory
 app.use(express.static('views'));
