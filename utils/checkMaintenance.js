@@ -8,9 +8,9 @@ function checkMaintenance(req, res, next) {
   const currentHour = currentTime.hour;
 
   // Check if the current time is between 12 AM and 7 AM
-  if (currentHour >= 0 && currentHour < 7) {
-    return res.status(503).json({ message: 'Temporary closed for maintenance' });
-  }
+  // if (currentHour >= 0 && currentHour < 7) {
+  //   return res.status(503).json({ message: 'Temporary closed for maintenance' });
+  // }
 
   // If not, proceed with the next middleware
   next();
