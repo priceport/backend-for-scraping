@@ -159,11 +159,11 @@ exports.isLoggedIn = catchAsync(async (req,res,next)=>{
 });
 
 exports.sendEmailOtp = catchAsync(async (req,res,next)=>{
-    let user = req?.body?.user_name;
+    let user = req?.body?.user_name || req?.query?.user_name;
 
     if(!user){
         return next(
-            new AppError('user_name missing from request body',500)
+            new AppError('user_name missing from request body',400)
         );
     }
 
