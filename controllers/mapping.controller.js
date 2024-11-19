@@ -6,7 +6,7 @@ const pool = require("../configs/postgresql.config");
 const source = {
     auckland:"PRODUCT_FROM_AELIA_AUCKLAND",
     queenstown:"PRODUCT_FROM_AELIA_QUEENSLAND",
-    chirstchurch:"PRODUCT_FROM_AELIA_CHRISTCHURCH",
+    christchurch:"PRODUCT_FROM_AELIA_CHRISTCHURCH",
     melbourne:"PRODUCT_FROM_LOTTE_MELBOURNE",
     sydney:"PRODUCT_FROM_HEINEMANN_SYDNEY",
     beauty_bliss:"PRODUCT_FROM_BEAUTY_BLISS",

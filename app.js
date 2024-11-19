@@ -16,6 +16,8 @@ const AppError = require("./utils/appError.js");
 const globalErrorHandler = require("./controllers/errorController.js");
 const mappingRouter = require("./routes/mapping.routes.js");
 const userRouter = require("./routes/user.routes.js");
+const productRouter = require("./routes/product.routes.js");
+
 const scrapingService = require("./helpers/scrapingService.js");
 
 //node modules
@@ -75,6 +77,8 @@ app.use(
 //attaching routers
 app.use("/api/v1/user",userRouter);
 app.use("/api/v1/mapping",mappingRouter);
+app.use("/api/v1/product",productRouter);
+
 
 //Throwing error if no matched route found
 app.all('*', (req, res, next) => {
