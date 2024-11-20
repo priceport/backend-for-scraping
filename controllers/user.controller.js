@@ -133,7 +133,7 @@ exports.login = catchAsync(async (req,res,next)=>{
 
 //check if jwt is present and valid
 exports.isLoggedIn = catchAsync(async (req,res,next)=>{
-    const token = req.cookies.jwt || req.headers.jwt || req.query.jwt;
+    const token = req.cookies.jwt || req.headers?.authorization?.replace("Bearer ","") || req.query.jwt;
     if(!token){
         return next(
             new AppError('Please login!',401)

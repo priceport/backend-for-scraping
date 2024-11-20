@@ -1,13 +1,14 @@
 const router = require('express').Router();
 const MappingController = require('../controllers/mapping.controller.js');
+const UserController = require('../controllers/user.controller.js');
 
 router.route("/")
-.get(MappingController.getAllUnmappedProductsFromSource)
-.post(MappingController.createMapping);
+.get(UserController.isLoggedIn,MappingController.getAllUnmappedProductsFromSource)
+.post(UserController.isLoggedIn,MappingController.createMapping);
 
 router.route("/add-product")
-.patch(MappingController.addProductToMapping)
+.patch(UserController.isLoggedIn,MappingController.addProductToMapping)
 router.route("/similarity")
-.get(MappingController.getSimilarityByTitleFromSource);
+.get(UserController.isLoggedIn,MappingController.getSimilarityByTitleFromSource);
 
 module.exports = router;
