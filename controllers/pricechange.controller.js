@@ -103,6 +103,8 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
     let start_date = req?.query?.start_date;
     let end_date = req?.query?.end_date;
     let locations = req?.query?.locations?.split(",");
+    let diff_value = req?.query?.diff_value;
+    let action = req?.query?.action;
 
     let query=``;
     if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="auckland")!=-1){
@@ -337,12 +339,30 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
         ${query}
     ),
     FilteredChanges AS (
-        SELECT *
+        SELECT *,
+            CASE 
+                WHEN old_price > 0 THEN ((new_price - old_price) / old_price) * 100
+                ELSE NULL
+            END AS percentage_diff
         FROM SourcePriceChanges
-        WHERE old_price IS NOT NULL -- Ensure there’s a previous price
-          AND new_price != old_price -- Include only if the price actually changed
-          AND ($3::DATE IS NULL OR new_price_date >= $3) -- Start date filter
-          AND ($4::DATE IS NULL OR new_price_date <= $4) -- End date filter
+        WHERE 
+            old_price IS NOT NULL 
+            AND new_price != old_price
+            AND ($3::DATE IS NULL OR new_price_date >= $3) -- Start date filter
+            AND ($4::DATE IS NULL OR new_price_date <= $4) -- End date filter
+    ),
+    ConditionFiltered AS (
+        SELECT *
+        FROM FilteredChanges
+        WHERE 
+            CASE
+                WHEN $6 = 'equal' THEN percentage_diff = $5::FLOAT
+                WHEN $6 = 'greater_than' THEN percentage_diff > $5::FLOAT
+                WHEN $6 = 'greater_than_equal' THEN percentage_diff >= $5::FLOAT
+                WHEN $6 = 'less_than' THEN percentage_diff < $5::FLOAT
+                WHEN $6 = 'less_than_equal' THEN percentage_diff <= $5::FLOAT
+                ELSE TRUE -- Default to no filtering if action is invalid or NULL
+            END
     ),
     LatestAucklandPrices AS (
         SELECT
@@ -352,20 +372,26 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
         FROM product_from_aelia_auckland pfa
         JOIN price_from_aelia_auckland pfaa
             ON pfaa.prod_id = pfa.id
-        WHERE pfaa.date = (SELECT MAX(date) FROM price_from_aelia_auckland WHERE prod_id = pfa.id)
+        WHERE pfaa.date = (
+            SELECT date
+            FROM price_from_aelia_auckland
+            WHERE prod_id = pfa.id
+            ORDER BY date DESC LIMIT 1
+        )
     )
     SELECT 
-        fsc.*,
-        fsc.new_price_date,
-        fsc.new_price,
-        fsc.old_price,
+        cf.*,
+        cf.new_price_date,
+        cf.new_price,
+        cf.old_price,
+        cf.percentage_diff,
         lap.latest_auckland_price
-    FROM FilteredChanges fsc
+    FROM ConditionFiltered cf
     LEFT JOIN LatestAucklandPrices lap
-        ON fsc.source_canprod_id = lap.auckland_canprod_id
-    ORDER BY fsc.new_price_date DESC
-    LIMIT $5 OFFSET $6;    
-    `,[brand, category,start_date, end_date, limit,offset]);
+        ON cf.source_canprod_id = lap.auckland_canprod_id
+    ORDER BY cf.new_price_date DESC
+    LIMIT $7 OFFSET $8;    
+    `,[brand, category,start_date, end_date, diff_value, action, limit,offset]);
 
     return res.status(200).json({
         status:"success",
