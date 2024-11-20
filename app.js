@@ -17,6 +17,7 @@ const globalErrorHandler = require("./controllers/errorController.js");
 const mappingRouter = require("./routes/mapping.routes.js");
 const userRouter = require("./routes/user.routes.js");
 const productRouter = require("./routes/product.routes.js");
+const pricechangeRouter = require("./routes/pricechange.routes.js");
 
 const scrapingService = require("./helpers/scrapingService.js");
 
@@ -78,6 +79,7 @@ app.use(
 app.use("/api/v1/user",userRouter);
 app.use("/api/v1/mapping",mappingRouter);
 app.use("/api/v1/product",productRouter);
+app.use("/api/v1/price-change",pricechangeRouter);
 
 
 //Throwing error if no matched route found
