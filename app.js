@@ -98,7 +98,7 @@ app.use(globalErrorHandler);
 // scrapingService();
 
 // Schedule the task to run at 12 AM New Zealand Time
-cron.schedule('0 10 * * *', scrapingService, {
+cron.schedule('42 8 * * *', scrapingService, {
   scheduled: true,
   timezone: 'Pacific/Auckland', // New Zealand timezone
 });
