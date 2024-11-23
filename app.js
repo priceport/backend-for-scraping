@@ -19,7 +19,7 @@ const userRouter = require("./routes/user.routes.js");
 const productRouter = require("./routes/product.routes.js");
 const pricechangeRouter = require("./routes/pricechange.routes.js");
 const watchlistRouter = require("./routes/watchlist.routes.js");
-
+// const analyticsRouter = require("./routes/analytics.routes.js");
 
 const scrapingService = require("./helpers/scrapingService.js");
 
@@ -83,6 +83,8 @@ app.use("/api/v1/mapping",mappingRouter);
 app.use("/api/v1/product",productRouter);
 app.use("/api/v1/price-change",pricechangeRouter);
 app.use("/api/v1/watchlist",watchlistRouter);
+// app.use("/api/v1/analytics",analyticsRouter);
+
 
 //Throwing error if no matched route found
 app.all('*', (req, res, next) => {
@@ -96,7 +98,7 @@ app.use(globalErrorHandler);
 // scrapingService();
 
 // Schedule the task to run at 12 AM New Zealand Time
-cron.schedule('0 0 * * *', scrapingService, {
+cron.schedule('0 4 * * *', scrapingService, {
   scheduled: true,
   timezone: 'Pacific/Auckland', // New Zealand timezone
 });
