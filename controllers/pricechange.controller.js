@@ -3,94 +3,89 @@ const catchAsync = require("../utils/catchAsync");
 
 exports.priceChangeGraph = catchAsync(async (req,res,next)=>{
 
-    const start_date = req?.query?.start_date;
-    const end_date = req?.query?.end_date;
+    const start_date = req?.query?.start_date || null;
+    const end_date = req?.query?.end_date || null;
+    const sources = req?.query?.sources?.split(",") || null;
+    const parts = (parseInt(req?.query?.parts)-1) || null;
+    const limit = req?.query?.limit;
+    const offset = req?.query?.offset;
 
-    let query,queryArr=[];
-
-    if(start_date&&end_date){
-        query=`WITH DateRange AS (
-            SELECT 
-                $1::date AS start_date, -- Custom start date
-                $2::date AS end_date   -- Custom end date
-        ),
-        TenDates AS (
-            SELECT 
-                start_date + ((n * (end_date - start_date) / 10) * INTERVAL '1 day') AS snapshot_date
-            FROM DateRange, generate_series(1, 10) n
-        ),
-        PriceChanges AS (
-            SELECT 
-                pfa.date AS current_date,
-                pfa.prod_id,
-                pfa.price AS current_price,
-                LAG(pfa.price) OVER (PARTITION BY pfa.prod_id ORDER BY pfa.date) AS previous_price
-            FROM price_from_aelia_auckland pfa
-        ),
-        ChangeCounts AS (
-            SELECT 
-                td.snapshot_date::date AS snapshot_date,
-                COUNT(CASE WHEN pc.current_price > pc.previous_price THEN 1 END) AS increased_count,
-                COUNT(CASE WHEN pc.current_price < pc.previous_price THEN 1 END) AS decreased_count
-            FROM TenDates td
-            LEFT JOIN PriceChanges pc
-                ON pc.current_date = td.snapshot_date::date
-            GROUP BY td.snapshot_date
-        )
+    const graphData = await pool.query(`
+    WITH date_bounds AS (
+        SELECT 
+            COALESCE($1::DATE, MIN(date)) AS start_date, -- Use provided start_date or minimum date
+            COALESCE($2::DATE, MAX(date)) AS end_date   -- Use provided end_date or maximum date
+        FROM 
+            price
+    ),
+    date_range AS (
+        SELECT 
+            generate_series(
+                (SELECT start_date FROM date_bounds),
+                (SELECT end_date FROM date_bounds),
+                '1 day'::INTERVAL
+            )::DATE AS snapshot_date
+    ),
+    interval_dates AS (
         SELECT 
             snapshot_date,
-            COALESCE(increased_count, 0) AS increased_count,
-            COALESCE(decreased_count, 0) AS decreased_count
-        FROM ChangeCounts
-        ORDER BY snapshot_date;
-        `;
-        queryArr=[start_date,end_date];
-    }
-    else{
-        query=`WITH DateRange AS (
-            SELECT 
-                MIN(date) AS start_date,
-                MAX(date) AS end_date
-            FROM price_from_aelia_auckland
-        ),
-        TenDates AS (
-            SELECT 
-                start_date + ((n * (end_date - start_date) / 10) * INTERVAL '1 day') AS snapshot_date
-            FROM DateRange, generate_series(1, 10) n
-        ),
-        PriceChanges AS (
-            SELECT 
-                pfa.date AS current_date,
-                pfa.prod_id,
-                pfa.price AS current_price,
-                LAG(pfa.price) OVER (PARTITION BY pfa.prod_id ORDER BY pfa.date) AS previous_price
-            FROM price_from_aelia_auckland pfa
-        ),
-        ChangeCounts AS (
-            SELECT 
-                td.snapshot_date::date AS snapshot_date,
-                COUNT(CASE WHEN pc.current_price > pc.previous_price THEN 1 END) AS increased_count,
-                COUNT(CASE WHEN pc.current_price < pc.previous_price THEN 1 END) AS decreased_count,
-                COUNT(CASE WHEN pc.current_price = pc.previous_price THEN 1 END) AS same_count
-            FROM TenDates td
-            LEFT JOIN PriceChanges pc
-                ON pc.current_date = td.snapshot_date::date
-            GROUP BY td.snapshot_date
-        )
+            ROW_NUMBER() OVER (ORDER BY snapshot_date) AS row_num,
+            (SELECT COUNT(*) FROM date_range) AS total_days
+        FROM 
+            date_range
+    ),
+    selected_dates AS (
         SELECT 
-            snapshot_date,
-            COALESCE(increased_count, 0) AS increased_count,
-            COALESCE(decreased_count, 0) AS decreased_count
-        FROM ChangeCounts
-        ORDER BY snapshot_date;`
-    }
-
-    const data = await pool.query(query,queryArr);
+            snapshot_date
+        FROM 
+            interval_dates
+        WHERE 
+            $4::INTEGER IS NULL -- If parts is not provided, include all dates
+            OR row_num = 1 -- Always include the first date
+            OR row_num = total_days -- Always include the last date
+            OR MOD((row_num - 1), CEIL(total_days::NUMERIC / $4::NUMERIC)) = 0 -- Select spaced dates
+    )
+    SELECT 
+        pc.snapshot_date,
+        COUNT(CASE WHEN pc.price_change = 'increased' THEN 1 END) AS increased_count,
+        COUNT(CASE WHEN pc.price_change = 'decreased' THEN 1 END) AS decreased_count
+    FROM 
+        (
+            SELECT 
+                p1.product_id,
+                p1.website,
+                p1.date AS snapshot_date,
+                CASE 
+                    WHEN p1.price > p2.price THEN 'increased'
+                    WHEN p1.price < p2.price THEN 'decreased'
+                    ELSE 'unchanged'
+                END AS price_change
+            FROM 
+                price p1
+            LEFT JOIN 
+                price p2 
+            ON 
+                p1.product_id = p2.product_id 
+                AND p1.website = p2.website
+                AND p1.date = p2.date + INTERVAL '1 day'
+            WHERE 
+                (COALESCE($1::DATE, (SELECT MIN(date) FROM price)) IS NULL OR p1.date >= COALESCE($1::DATE, (SELECT MIN(date) FROM price))) -- Start date filter
+                AND (COALESCE($2::DATE, (SELECT MAX(date) FROM price)) IS NULL OR p1.date <= COALESCE($2::DATE, (SELECT MAX(date) FROM price))) -- End date filter
+                AND ($3::TEXT[] IS NULL OR p1.website = ANY($3)) -- Website filter
+        ) AS pc
+    WHERE 
+        pc.snapshot_date IN (SELECT snapshot_date FROM selected_dates)
+    GROUP BY 
+        pc.snapshot_date
+    ORDER BY 
+        pc.snapshot_date
+    LIMIT $5::INTEGER OFFSET $6::INTEGER;                      
+    `,[start_date,end_date,sources,parts,limit,offset]);
 
     return res.status(200).json({
         status:"success",
         message:"Price changes graph fetched succesfully",
-        data:data.rows
+        data:graphData?.rows
     })
 });
 
@@ -98,304 +93,127 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
 
     let limit = req?.query?.limit;
     let offset = req?.query?.offset;
-    let category = req?.query?.category?.split(",");
-    let brand = req?.query?.brand?.split(",");
-    let start_date = req?.query?.start_date;
-    let end_date = req?.query?.end_date;
-    let locations = req?.query?.locations?.split(",");
-    let diff_value = req?.query?.diff_value;
-    let action = req?.query?.action;
+    let category = req?.query?.category?.split(",") || null;
+    let brand = req?.query?.brand?.split(",") || null;
+    let start_date = req?.query?.start_date ||null;
+    let end_date = req?.query?.end_date || null;
+    let locations = req?.query?.locations?.split(",") || null;
+    let diff_value = req?.query?.diff_value || null;
+    let action = req?.query?.action || null;
+    let sourceQuery = req?.query?.source;
 
-    let query=``;
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="auckland")!=-1){
-        query+=`
-        SELECT
-        paa.*,
-        ppaa.date AS new_price_date,
-        ppaa.price AS new_price,
-        LAG(ppaa.price) OVER (PARTITION BY ppaa.prod_id ORDER BY ppaa.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        paa.canprod_id AS source_canprod_id
-        FROM price_from_aelia_auckland ppaa
-        JOIN product_from_aelia_auckland paa
-        ON ppaa.prod_id = paa.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR paa.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR paa.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="christchurch")!=-1){
-        query+=`
-        SELECT
-        pac.*,
-        ppac.date AS new_price_date,
-        ppac.price AS new_price,
-        LAG(ppac.price) OVER (PARTITION BY ppac.prod_id ORDER BY ppac.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pac.canprod_id AS source_canprod_id
-        FROM price_from_aelia_christchurch ppac
-        JOIN product_from_aelia_christchurch pac
-        ON ppac.prod_id = pac.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pac.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pac.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="beauty_bliss")!=-1){
-        query+=`
-        SELECT
-        pbb.*,
-        ppbb.date AS new_price_date,
-        ppbb.price AS new_price,
-        LAG(ppbb.price) OVER (PARTITION BY ppbb.prod_id ORDER BY ppbb.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pbb.canprod_id AS source_canprod_id
-        FROM price_from_beauty_bliss ppbb
-        JOIN product_from_beauty_bliss pbb
-        ON ppbb.prod_id = pbb.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pbb.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pbb.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="big_barrel")!=-1){
-        query+=`
-        SELECT
-        pbab.*,
-        ppbab.date AS new_price_date,
-        ppbab.price AS new_price,
-        LAG(ppbab.price) OVER (PARTITION BY ppbab.prod_id ORDER BY ppbab.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pbab.canprod_id AS source_canprod_id
-        FROM price_from_big_barrel ppbab
-        JOIN product_from_big_barrel pbab
-        ON ppbab.prod_id = pbab.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pbab.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pbab.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="chemist_warehouse")!=-1){
-        query+=`
-        SELECT
-        pcw.*,
-        ppcw.date AS new_price_date,
-        ppcw.price AS new_price,
-        LAG(ppcw.price) OVER (PARTITION BY ppcw.prod_id ORDER BY ppcw.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pcw.canprod_id AS source_canprod_id
-        FROM price_from_chemist_warehouse ppcw
-        JOIN product_from_chemist_warehouse pcw
-        ON ppcw.prod_id = pcw.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pcw.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pcw.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="farmers")!=-1){
-        query+=`
-        SELECT
-        pf.*,
-        ppf.date AS new_price_date,
-        ppf.price AS new_price,
-        LAG(ppf.price) OVER (PARTITION BY ppf.prod_id ORDER BY ppf.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pf.canprod_id AS source_canprod_id
-        FROM price_from_farmers ppf
-        JOIN product_from_farmers pf
-        ON ppf.prod_id = pf.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pf.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pf.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="brisbane")!=-1){
-        query+=`
-        SELECT
-        plb.*,
-        pplb.date AS new_price_date,
-        pplb.price AS new_price,
-        LAG(pplb.price) OVER (PARTITION BY pplb.prod_id ORDER BY pplb.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        plb.canprod_id AS source_canprod_id
-        FROM price_from_lotte_brisbane pplb
-        JOIN product_from_lotte_brisbane plb
-        ON pplb.prod_id = plb.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR plb.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR plb.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="mecca")!=-1){
-        query+=`
-        SELECT
-        pm.*,
-        ppm.date AS new_price_date,
-        ppm.price AS new_price,
-        LAG(ppm.price) OVER (PARTITION BY ppm.prod_id ORDER BY ppm.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pm.canprod_id AS source_canprod_id
-        FROM price_from_mecca ppm
-        JOIN product_from_mecca pm
-        ON ppm.prod_id = pm.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pm.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pm.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="nz_liquor")!=-1){
-        query+=`
-        SELECT
-        pnzl.*,
-        ppnzl.date AS new_price_date,
-        ppnzl.price AS new_price,
-        LAG(ppnzl.price) OVER (PARTITION BY ppnzl.prod_id ORDER BY ppnzl.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pnzl.canprod_id AS source_canprod_id
-        FROM price_from_nzliquor ppnzl
-        JOIN product_from_nzliquor pnzl
-        ON ppnzl.prod_id = pnzl.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pnzl.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pnzl.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="sephora")!=-1){
-        query+=`
-        SELECT
-        ps.*,
-        pps.date AS new_price_date,
-        pps.price AS new_price,
-        LAG(pps.price) OVER (PARTITION BY pps.prod_id ORDER BY pps.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        ps.canprod_id AS source_canprod_id
-        FROM price_from_sephora pps
-        JOIN product_from_sephora ps
-        ON pps.prod_id = ps.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR ps.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR ps.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="whisky_and_more")!=-1){
-        query+=`
-        SELECT
-        pwam.*,
-        ppwam.date AS new_price_date,
-        ppwam.price AS new_price,
-        LAG(ppwam.price) OVER (PARTITION BY ppwam.prod_id ORDER BY ppwam.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pwam.canprod_id AS source_canprod_id
-        FROM price_from_whisky_and_more ppwam
-        JOIN product_from_whisky_and_more pwam
-        ON ppwam.prod_id = pwam.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pwam.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pwam.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="sydney")!=-1){
-        query+=`
-        SELECT
-        pws.*,
-        ps.date AS new_price_date,
-        ps.price AS new_price,
-        LAG(ps.price) OVER (PARTITION BY ps.prod_id ORDER BY ps.date ASC) AS old_price, -- ASC ensures earlier dates come first
-        pws.canprod_id AS source_canprod_id
-        FROM price_from_heinemann_sydney ps
-        JOIN product_from_heinemann_sydney pws
-        ON ps.prod_id = pws.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pws.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pws.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="melbourne")!=-1){
-        query+=`
-        SELECT
-        pwm.*,
-        pm.date AS new_price_date,
-        pm.price AS new_price,
-        LAG(pm.price) OVER (PARTITION BY pm.prod_id ORDER BY pm.date ASC) AS old_price,
-        pwm.canprod_id AS source_canprod_id
-        FROM price_from_lotte_melbourne pm
-        JOIN product_from_lotte_melbourne pwm
-        ON pm.prod_id = pwm.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pwm.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pwm.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
-    if(!locations||locations[0]=="all"||locations?.findIndex(el=>el=="queenstown")!=-1){
-        query+=`
-        SELECT
-        pwq.*,
-        pq.date AS new_price_date,
-        pq.price AS new_price,
-        LAG(pq.price) OVER (PARTITION BY pq.prod_id ORDER BY pq.date ASC) AS old_price,
-        pwq.canprod_id AS source_canprod_id
-    FROM price_from_aelia_queensland pq
-    JOIN product_from_aelia_queensland pwq
-        ON pq.prod_id = pwq.id
-        WHERE 
-        ($1::TEXT[] IS NULL OR pwq.brand = ANY($1)) -- Filter by brand
-        AND ($2::TEXT[] IS NULL OR pwq.category = ANY($2)) -- Filter by category
-        UNION ALL`;
-    }
+    console.log(sourceQuery,locations);
 
-    if(query?.length!=0) query = query.replace(/\s*UNION ALL\s*$/i, "")
-    
-    const data = await pool.query(`
-    WITH SourcePriceChanges AS (
-        ${query}
-    ),
-    FilteredChanges AS (
-        SELECT *,
+    const liveStats = await pool.query(`
+    WITH price_changes AS (
+        SELECT
+            p.title,
+            p.brand,
+            p.description,
+            p.alcohol,
+            p.canprod_id,
+            p.url,
+            p.image_url,
+            p.qty,
+            p.unit,
+            p.created_at,
+            p.last_checked,
+            p.category,
+            p.sub_category,
+            pr1.product_id,
+            pr1.website,
+            pr1.date AS new_price_date,
+            pr1.price AS new_price,
+            LAG(pr1.price) OVER (PARTITION BY pr1.product_id ORDER BY pr1.date) AS old_price,
             CASE 
-                WHEN old_price > 0 THEN ((new_price - old_price) / old_price) * 100
+                WHEN LAG(pr1.price) OVER (PARTITION BY pr1.product_id ORDER BY pr1.date) > 0 THEN
+                    ROUND(
+                        ((pr1.price - LAG(pr1.price) OVER (PARTITION BY pr1.product_id ORDER BY pr1.date)) 
+                         / LAG(pr1.price) OVER (PARTITION BY pr1.product_id ORDER BY pr1.date)) * 100,
+                        2
+                    )
                 ELSE NULL
             END AS percentage_diff
-        FROM SourcePriceChanges
-        WHERE 
-            old_price IS NOT NULL 
-            AND new_price != old_price
-            AND ($3::DATE IS NULL OR new_price_date >= $3) -- Start date filter
-            AND ($4::DATE IS NULL OR new_price_date <= $4) -- End date filter
+        FROM
+            price pr1
+        JOIN
+            product p ON pr1.product_id = p.id
     ),
-    ConditionFiltered AS (
-        SELECT *
-        FROM FilteredChanges
-        WHERE 
-            CASE
-                WHEN $6 = 'equal' THEN percentage_diff = $5::FLOAT
-                WHEN $6 = 'greater_than' THEN percentage_diff > $5::FLOAT
-                WHEN $6 = 'greater_than_equal' THEN percentage_diff >= $5::FLOAT
-                WHEN $6 = 'less_than' THEN percentage_diff < $5::FLOAT
-                WHEN $6 = 'less_than_equal' THEN percentage_diff <= $5::FLOAT
-                ELSE TRUE -- Default to no filtering if action is invalid or NULL
-            END
-    ),
-    LatestAucklandPrices AS (
+    latest_source_price AS (
         SELECT
-            pfa.id AS auckland_prod_id,
-            pfa.canprod_id AS auckland_canprod_id,
-            pfaa.price AS latest_auckland_price
-        FROM product_from_aelia_auckland pfa
-        JOIN price_from_aelia_auckland pfaa
-            ON pfaa.prod_id = pfa.id
-        WHERE pfaa.date = (
-            SELECT date
-            FROM price_from_aelia_auckland
-            WHERE prod_id = pfa.id
-            ORDER BY date DESC LIMIT 1
-        )
+            cp.id AS source_canprod_id,
+            MAX(pr.date) AS latest_date,
+            pr.price AS latest_price
+        FROM
+            cannonical_product cp
+        LEFT JOIN
+            product p ON p.canprod_id = cp.id
+        LEFT JOIN
+            price pr ON pr.product_id = p.id
+        WHERE
+            p.website = $6 -- Use sourceWebsite parameter
+        GROUP BY
+            cp.id, pr.price
+    ),
+    website_filter AS (
+        SELECT DISTINCT website
+        FROM product
+        WHERE $5::VARCHAR[] IS NULL OR website = ANY($5::VARCHAR[]) -- Filter by websites if provided
     )
-    SELECT 
-        cf.*,
-        cf.new_price_date,
-        cf.new_price,
-        cf.old_price,
-        cf.percentage_diff,
-        lap.latest_auckland_price
-    FROM ConditionFiltered cf
-    LEFT JOIN LatestAucklandPrices lap
-        ON cf.source_canprod_id = lap.auckland_canprod_id
-    ORDER BY cf.new_price_date DESC
-    LIMIT $7 OFFSET $8;    
-    `,[brand, category,start_date, end_date, diff_value, action, limit,offset]);
-
+SELECT
+    pc.title,
+    pc.brand,
+    pc.description,
+    pc.alcohol,
+    pc.canprod_id,
+    pc.url,
+    pc.image_url,
+    pc.qty,
+    pc.unit,
+    pc.created_at,
+    pc.last_checked,
+    pc.category,
+    pc.sub_category,
+    pc.new_price_date,
+    pc.new_price,
+    pc.old_price,
+    pc.percentage_diff,
+    lsp.latest_price AS latest_source_price,
+    pc.website
+FROM
+    price_changes pc
+LEFT JOIN
+    latest_source_price lsp ON pc.canprod_id = lsp.source_canprod_id
+JOIN
+    website_filter wf ON pc.website = wf.website -- Apply website filtering
+WHERE
+    pc.old_price IS NOT NULL -- Exclude entries without price changes
+    AND pc.new_price != pc.old_price -- Exclude entries where prices are the same
+    AND ($1::VARCHAR[] IS NULL OR pc.brand = ANY($1::VARCHAR[])) -- Filter by brands
+    AND ($2::VARCHAR[] IS NULL OR pc.category = ANY($2::VARCHAR[])) -- Filter by categories
+    AND ($3::DATE IS NULL OR pc.new_price_date >= $3::DATE) -- Filter by start date
+    AND ($4::DATE IS NULL OR pc.new_price_date <= $4::DATE) -- Filter by end date
+    AND (
+        $7::TEXT IS NULL OR (
+            $7 = 'equal' AND pc.percentage_diff = $8
+        ) OR (
+            $7 = 'greater_than' AND pc.percentage_diff > $8
+        ) OR (
+            $7 = 'greater_than_equal_to' AND pc.percentage_diff >= $8
+        ) OR (
+            $7 = 'less_than' AND pc.percentage_diff < $8
+        ) OR (
+            $7 = 'less_than_equal_to' AND pc.percentage_diff <= $8
+        )
+    ) -- Dynamic filter based on action_type and action_value
+ORDER BY
+    pc.new_price_date DESC
+    OFFSET $9 LIMIT $10;               
+    `,[brand,category,start_date,end_date,locations,sourceQuery,action,diff_value,offset,limit])
+    
     return res.status(200).json({
         status:"success",
         message:"Live price monitoring",
-        data:data.rows
+        data:liveStats.rows
     })
 })

@@ -25,14 +25,14 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
             new AppError(`source missing from request query!`,400)
         );
     }
+    
+    let source_query = req?.query?.source;
 
-    let source_table = source[req?.query?.source];
-
-    if(!source_table) return next(
-        new AppError("Invalid source value",400)
+    if(!source_query) return next(
+        new AppError("Source value required",400)
     )
 
-    const products = await pool.query(`SELECT * FROM ${source_table} WHERE canprod_id IS NULL`);
+    const products = await pool.query(`SELECT * FROM product WHERE canprod_id IS NULL AND website = $1`,[source_query]);
 
     return res.status(200).json({
         status:"successful",
@@ -42,108 +42,160 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     })
 });
 
-const getSimilarityByTitleFromSource = catchAsync(async (req,res,next)=>{
-    if(!req.query.title||!req.query.source){
+const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
+    if (!req.query.title || !req.query.source) {
         return next(
-            new AppError(`Something missing from request query!`,400)
+            new AppError(`Something missing from request query!`, 400)
         );
     }
 
-    let source_table = source[req?.query?.source];
+    const { title, source } = req.query;
 
-    if(!source_table) return next(
-        new AppError("Invalid source value",400)
-    )
+    let result, matches = {}, similarity = 1.0;
 
-    let result,match={},similarity = 1.0,location;
+    while (similarity > 0) {
+        // Query all other websites except the source
+        result = await pool.query(
+            `SELECT 
+                source.*,
+                destination.*
+             FROM 
+                product AS source
+             JOIN 
+                product AS destination
+             ON 
+                source.title = $1 
+                AND source.brand = destination.brand 
+                AND SIMILARITY(source.title, destination.title) > $2
+                AND destination.website != $3
+             WHERE 
+                source.website = $3
+                AND source.id != destination.id`,
+            [title, similarity, source]
+        );
 
-    while(similarity>0){
-        for(let key of Object.keys(source)){
-            if(key == req?.query?.source) continue;
-
-            result = await pool.query(`SELECT * FROM ${source_table} AS source JOIN ${source[key]} AS destination ON source.title = $1 AND source.brand = destination.brand AND SIMILARITY(source.title, destination.title) > ${similarity}`,[req?.query?.title]);
-            
-            if(result?.rows?.length > 0) {
-                if(!match[similarity]) match[similarity] = [];
-
-                match[similarity].push(result?.rows);
-                // location = key;
-            }
-            
-            // if(match?.rows[0]?.canprod_id !=null) break;
+        if (result?.rows?.length > 0) {
+            if (!matches[similarity]) matches[similarity] = [];
+            matches[similarity].push(...result.rows);
         }
-
-        // if(match?.rows?.length > 0) break;
 
         similarity = (parseFloat(similarity) - 0.1).toFixed(1);
     }
 
     return res.status(200).json({
-        status:"successful",
-        data:{
-            match
-        }
-    })
+        status: "successful",
+        data: {
+            matches,
+        },
+    });
 });
 
-const createMapping = catchAsync(async (req,res,next)=>{
-    const isComplete = isBodyComplete(req,["source_1","source_2","id_1","id_2","name"]);
-    if(!isComplete[0]){
+
+const createMapping = catchAsync(async (req, res, next) => {
+    // Validate the required fields in the request body
+    const isComplete = isBodyComplete(req, ["source_1", "source_2", "id_1", "id_2", "name"]);
+    if (!isComplete[0]) {
         return next(
-            new AppError(`${isComplete[1]} missing from request body!`,400)
+            new AppError(`${isComplete[1]} missing from request body!`, 400)
         );
     }
 
-    const table_1 = source[req?.body?.source_1];
-    const table_2 = source[req?.body?.source_2];
+    const { source_1, source_2, id_1, id_2, name } = req.body;
 
-    if(!table_1||!table_2) return next(
-        new AppError(`Invalid source value!`,400)
-    )
-
-    const cannonical = await pool.query(`INSERT INTO cannonical_product(title) VALUES($1) returning *`,[req?.body?.name]);
-
-    if(!cannonical.rows[0]) return next(
-        new AppError(`Something went wrong!`,500)
-    )
-
-    let change_1 = await pool.query(`UPDATE ${table_1} SET canprod_id = $1 WHERE id=$2 returning *`,[cannonical?.rows[0]?.id,req?.body?.id_1]);
-    let change_2 = await pool.query(`UPDATE ${table_2} SET canprod_id = $1 WHERE id=$2 returning *`,[cannonical?.rows[0]?.id,req?.body?.id_2]);
-
-    return res?.status(200)?.json({
-        status:"successful",
-        data:{
-            cannonical:cannonical?.rows,
-            change_1:change_1?.rows,
-            change_2:change_2?.rows
-        }
-    })
-})
-
-
-const addProductToMapping = catchAsync(async (req,res,next)=>{
-    const isComplete = isBodyComplete(req,["source","id","canprod_id"]);
-    if(!isComplete[0]){
+    // Validate the provided sources
+    if (!source_1 || !source_2) {
         return next(
-            new AppError(`${isComplete[1]} missing from request body!`,400)
+            new AppError(`Invalid source value!`, 400)
         );
     }
 
-    let source_table = source[req?.body?.source];
+    // Insert into the canonical_product table
+    const canonical = await pool.query(
+        `INSERT INTO cannonical_product(title) VALUES($1) RETURNING *`,
+        [name]
+    );
 
-    if(!source_table) return next(
-        new AppError("Invalid source value",400)
-    )
+    if (!canonical.rows[0]) {
+        return next(
+            new AppError(`Something went wrong while creating canonical product!`, 500)
+        );
+    }
 
-    const updated_prod = await pool.query(`UPDATE ${source_table} SET canprod_id = $1 WHERE id=$2 returning *`,[req?.body?.canprod_id,req?.body?.id]);
+    const canonicalId = canonical.rows[0].id;
 
+    // Update products from source_1 and source_2 to map them to the canonical product
+    const change_1 = await pool.query(
+        `UPDATE product SET canprod_id = $1 WHERE id = $2 AND website = $3 RETURNING *`,
+        [canonicalId, id_1, source_1]
+    );
+
+    const change_2 = await pool.query(
+        `UPDATE product SET canprod_id = $1 WHERE id = $2 AND website = $3 RETURNING *`,
+        [canonicalId, id_2, source_2]
+    );
+
+    // Check if updates were successful
+    if (!change_1.rows[0] || !change_2.rows[0]) {
+        return next(
+            new AppError(`Failed to update one or both source products!`, 500)
+        );
+    }
+
+    // Respond with the created canonical product and updated mappings
     return res.status(200).json({
-        status:"successful",
-        data:{
-            change:updated_prod.rows
-        }
-    })
+        status: "successful",
+        data: {
+            canonical: canonical.rows[0],
+            change_1: change_1.rows[0],
+            change_2: change_2.rows[0],
+        },
+    });
 });
+
+
+const addProductToMapping = catchAsync(async (req, res, next) => {
+    // Validate the required fields in the request body
+    const isComplete = isBodyComplete(req, ["source", "id", "canprod_id"]);
+    if (!isComplete[0]) {
+        return next(
+            new AppError(`${isComplete[1]} missing from request body!`, 400)
+        );
+    }
+
+    const { source, id, canprod_id } = req.body;
+
+    // Validate the source website
+    if (!source) {
+        return next(
+            new AppError("Invalid source value!", 400)
+        );
+    }
+
+    // Update the product to associate it with the canonical product
+    const updatedProduct = await pool.query(
+        `UPDATE product 
+         SET canprod_id = $1 
+         WHERE id = $2 AND website = $3 
+         RETURNING *`,
+        [canprod_id, id, source]
+    );
+
+    // Check if the update was successful
+    if (!updatedProduct.rows[0]) {
+        return next(
+            new AppError("Failed to update product mapping!", 500)
+        );
+    }
+
+    // Respond with the updated product
+    return res.status(200).json({
+        status: "successful",
+        data: {
+            change: updatedProduct.rows[0]
+        }
+    });
+});
+
 
 module.exports = {
     getAllUnmappedProductsFromSource,
