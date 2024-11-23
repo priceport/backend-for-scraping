@@ -17,7 +17,7 @@ const updateDBEntry = async (data) =>{
 
             if(product.rowCount==0){
                 //if no create one
-                product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,sub_category,website) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,sub_category,"sephora"]);
+                product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,sub_category,website,tag) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,sub_category,"sephora","domestic"]);
                 await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"sephora"]);
                 //promo insertion logic
             }

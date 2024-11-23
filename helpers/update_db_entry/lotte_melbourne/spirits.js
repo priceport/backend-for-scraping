@@ -18,7 +18,7 @@ const updateDBEntry = async (data) =>{
 
             if(product.rowCount==0){
                 //if no create one
-                product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,website) values($1, $2, $3, $4, $5, $6, $7, $8,$9) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,"lotte_melbourne"]);
+                product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,website,tag) values($1, $2, $3, $4, $5, $6, $7, $8,$9, $10) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,"lotte_melbourne","duty-free"]);
                 
                 //promo insertion logic
             }

@@ -41,7 +41,7 @@ const updateDBEntry = async (data) =>{
                     }
                   
                 console.log("promo");
-                    await pool.query(`insert into promotion(product_id,text,price, website) values($1,$2,$3, $4)`,[product?.rows[0]?.id,promo[i],p,"heinemann_sydney"]);
+                    await pool.query(`insert into promotion(product_id,text,price, website,tag) values($1,$2,$3, $4,$5)`,[product?.rows[0]?.id,promo[i],p,"heinemann_sydney","duty-free"]);
                 }
                 else if(promo[i]?.includes("SAVE")){
                     let p = price[0]?.price * ((100 - parseFloat(promo[i].split(" ")[4]?.replace("%","")))/100);
