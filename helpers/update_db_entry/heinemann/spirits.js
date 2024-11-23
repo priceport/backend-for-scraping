@@ -13,18 +13,21 @@ const updateDBEntry = async (data) =>{
         try{
             let {url,category,title,brand,source,last_check,price,unit,quantity,sub_category,img,promo} = data[iterator];
 
-            let product = await pool.query("SELECT * FROM product_from_heinemann_sydney WHERE url = $1",[url]);
+            let product = await pool.query("SELECT * FROM product WHERE url = $1 and website = $2",[url,"heinemann_sydney"]);
 
             if(product.rowCount==0){
                 //if no create one
-                product = await pool.query(`insert into product_from_heinemann_sydney(title,brand,description,url,image_url,qty,unit,category,sub_category) values($1, $2, $3, $4, $5, $6, $7, $8, $9) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,sub_category]);
+                console.log("new");
+                product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,sub_category,website) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning *`,[title?.slice(0,299),brand,"No desc",url,img,quantity,unit,category,sub_category,"heinemann_sydney"]);
             }
             else{
+                console.log("old");
                 //if yes update last check
-                await pool.query('update product_from_heinemann_sydney set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
+                await pool.query('update product set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
             }
 
-            await pool.query(`insert into price_from_heinemann_sydney(prod_id,date,price) values($1, current_date, $2) returning *`,[product?.rows[0]?.id,price[0].price]);
+            console.log("price");
+            await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"heinemann_sydney"]);
 
             //promo insertion logic 
             for(let i=0;i<promo?.length;i++){
@@ -37,7 +40,8 @@ const updateDBEntry = async (data) =>{
                         continue;
                     }
                   
-                    await pool.query(`insert into promotion_from_heinemann_sydney(prod_id,text,price) values($1,$2,$3)`,[product?.rows[0]?.id,promo[i],p]);
+                console.log("promo");
+                    await pool.query(`insert into promotion(product_id,text,price, website) values($1,$2,$3, $4)`,[product?.rows[0]?.id,promo[i],p,"heinemann_sydney"]);
                 }
                 else if(promo[i]?.includes("SAVE")){
                     let p = price[0]?.price * ((100 - parseFloat(promo[i].split(" ")[4]?.replace("%","")))/100);
@@ -46,7 +50,8 @@ const updateDBEntry = async (data) =>{
                         continue;
                     }
 
-                    await pool.query(`insert into promotion_from_heinemann_sydney(prod_id,text,price) values($1,$2,$3)`,[product?.rows[0]?.id,promo[i],p]);
+                console.log("promo");
+                    await pool.query(`insert into promotion(product_id,text,price, website) values($1,$2,$3,$4)`,[product?.rows[0]?.id,promo[i],p,"heinemann_sydney"]);
                 }
             }
 
