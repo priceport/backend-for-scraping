@@ -1,3 +1,4 @@
+const redisClient = require("../configs/redis.config");
 const extract_unit_and_quantity = require("./extract_unit_and_quantity");
 const logError = require("./logError");
 const scrapeAelia = require("./scrapeAelia");
@@ -18,6 +19,9 @@ const waitForXTime = require("./waitForXTime");
 const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
+   await redisClient.flushAll();
+   console.log('Cache cleared at 12 AM New Zealand time');
+
    console.log("scraping started at:"+Date.now());
 
    let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false;
