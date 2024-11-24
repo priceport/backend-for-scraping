@@ -26,4 +26,7 @@ router.route("/brand/all")
 router.route("/location/all")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllLocations);
 
+router.route("/date-range")
+.get(UserController.isLoggedIn,cacheMiddleware,ProductController.getDateRange);
+
 module.exports = router;

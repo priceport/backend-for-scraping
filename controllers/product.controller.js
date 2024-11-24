@@ -639,3 +639,18 @@ exports.getAllLocations = catchAsync(async (req,res,next)=>{
         data:data?.rows
     })
 })
+
+exports.getDateRange = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`SELECT 
+    MIN(date) AS min_date,
+    MAX(date) AS max_date
+FROM 
+    price;
+`);
+
+    return res.status(200).json({
+        status:"success",
+        message:"All brands fetched",
+        data:data?.rows
+    })
+})
