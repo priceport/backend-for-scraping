@@ -20,4 +20,7 @@ router.route("/category")
 router.route("/pricerank")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getPriceRankFor);
 
+router.route("/brand/all")
+.get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllBrands);
+
 module.exports = router;
