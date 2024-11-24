@@ -629,3 +629,13 @@ exports.getAllBrands = catchAsync(async (req,res,next)=>{
         data:data?.rows
     })
 })
+
+exports.getAllLocations = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`select distinct website from product where canprod_id is not null`);
+
+    return res.status(200).json({
+        status:"success",
+        message:"All brands fetched",
+        data:data?.rows
+    })
+})
