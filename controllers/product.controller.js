@@ -384,13 +384,32 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const pricerank = req?.query?.pricerank?.split(",")?.map(Number) || null;
     const sort = req?.query?.sort || 'price_low_to_high';
 
+    if(limit > 100){
+        return next(
+            new AppError("Limit should be equal or less than 100")
+        )
+    }
     if(!source){
         return next(
             new AppError("Source param required",400)
         )
     }
 
-    const data = await pool.query(`WITH standardized_products AS (
+    const data = await pool.query(`WITH latest_prices AS (
+        SELECT 
+            product_id,
+            MAX(date) AS latest_date
+        FROM price
+        GROUP BY product_id
+    ),
+    latest_promotions AS (
+        SELECT 
+            product_id,
+            MAX(date) AS latest_date
+        FROM promotion
+        GROUP BY product_id
+    ),
+    standardized_products AS (
         SELECT 
             p.id AS product_id,
             p.canprod_id,
@@ -409,10 +428,9 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         FROM 
             product p
         LEFT JOIN 
-            price lp ON lp.product_id = p.id
-            AND lp.date = (
-                SELECT MAX(date) FROM price WHERE product_id = p.id
-            )
+            latest_prices lp_date ON lp_date.product_id = p.id
+        LEFT JOIN 
+            price lp ON lp.product_id = p.id AND lp.date = lp_date.latest_date
     ),
     ranked_products AS (
         SELECT 
@@ -425,37 +443,21 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         FROM 
             standardized_products sp
     ),
-    latest_prices AS (
-        SELECT 
-            product_id,
-            MAX(date) AS latest_date
-        FROM price
-        GROUP BY product_id
-    ),
-    latest_promotions AS (
-        SELECT 
-            product_id,
-            MAX(date) AS latest_date
-        FROM promotion
-        GROUP BY product_id
-    ),
     common_products AS (
         SELECT 
             cp.id AS canprod_id,
             p_source.id AS source_product_id,
             rp.pricerank AS source_pricerank,
-            rp.standardized_price AS source_price, -- Correctly standardized price
+            rp.standardized_price AS source_price,
             p_other.id AS other_product_id
         FROM 
             cannonical_product cp
         JOIN 
-            product p_source ON p_source.canprod_id = cp.id 
-                               AND p_source.website = $5 -- Dynamic source parameter
+            product p_source ON p_source.canprod_id = cp.id AND p_source.website = $5 -- Dynamic source parameter
         JOIN 
             ranked_products rp ON rp.product_id = p_source.id
         JOIN 
-            product p_other ON p_other.canprod_id = cp.id 
-                             AND p_other.website != $5 -- Exclude source website
+            product p_other ON p_other.canprod_id = cp.id AND p_other.website != $5 -- Exclude source website
         WHERE 
             ($4::int[] IS NULL OR rp.pricerank = ANY($4)) -- Filter by pricerank dynamically
     )
@@ -513,7 +515,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             WHEN $8 = 'pricerank_high_to_low' THEN MAX(cp.source_pricerank)
         END DESC
     LIMIT $6 -- Limit for pagination
-    OFFSET $7; -- Offset for pagination        
+    OFFSET $7; -- Offset for pagination         
     `,[brand,category,location,pricerank,source,limit,offset,sort]);
 
 
