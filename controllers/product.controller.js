@@ -209,7 +209,7 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
         JOIN 
             latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
         WHERE 
-            ($1 = 'ALL' OR p.tag = $1)
+            ($1 = 'all' OR p.tag = $1)
     ),
     product_categories AS (
         SELECT 
@@ -328,7 +328,7 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         JOIN 
             latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
         WHERE 
-            ($1 = 'ALL' OR p.tag = $1)
+            ($1 = 'all' OR p.tag = $1)
     ),
     product_categories AS (
         SELECT 
