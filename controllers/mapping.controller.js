@@ -65,7 +65,7 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
                 product AS destination
              ON 
                 source.title = $1 
-                AND source.brand = destination.brand 
+                
                 AND SIMILARITY(source.title, destination.title) > $2
                 AND destination.website != $3
              WHERE 
