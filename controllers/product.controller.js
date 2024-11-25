@@ -654,3 +654,47 @@ FROM
         data:data?.rows
     })
 })
+
+exports.getPriceHistory = catchAsync(async (req,res,next)=>{
+    const canprod_id = req?.params?.canprod_id;
+
+    console.log(req?.query);
+    if(!canprod_id){
+        return next(
+            new AppError(`canprod_id required!`,400)
+        )
+    }
+    const data = await pool.query(`
+        SELECT 
+        p.canprod_id,
+        p.title AS product_title,
+        ph.date AS price_date,
+        ph.price AS product_price,
+        ph.website
+    FROM 
+        product p
+    JOIN 
+        price ph 
+    ON 
+        p.id = ph.product_id
+    WHERE 
+        p.canprod_id = $1
+    ORDER BY 
+        ph.date ASC;
+    `,[canprod_id]);
+
+    const outputData = {};
+
+    for(let i=0;i<data?.rows?.length;i++){
+        if(!outputData[data?.rows[i]?.website]) outputData[data?.rows[i]?.website] = {};
+
+        if(!outputData[data?.rows[i]?.website][data?.rows[i]?.product_title]) outputData[data?.rows[i]?.website][data?.rows[i]?.product_title] = [];
+        outputData[data?.rows[i]?.website][data?.rows[i]?.product_title].push(data?.rows[i]);
+    }
+
+    return res.status(200).json({
+        status:"success",
+        message:"Price history fetched succesfully!",
+        data:outputData
+    })
+})

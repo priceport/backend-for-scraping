@@ -29,4 +29,7 @@ router.route("/location/all")
 router.route("/date-range")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getDateRange);
 
+router.route("/price-history/:canprod_id")
+.get(UserController.isLoggedIn,ProductController.getPriceHistory);
+
 module.exports = router;
