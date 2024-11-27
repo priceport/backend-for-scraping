@@ -268,101 +268,88 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         )
     }
     const categoryCount = await pool.query(`
-    WITH latest_prices AS (
-        -- Select the latest price for each product
-        SELECT 
-            pr.product_id,
-            pr.price,
-            pr.date,
-            ROW_NUMBER() OVER (PARTITION BY pr.product_id ORDER BY pr.date DESC) AS row_num
-        FROM 
-            price pr
+    WITH latest_promotions AS (
+        SELECT
+            promo.product_id,
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'date', promo.date,
+                    'text', promo.text,
+                    'price', promo.price
+                )
+            ) AS promotions
+        FROM promotion promo
+        WHERE promo.date = (
+            SELECT MAX(promo_inner.date)
+            FROM promotion promo_inner
+            WHERE promo_inner.product_id = promo.product_id
+        )
+        GROUP BY promo.product_id
     ),
-    normalized_products AS (
-        -- Normalize price per unit for aelia_auckland products using the latest price
-        SELECT 
-            p.id AS product_id,
-            p.title,
+    source_batch AS (
+        SELECT
             p.canprod_id,
-            p.category,
-            p.tag,
-            lp.price AS flat_price,
-            p.qty,
-            p.unit,
-            CASE 
-                WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                ELSE NULL
-            END AS price_per_unit,
-            p.website
-        FROM 
-            product p
-        JOIN 
-            latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
-        WHERE 
-            p.website = $2
-            AND p.canprod_id IS NOT NULL
-    ),
-    comparison_prices AS (
-        -- Normalize price per unit for all other websites using the latest price
-        SELECT 
-            mp.product_id AS aelia_product_id,
-            mp.price_per_unit AS aelia_price_per_unit,
-            mp.flat_price AS aelia_flat_price,
-            lp.price AS other_flat_price,
-            p.qty AS other_qty,
-            p.unit AS other_unit,
-            p.tag AS other_tag,
-            CASE 
-                WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                ELSE NULL
-            END AS other_price_per_unit
-        FROM 
-            normalized_products mp
-        JOIN 
-            product p ON p.canprod_id = mp.canprod_id 
-                AND p.website != $2 -- Avoid self-comparison
-        JOIN 
-            latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
-        WHERE 
-            ($1 = 'all' OR p.tag = $1)
-    ),
-    product_categories AS (
-        SELECT 
-            np.product_id,
-            np.category,
-            CASE
-                WHEN NOT EXISTS (
-                    SELECT 1
-                    FROM comparison_prices cp
-                    WHERE cp.aelia_product_id = np.product_id
-                    AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) < COALESCE(np.price_per_unit, np.flat_price)
-                ) THEN 'cheapest'
-                WHEN NOT EXISTS (
-                    SELECT 1
-                    FROM comparison_prices cp
-                    WHERE cp.aelia_product_id = np.product_id
-                    AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) > COALESCE(np.price_per_unit, np.flat_price)
-                ) THEN 'expensive'
-                ELSE 'midrange'
-            END AS price_category
-        FROM 
-            normalized_products np
+            pr.date,
+            pr.total_peers
+        FROM product_price_rank pr
+        JOIN product p ON p.id = pr.product_id
+        WHERE pr.website = $1 -- Filter for the source website
     )
     SELECT 
-        pc.category,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'cheapest' THEN pc.product_id END) AS cheapest_count,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'expensive' THEN pc.product_id END) AS expensive_count,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'midrange' THEN pc.product_id END) AS midrange_count
+        cp.id AS canprod_id,
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'qty', p.qty,
+                'url', p.url,
+                'unit', p.unit,
+                'brand', p.brand,
+                'title', p.title,
+                'website', p.website,
+                'category', p.category,
+                'image_url', p.image_url,
+                'pricerank', CONCAT(pr.price_rank, '/', pr.total_peers),
+                'product_id', p.id,
+                'description', COALESCE(p.description, 'No desc'),
+                'latest_price', pr.price,
+                'sub_category', p.sub_category,
+                'latest_promotions', COALESCE(lp.promotions, '[]'::JSON)
+            )
+        ) AS products_data,
+        MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END) AS source_pricerank,
+        MAX(CASE WHEN pr.website = $1 THEN pr.price END) AS source_price
     FROM 
-        product_categories pc
+        cannonical_product cp
+    JOIN 
+        product p ON cp.id = p.canprod_id
+    JOIN 
+        product_price_rank pr ON p.id = pr.product_id
+    LEFT JOIN 
+        latest_promotions lp ON lp.product_id = p.id
+    JOIN 
+        source_batch sb ON sb.canprod_id = p.canprod_id 
+                       AND sb.date = pr.date 
+                       AND sb.total_peers = pr.total_peers -- Match total_peers to filter non-batched locations
+    WHERE 
+        p.canprod_id IN (
+            SELECT canprod_id
+            FROM source_batch -- Ensure source website is part of the batch
+        )
+        AND ($2::TEXT[] IS NULL OR p.brand = ANY($2))                  -- Brand filter (array of brands)
+        AND ($3::TEXT[] IS NULL OR p.category = ANY($3))               -- Category filter (array of categories)
+        AND ($4::INT[] IS NULL OR pr.price_rank = ANY($4))             -- Price rank filter (array of ranks)
+        AND ($5::TEXT[] IS NULL OR pr.website = ANY($5))               -- Location filter (array of locations)
     GROUP BY 
-        pc.category
+        cp.id
     ORDER BY 
-        pc.category;   
+        CASE 
+            WHEN $6 = 'price_low_to_high' OR $6 IS NULL THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
+            WHEN $6 = 'pricerank_low_to_high' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
+        END ASC,
+        CASE 
+            WHEN $6 = 'price_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
+            WHEN $6 = 'pricerank_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
+        END DESC NULLS LAST
+    LIMIT $7 OFFSET $8;    
 `,[filter,sourceQuery])
 
     return res.status(200).json({
