@@ -395,129 +395,87 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         )
     }
 
-    const data = await pool.query(`WITH latest_prices AS (
-        SELECT 
-            product_id,
-            MAX(date) AS latest_date
-        FROM price
-        GROUP BY product_id
+    const data = await pool.query(` WITH latest_promotions AS (
+        SELECT
+            promo.product_id,
+            JSON_AGG(
+                JSON_BUILD_OBJECT(
+                    'date', promo.date,
+                    'text', promo.text,
+                    'price', promo.price
+                )
+            ) AS promotions
+        FROM promotion promo
+        WHERE promo.date = (
+            SELECT MAX(promo_inner.date)
+            FROM promotion promo_inner
+            WHERE promo_inner.product_id = promo.product_id
+        )
+        GROUP BY promo.product_id
     ),
-    latest_promotions AS (
-        SELECT 
-            product_id,
-            MAX(date) AS latest_date
-        FROM promotion
-        GROUP BY product_id
-    ),
-    standardized_products AS (
-        SELECT 
-            p.id AS product_id,
+    source_batch AS (
+        SELECT
             p.canprod_id,
-            p.website,
-            COALESCE(
-                CASE 
-                    WHEN p.qty IS NULL OR p.qty = 0 THEN NULL
-                    WHEN p.unit IN ('ml') THEN lp.price / p.qty
-                    WHEN p.unit IN ('l') THEN lp.price / (p.qty * 1000)
-                    WHEN p.unit IN ('g') THEN lp.price / p.qty
-                    WHEN p.unit IN ('kg') THEN lp.price / (p.qty * 1000)
-                    ELSE NULL
-                END,
-                9999999 -- Treat missing or invalid qty/unit as expensive
-            ) AS standardized_price
-        FROM 
-            product p
-        LEFT JOIN 
-            latest_prices lp_date ON lp_date.product_id = p.id
-        LEFT JOIN 
-            price lp ON lp.product_id = p.id AND lp.date = lp_date.latest_date
-    ),
-    ranked_products AS (
-        SELECT 
-            sp.canprod_id,
-            sp.product_id,
-            sp.website,
-            sp.standardized_price,
-            RANK() OVER (PARTITION BY sp.canprod_id ORDER BY sp.standardized_price ASC) AS pricerank,
-            COUNT(*) OVER (PARTITION BY sp.canprod_id) AS total_locations
-        FROM 
-            standardized_products sp
-    ),
-    common_products AS (
-        SELECT 
-            cp.id AS canprod_id,
-            p_source.id AS source_product_id,
-            rp.pricerank AS source_pricerank,
-            rp.standardized_price AS source_price,
-            p_other.id AS other_product_id
-        FROM 
-            cannonical_product cp
-        JOIN 
-            product p_source ON p_source.canprod_id = cp.id AND p_source.website = $5 -- Dynamic source parameter
-        JOIN 
-            ranked_products rp ON rp.product_id = p_source.id
-        JOIN 
-            product p_other ON p_other.canprod_id = cp.id AND p_other.website != $5 -- Exclude source website
-        WHERE 
-            ($4::int[] IS NULL OR rp.pricerank = ANY($4)) -- Filter by pricerank dynamically
+            pr.date,
+            pr.total_peers
+        FROM product_price_rank pr
+        JOIN product p ON p.id = pr.product_id
+        WHERE pr.website = $1 -- Filter for the source website
     )
     SELECT 
-        cp.canprod_id,
-        json_agg(DISTINCT jsonb_build_object(
-            'product_id', p.id,
-            'title', p.title,
-            'brand', p.brand,
-            'description', p.description,
-            'url', p.url,
-            'image_url', p.image_url,
-            'qty', p.qty,
-            'unit', p.unit,
-            'category', p.category,
-            'sub_category', p.sub_category,
-            'website', p.website,
-            'latest_price', lp.price,
-            'pricerank', rp.pricerank || '/' || rp.total_locations,
-            'latest_promotions', (
-                SELECT 
-                    json_agg(jsonb_build_object('text', promo.text, 'price', promo.price, 'date', promo.date))
-                FROM 
-                    promotion promo
-                WHERE 
-                    promo.product_id = p.id
-                    AND promo.date = lp_promo.latest_date
+        cp.id AS canprod_id,
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'qty', p.qty,
+                'url', p.url,
+                'unit', p.unit,
+                'brand', p.brand,
+                'title', p.title,
+                'website', p.website,
+                'category', p.category,
+                'image_url', p.image_url,
+                'pricerank', CONCAT(pr.price_rank, '/', pr.total_peers),
+                'product_id', p.id,
+                'description', COALESCE(p.description, 'No desc'),
+                'latest_price', pr.price,
+                'sub_category', p.sub_category,
+                'latest_promotions', COALESCE(lp.promotions, '[]'::JSON)
             )
-        )) AS products_data,
-        MAX(cp.source_pricerank) AS source_pricerank,
-        MAX(cp.source_price) AS source_price
+        ) AS products_data,
+        MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END) AS source_pricerank,
+        MAX(CASE WHEN pr.website = $1 THEN pr.price END) AS source_price
     FROM 
-        common_products cp
+        cannonical_product cp
     JOIN 
-        product p ON p.canprod_id = cp.canprod_id
+        product p ON cp.id = p.canprod_id
+    JOIN 
+        product_price_rank pr ON p.id = pr.product_id
     LEFT JOIN 
-        latest_prices lp_promo ON lp_promo.product_id = p.id
-    LEFT JOIN 
-        price lp ON lp.product_id = lp_promo.product_id AND lp.date = lp_promo.latest_date
-    LEFT JOIN 
-        ranked_products rp ON rp.product_id = p.id
+        latest_promotions lp ON lp.product_id = p.id
+    JOIN 
+        source_batch sb ON sb.canprod_id = p.canprod_id 
+                       AND sb.date = pr.date 
+                       AND sb.total_peers = pr.total_peers -- Match total_peers to filter non-batched locations
     WHERE 
-        ($1::text[] IS NULL OR p.brand = ANY($1)) -- Dynamic brand filter
-        AND ($2::text[] IS NULL OR p.category = ANY($2)) -- Dynamic category filter
-        AND ($3::text[] IS NULL OR p.website = ANY($3)) -- Dynamic website filter
+        p.canprod_id IS NOT NULL
+        AND ($2::TEXT[] IS NULL OR p.brand = ANY($2))                  -- Brand filter (array of brands)
+        AND ($3::TEXT[] IS NULL OR p.category = ANY($3))               -- Category filter (array of categories)
+        AND ($4::INT[] IS NULL OR pr.price_rank = ANY($4))             -- Price rank filter (array of ranks)
+        AND ($5::TEXT[] IS NULL OR pr.website = ANY($5))               -- Location filter (array of locations)
     GROUP BY 
-        cp.canprod_id
+        cp.id
     ORDER BY 
         CASE 
-            WHEN $8 = 'price_low_to_high' THEN MAX(cp.source_price)
-            WHEN $8 = 'pricerank_low_to_high' THEN MAX(cp.source_pricerank)
+            WHEN $6 = 'price_low_to_high' OR $6 IS NULL THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
+            WHEN $6 = 'pricerank_low_to_high' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
         END ASC,
         CASE 
-            WHEN $8 = 'price_high_to_low' THEN MAX(cp.source_price)
-            WHEN $8 = 'pricerank_high_to_low' THEN MAX(cp.source_pricerank)
-        END DESC
-    LIMIT $6 -- Limit for pagination
-    OFFSET $7; -- Offset for pagination         
-    `,[brand,category,location,pricerank,source,limit,offset,sort]);
-
+            WHEN $6 = 'price_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
+            WHEN $6 = 'pricerank_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
+        END DESC NULLS LAST
+    LIMIT $7 OFFSET $8;
+    
+    `,[source,brand,category,pricerank,location,sort,limit,offset]);
 
     return res.status(200).json({
         status:"success",
