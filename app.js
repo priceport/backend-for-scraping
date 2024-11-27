@@ -20,6 +20,7 @@ const productRouter = require("./routes/product.routes.js");
 const pricechangeRouter = require("./routes/pricechange.routes.js");
 const watchlistRouter = require("./routes/watchlist.routes.js");
 const analyticsRouter = require("./routes/analytics.routes.js");
+const reportsRouter = require("./routes/reports.routes.js");
 
 const scrapingService = require("./helpers/scrapingService.js");
 
@@ -84,6 +85,7 @@ app.use("/api/v1/product",productRouter);
 app.use("/api/v1/price-change",pricechangeRouter);
 app.use("/api/v1/watchlist",watchlistRouter);
 app.use("/api/v1/analytics",analyticsRouter);
+app.use("/api/v1/reports",reportsRouter);
 
 
 //Throwing error if no matched route found
