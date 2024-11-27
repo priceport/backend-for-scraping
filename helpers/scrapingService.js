@@ -15,11 +15,14 @@ const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
+const updateProductPriceRank = require("./updateProductPriceRank");
 const waitForXTime = require("./waitForXTime");
 const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
    await redisClient.flushAll();
+   await updateProductPriceRank();
+   
    console.log('Cache cleared at 12 AM New Zealand time');
 
    console.log("scraping started at:"+Date.now());
