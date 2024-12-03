@@ -27,6 +27,8 @@ const scrapingService = require("./helpers/scrapingService.js");
 //node modules
 const path = require("path");
 const checkMaintenance = require("./utils/checkMaintenance.js");
+const updateProductPriceRank = require("./helpers/updateProductPriceRank.js");
+const updateDailyPriceStats = require("./helpers/updateDailyPriceStats.js");
 
 const app = express();
 
@@ -98,6 +100,13 @@ app.use(globalErrorHandler);
 
 //testing pupetter as well as ci/cd
 // scrapingService();
+
+const insertStatsTemp = async ()=>{
+   await updateProductPriceRank();
+   await updateDailyPriceStats('aelia_auckland');
+}
+
+insertStatsTemp();
 
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('30 9 * * *', scrapingService, {

@@ -22,8 +22,6 @@ const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
    await redisClient.flushAll();
-   await updateProductPriceRank();
-   await updateDailyPriceStats('aelia_auckland');
 
    console.log('Cache cleared at 12 AM New Zealand time');
 
@@ -267,7 +265,9 @@ const scrapingService =async ()=>{
 
       await waitForXTime(10000);
    }
-   extract_unit_and_quantity();
+   await extract_unit_and_quantity();
+   await updateProductPriceRank();
+   await updateDailyPriceStats('aelia_auckland');
 }
 
 module.exports = scrapingService;
