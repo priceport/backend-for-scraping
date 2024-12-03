@@ -1,6 +1,7 @@
 const pool = require("../../../configs/postgresql.config");
 const Price = require("../../../models/priceModel");
 const Product = require("../../../models/productModel");
+const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
 
 const updateDBEntry = async (data) =>{
@@ -12,6 +13,7 @@ const updateDBEntry = async (data) =>{
 
         try{
             let {url,category,title,brand,source,last_check,price,unit,quantity,sub_category,img,promo,promo2} = data[iterator];
+            let price_per_unit = calculatePricePerUnit(price[0].price,quantity,unit);
 
             let product = await pool.query("SELECT * FROM product WHERE url = $1 and website = $2",[url,"lotte_brisbane"]);
 
@@ -26,7 +28,7 @@ const updateDBEntry = async (data) =>{
                 await pool.query('update product set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
             }
 
-            await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"lotte_brisbane"]);
+            await pool.query(`insert into price(product_id,date,price,website,price_per_unit) values($1, current_date, $2, $3, $4) returning *`,[product?.rows[0]?.id,price[0].price,"lotte_brisbane",price_per_unit]);
             
             for(let i=0;i<promo?.length;i++){
                 await pool.query(`insert into promotion(product_id,text,price,date,website) values($1, $2, $3, current_date,$4) returning *`,[product?.rows[0]?.id,promo[i]?.text,promo[i]?.price,"lotte_brisbane"]);
@@ -39,7 +41,6 @@ const updateDBEntry = async (data) =>{
             
         }catch(err){
             logError(err);
-            break;
         }
 
         iterator+=1;

@@ -1,5 +1,6 @@
 //postgresql
 const pool = require("../../../configs/postgresql.config");
+const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
 
 //main function
@@ -12,6 +13,7 @@ const updateDBEntry = async (data) =>{
 
         try{
             let {url,category,title,brand,price,unit,quantity,sub_category,img,promo} = data[iterator];
+            let price_per_unit = calculatePricePerUnit(price[0].price,quantity,unit);
 
             if(isNaN(price[0].price)) {
                 db_ops +=1;
@@ -23,13 +25,13 @@ const updateDBEntry = async (data) =>{
             if(product.rowCount==0){
                 //if no create one
                 product = await pool.query(`insert into product(title,brand,description,url,image_url,qty,unit,category,sub_category,website,tag) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11) returning *`,[title,brand,"No desc",url,img,quantity,unit,category,sub_category,"farmers","domestic"]);
-                await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"farmers"]);
+                await pool.query(`insert into price(product_id,date,price,website,price_per_unit) values($1, current_date, $2, $3, $4) returning *`,[product?.rows[0]?.id,price[0].price,"farmers",price_per_unit]);
                 //promo insertion logic
             }
             else{
                 //if yes update last check
                 await pool.query('update product set last_checked = current_timestamp where id= $1',[product?.rows[0]?.id]);
-                await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"farmers"]);
+                await pool.query(`insert into price(product_id,date,price,website,price_per_unit) values($1, current_date, $2, $3, $4) returning *`,[product?.rows[0]?.id,price[0].price,"farmers",price_per_unit]);
             }
 
             if(promo){

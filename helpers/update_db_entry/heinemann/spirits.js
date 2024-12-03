@@ -1,5 +1,6 @@
 //postgresql
 const pool = require("../../../configs/postgresql.config");
+const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
 
 //main function
@@ -12,6 +13,7 @@ const updateDBEntry = async (data) =>{
 
         try{
             let {url,category,title,brand,source,last_check,price,unit,quantity,sub_category,img,promo} = data[iterator];
+            let price_per_unit = calculatePricePerUnit(price[0].price,quantity,unit);
 
             let product = await pool.query("SELECT * FROM product WHERE url = $1 and website = $2",[url,"heinemann_sydney"]);
 
@@ -27,7 +29,7 @@ const updateDBEntry = async (data) =>{
             }
 
             console.log("price");
-            await pool.query(`insert into price(product_id,date,price,website) values($1, current_date, $2, $3) returning *`,[product?.rows[0]?.id,price[0].price,"heinemann_sydney"]);
+            await pool.query(`insert into price(product_id,date,price,website,price_per_unit) values($1, current_date, $2, $3, $4) returning *`,[product?.rows[0]?.id,price[0].price,"heinemann_sydney",price_per_unit]);
 
             //promo insertion logic 
             for(let i=0;i<promo?.length;i++){
@@ -59,7 +61,6 @@ const updateDBEntry = async (data) =>{
             
         }catch(err){
             logError(err);
-            break;
         }
 
         iterator+=1;
