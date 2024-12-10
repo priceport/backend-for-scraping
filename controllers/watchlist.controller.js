@@ -198,7 +198,8 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
         SELECT 
             rp.canprod_id,
             rp.source_website,
-            rp.rank || '/' || rp.total_competitors AS source_pricerank
+            rp.rank AS source_pricerank,
+            rp.latest_price AS source_price
         FROM 
             ranked_products rp
         WHERE 
@@ -228,7 +229,8 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
                 )
             )
         ) AS products_data,
-        srp.source_pricerank
+        srp.source_pricerank,
+        srp.source_price
     FROM 
         ranked_products rp
     LEFT JOIN 
@@ -236,7 +238,7 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     ON 
         rp.canprod_id = srp.canprod_id AND rp.source_website = srp.source_website
     GROUP BY 
-        rp.canprod_id, rp.source_website, srp.source_pricerank;                   
+        rp.canprod_id, rp.source_website, srp.source_pricerank, srp.source_price;                   
     `,[watchlistId]);
 
     // Respond with the fetched products
