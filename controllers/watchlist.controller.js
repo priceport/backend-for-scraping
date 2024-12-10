@@ -43,7 +43,7 @@ exports.addToWatchlist = catchAsync(async (req, res, next) => {
     const watchlist = await pool.query(
         `INSERT INTO watchlists (user_id, name) 
          VALUES ($1, $2) 
-         RETURNING id, name, created_at;`,
+         RETURNING id AS watchlist_id, name AS watchlist_name, created_at;`,
         [userId, name]
     );
 
@@ -277,7 +277,7 @@ exports.renameWatchlist = catchAsync(async (req,res,next)=>{
         UPDATE watchlists
         SET name = $1
         WHERE id = $2 AND user_id = $3
-        RETURNING id, name, user_id, created_at;
+        RETURNING id AS watchlist_id, name AS watchlist_name, user_id, created_at;
     `,[req?.body?.name,req?.params?.watchlistId,req?.user?.id]);
 
     return res.status(200).json({
@@ -290,7 +290,7 @@ exports.renameWatchlist = catchAsync(async (req,res,next)=>{
 exports.deleteWatchlist = catchAsync(async (req,res,next)=>{
     const watchlist = await pool.query(`DELETE FROM watchlists
         WHERE id = $1 AND user_id = $2
-        RETURNING id, name, user_id, created_at;
+        RETURNING id AS watchlist_id, name AS watchlist_name, user_id, created_at;
     `,[req?.params?.watchlistId,req?.user?.id]);
 
     return res.status(204).json({
