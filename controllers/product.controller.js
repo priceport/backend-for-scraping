@@ -312,7 +312,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         )
     }
 
-    const data = await pool.query(` WITH latest_promotions AS (
+    const data = await pool.query(`
+    WITH latest_promotions AS (
         SELECT
             promo.product_id,
             JSON_AGG(
@@ -330,14 +331,34 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         )
         GROUP BY promo.product_id
     ),
-    source_batch AS (
+    latest_batch AS (
+        SELECT
+            pr.canprod_id,
+            MAX(pr.date) AS latest_date
+        FROM product_price_rank pr
+        GROUP BY pr.canprod_id
+    ),
+    filtered_rank AS (
+        SELECT
+            pr.*
+        FROM product_price_rank pr
+        JOIN latest_batch lb ON pr.canprod_id = lb.canprod_id AND pr.date = lb.latest_date
+    ),
+    source_products AS (
         SELECT
             p.canprod_id,
-            pr.date,
-            pr.total_peers
-        FROM product_price_rank pr
-        JOIN product p ON p.id = pr.product_id
-        WHERE pr.website = $1 -- Filter for the source website
+            pr.product_id,
+            pr.website,
+            pr.price_rank,
+            p.brand,
+            p.category,
+            pr.date
+        FROM product p
+        JOIN filtered_rank pr ON p.id = pr.product_id
+        WHERE pr.website = $1 -- Source website
+          AND ($2::TEXT[] IS NULL OR p.brand = ANY($2))               -- Brand filter (only for source)
+          AND ($3::TEXT[] IS NULL OR p.category = ANY($3))            -- Category filter (only for source)
+          AND ($4::INT[] IS NULL OR pr.price_rank = ANY($4))          -- Price rank filter (only for source)
     )
     SELECT 
         cp.id AS canprod_id,
@@ -348,7 +369,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
                 'unit', p.unit,
                 'brand', p.brand,
                 'title', p.title,
-                'website', p.website,
+                'website', pr.website,
                 'category', p.category,
                 'image_url', p.image_url,
                 'pricerank', CONCAT(pr.price_rank, '/', pr.total_peers),
@@ -366,19 +387,15 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     JOIN 
         product p ON cp.id = p.canprod_id
     JOIN 
-        product_price_rank pr ON p.id = pr.product_id
+        filtered_rank pr ON p.id = pr.product_id
     LEFT JOIN 
         latest_promotions lp ON lp.product_id = p.id
     JOIN 
-        source_batch sb ON sb.canprod_id = p.canprod_id 
-                       AND sb.date = pr.date 
-                       AND sb.total_peers = pr.total_peers -- Match total_peers to filter non-batched locations
+        source_products sp ON sp.canprod_id = p.canprod_id 
+                          AND sp.date = pr.date -- Ensure peers belong to the same batch as the source
     WHERE 
         p.canprod_id IS NOT NULL
-        AND ($2::TEXT[] IS NULL OR p.brand = ANY($2))                  -- Brand filter (array of brands)
-        AND ($3::TEXT[] IS NULL OR p.category = ANY($3))               -- Category filter (array of categories)
-        AND ($4::INT[] IS NULL OR pr.price_rank = ANY($4))             -- Price rank filter (array of ranks)
-        AND ($5::TEXT[] IS NULL OR pr.website = ANY($5))               -- Location filter (array of locations)
+        AND ($5::TEXT[] IS NULL OR pr.website = ANY($5)) -- Location filter (applies to all products)
     GROUP BY 
         cp.id
     ORDER BY 
@@ -390,9 +407,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             WHEN $6 = 'price_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
             WHEN $6 = 'pricerank_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
         END DESC NULLS LAST
-    LIMIT $7 OFFSET $8;
-    
-    `,[source,brand,category,pricerank,location,sort,limit,offset]);
+    LIMIT $7 OFFSET $8;    
+`, [source, brand, category, pricerank, location, sort, limit, offset]);
 
     return res.status(200).json({
         status:"success",
