@@ -13,282 +13,249 @@ exports.getCompetetionTrendsData = catchAsync(async (req,res,next)=>{
         )
     }
     const typeData = await pool.query(`
-    WITH latest_prices AS (
+    WITH unique_products AS (
         SELECT 
-            product_id,
-            MAX(date) AS latest_date
-        FROM price
-        GROUP BY product_id
+            DISTINCT ON (ppr.canprod_id, p.tag) 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date,
+            p.tag AS website_type,
+            ROW_NUMBER() OVER (PARTITION BY ppr.canprod_id, p.tag ORDER BY ppr.date DESC) AS row_num
+        FROM 
+            product_price_rank ppr
+        JOIN 
+            product p ON ppr.product_id = p.id
+        WHERE 
+            ($1::text[] IS NULL OR p.category = ANY($1))
     ),
-    product_prices AS (
+    filtered_data AS (
         SELECT 
-            p.product_id,
-            p.price,
-            lp.latest_date
-        FROM price p
-        JOIN latest_prices lp
-        ON p.product_id = lp.product_id AND p.date = lp.latest_date
+            canprod_id,
+            website_type,
+            MIN(price_rank) AS min_rank,
+            MAX(price_rank) AS max_rank
+        FROM 
+            unique_products
+        WHERE 
+            row_num = 1
+        GROUP BY 
+            canprod_id, website_type
     ),
-    standardized_products AS (
+    labeled_data AS (
         SELECT 
-            sp.id AS source_product_id,
-            sp.canprod_id,
-            sp.website AS source_website,
-            sp.tag AS source_tag,
-            pp1.price AS source_price,
-            sp.qty * 
-                CASE
-                    WHEN sp.unit = 'kg' THEN 1000
-                    WHEN sp.unit = 'g' THEN 1
-                    WHEN sp.unit = 'gm' THEN 1
-                    WHEN sp.unit = 'ml' THEN 1
-                    WHEN sp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS source_qty,
-            cp.id AS comparison_product_id,
-            cp.website AS comparison_website,
-            cp.tag AS comparison_tag,
-            pp2.price AS comparison_price,
-            cp.qty * 
-                CASE
-                    WHEN cp.unit = 'kg' THEN 1000
-                    WHEN cp.unit = 'g' THEN 1
-                    WHEN cp.unit = 'gm' THEN 1
-                    WHEN cp.unit = 'ml' THEN 1
-                    WHEN cp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS comparison_qty
-        FROM product sp
-        JOIN product_prices pp1 ON sp.id = pp1.product_id
-        JOIN product cp ON sp.canprod_id = cp.canprod_id AND sp.website != cp.website
-        JOIN product_prices pp2 ON cp.id = pp2.product_id
-        WHERE sp.website = $1 AND sp.category = ANY($2)
-    ),
-    price_comparison AS (
-        SELECT 
-            sp.source_tag AS source_type,
-            sp.comparison_tag AS comparison_type,
-            sp.source_product_id,
-            COUNT(DISTINCT sp.comparison_product_id) AS product_count,
+            fd.website_type,
+            fd.canprod_id,
             CASE 
-                WHEN sp.source_price < MIN(sp.comparison_price) THEN 'cheapest'
-                WHEN sp.source_price > MAX(sp.comparison_price) THEN 'expensive'
+                WHEN fd.min_rank = 1 THEN 'cheapest'
+                WHEN fd.max_rank = fd.min_rank THEN 'expensive'
                 ELSE 'midrange'
-            END AS price_category
-        FROM standardized_products sp
-        GROUP BY sp.source_tag, sp.comparison_tag, sp.source_product_id, sp.source_price
+            END AS price_label
+        FROM 
+            filtered_data fd
     ),
-    category_counts AS (
+    type_summary AS (
         SELECT 
-            comparison_type AS type,
-            COUNT(*) AS product_count,
-            SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) AS cheapest_count,
-            SUM(CASE WHEN price_category = 'expensive' THEN 1 ELSE 0 END) AS expensive_count,
-            SUM(CASE WHEN price_category = 'midrange' THEN 1 ELSE 0 END) AS midrange_count,
-            (SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS percentage_cheapest
-        FROM price_comparison
-        GROUP BY comparison_type
+            ld.website_type,
+            COUNT(DISTINCT ld.canprod_id) AS product_count,
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.website_type
     ),
-    ranked_types AS (
+    type_ranked AS (
         SELECT 
-            type,
-            product_count,
-            cheapest_count,
-            expensive_count,
-            midrange_count,
-            percentage_cheapest,
-            RANK() OVER (ORDER BY percentage_cheapest DESC) AS price_rank
-        FROM category_counts
+            ts.website_type,
+            ts.product_count,
+            ts.cheapest_count,
+            ts.expensive_count,
+            ts.midrange_count,
+            ROUND((ts.cheapest_count::NUMERIC / NULLIF(ts.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((ts.cheapest_count::NUMERIC / NULLIF(ts.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            type_summary ts
     )
-    SELECT * FROM ranked_types;              
-    `,[sourceQuery,categoryQuery]);
+    SELECT 
+        website_type,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
+    FROM 
+        type_ranked;              
+    `,[categoryQuery]);
 
-    const dutyFreeData = await pool.query(`WITH latest_prices AS (
+    const dutyFreeData = await pool.query(`
+    WITH latest_data AS (
+        SELECT 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date,
+            ROW_NUMBER() OVER (PARTITION BY ppr.canprod_id, ppr.website ORDER BY ppr.date DESC) AS row_num
+        FROM 
+            product_price_rank ppr
+        JOIN 
+            product p ON ppr.product_id = p.id
+        WHERE 
+            p.tag = 'duty-free' 
+            AND ($1::text[] IS NULL OR p.category = ANY($1))
+    ),
+    filtered_data AS (
         SELECT 
             product_id,
-            MAX(date) AS latest_date
-        FROM price
-        GROUP BY product_id
+            canprod_id,
+            website,
+            price_rank,
+            total_peers,
+            price_per_unit
+        FROM 
+            latest_data
+        WHERE 
+            row_num = 1
     ),
-    product_prices AS (
+    labeled_data AS (
         SELECT 
-            p.product_id,
-            p.price,
-            lp.latest_date
-        FROM price p
-        JOIN latest_prices lp
-        ON p.product_id = lp.product_id AND p.date = lp.latest_date
-    ),
-    standardized_products AS (
-        SELECT 
-            sp.id AS source_product_id,
-            sp.canprod_id,
-            sp.website AS source_website,
-            sp.tag AS source_tag,
-            sp.category AS source_category,
-            pp1.price AS source_price,
-            sp.qty * 
-                CASE
-                    WHEN sp.unit = 'kg' THEN 1000
-                    WHEN sp.unit = 'g' THEN 1
-                    WHEN sp.unit = 'gm' THEN 1
-                    WHEN sp.unit = 'ml' THEN 1
-                    WHEN sp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS source_qty,
-            cp.id AS comparison_product_id,
-            cp.website AS comparison_website,
-            cp.tag AS comparison_tag,
-            cp.category AS comparison_category,
-            pp2.price AS comparison_price,
-            cp.qty * 
-                CASE
-                    WHEN cp.unit = 'kg' THEN 1000
-                    WHEN cp.unit = 'g' THEN 1
-                    WHEN cp.unit = 'gm' THEN 1
-                    WHEN cp.unit = 'ml' THEN 1
-                    WHEN cp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS comparison_qty
-        FROM product sp
-        JOIN product_prices pp1 ON sp.id = pp1.product_id
-        JOIN product cp ON sp.canprod_id = cp.canprod_id AND sp.website != cp.website
-        JOIN product_prices pp2 ON cp.id = pp2.product_id
-        WHERE sp.website = $1
-          AND cp.tag = 'DUTY-FREE'
-          AND sp.category = ANY($2) -- Filter for specific categories
-    ),
-    price_comparison AS (
-        SELECT 
-            sp.comparison_website AS website,
-            sp.source_product_id,
-            COUNT(DISTINCT sp.comparison_product_id) AS product_count,
+            fd.website,
+            fd.product_id,
             CASE 
-                WHEN sp.source_price < MIN(sp.comparison_price) THEN 'cheapest'
-                WHEN sp.source_price > MAX(sp.comparison_price) THEN 'expensive'
+                WHEN fd.price_rank = 1 THEN 'cheapest'
+                WHEN fd.price_rank = fd.total_peers THEN 'expensive'
                 ELSE 'midrange'
-            END AS price_category
-        FROM standardized_products sp
-        GROUP BY sp.comparison_website, sp.source_product_id, sp.source_price
+            END AS price_label
+        FROM 
+            filtered_data fd
     ),
-    category_counts AS (
+    website_summary AS (
         SELECT 
-            website,
+            ld.website,
             COUNT(*) AS product_count,
-            SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) AS cheapest_count,
-            SUM(CASE WHEN price_category = 'expensive' THEN 1 ELSE 0 END) AS expensive_count,
-            SUM(CASE WHEN price_category = 'midrange' THEN 1 ELSE 0 END) AS midrange_count,
-            (SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS percentage_cheapest
-        FROM price_comparison
-        GROUP BY website
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.website
     ),
-    ranked_websites AS (
+    website_ranked AS (
         SELECT 
-            website,
-            product_count,
-            cheapest_count,
-            expensive_count,
-            midrange_count,
-            percentage_cheapest,
-            RANK() OVER (ORDER BY percentage_cheapest DESC) AS price_rank
-        FROM category_counts
+            ws.website,
+            ws.product_count,
+            ws.cheapest_count,
+            ws.expensive_count,
+            ws.midrange_count,
+            ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            website_summary ws
     )
-    SELECT * FROM ranked_websites;    
-    `,[sourceQuery,categoryQuery]);
+    SELECT 
+        website,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
+    FROM 
+        website_ranked;
+  `, [categoryQuery]);
 
-    const domesticData = await pool.query(`WITH latest_prices AS (
+    console.log(dutyFreeData?.rows);
+
+    const domesticData = await pool.query(`WITH latest_data AS (
+        SELECT 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date,
+            ROW_NUMBER() OVER (PARTITION BY ppr.canprod_id, ppr.website ORDER BY ppr.date DESC) AS row_num
+        FROM 
+            product_price_rank ppr
+        JOIN 
+            product p ON ppr.product_id = p.id
+        WHERE 
+            p.tag = 'domestic' 
+            AND ($1::text[] IS NULL OR p.category = ANY($1))
+    ),
+    filtered_data AS (
         SELECT 
             product_id,
-            MAX(date) AS latest_date
-        FROM price
-        GROUP BY product_id
+            canprod_id,
+            website,
+            price_rank,
+            total_peers,
+            price_per_unit
+        FROM 
+            latest_data
+        WHERE 
+            row_num = 1
     ),
-    product_prices AS (
+    labeled_data AS (
         SELECT 
-            p.product_id,
-            p.price,
-            lp.latest_date
-        FROM price p
-        JOIN latest_prices lp
-        ON p.product_id = lp.product_id AND p.date = lp.latest_date
-    ),
-    standardized_products AS (
-        SELECT 
-            sp.id AS source_product_id,
-            sp.canprod_id,
-            sp.website AS source_website,
-            sp.tag AS source_tag,
-            sp.category AS source_category,
-            pp1.price AS source_price,
-            sp.qty * 
-                CASE
-                    WHEN sp.unit = 'kg' THEN 1000
-                    WHEN sp.unit = 'g' THEN 1
-                    WHEN sp.unit = 'gm' THEN 1
-                    WHEN sp.unit = 'ml' THEN 1
-                    WHEN sp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS source_qty,
-            cp.id AS comparison_product_id,
-            cp.website AS comparison_website,
-            cp.tag AS comparison_tag,
-            cp.category AS comparison_category,
-            pp2.price AS comparison_price,
-            cp.qty * 
-                CASE
-                    WHEN cp.unit = 'kg' THEN 1000
-                    WHEN cp.unit = 'g' THEN 1
-                    WHEN cp.unit = 'gm' THEN 1
-                    WHEN cp.unit = 'ml' THEN 1
-                    WHEN cp.unit = 'l' THEN 1000
-                    ELSE NULL
-                END AS comparison_qty
-        FROM product sp
-        JOIN product_prices pp1 ON sp.id = pp1.product_id
-        JOIN product cp ON sp.canprod_id = cp.canprod_id AND sp.website != cp.website
-        JOIN product_prices pp2 ON cp.id = pp2.product_id
-        WHERE sp.website = $1
-          AND cp.tag = 'DOMESTIC'
-          AND sp.category = ANY($2) -- Filter for specific categories
-    ),
-    price_comparison AS (
-        SELECT 
-            sp.comparison_website AS website,
-            sp.source_product_id,
-            COUNT(DISTINCT sp.comparison_product_id) AS product_count,
+            fd.website,
+            fd.product_id,
             CASE 
-                WHEN sp.source_price < MIN(sp.comparison_price) THEN 'cheapest'
-                WHEN sp.source_price > MAX(sp.comparison_price) THEN 'expensive'
+                WHEN fd.price_rank = 1 THEN 'cheapest'
+                WHEN fd.price_rank = fd.total_peers THEN 'expensive'
                 ELSE 'midrange'
-            END AS price_category
-        FROM standardized_products sp
-        GROUP BY sp.comparison_website, sp.source_product_id, sp.source_price
+            END AS price_label
+        FROM 
+            filtered_data fd
     ),
-    category_counts AS (
+    website_summary AS (
         SELECT 
-            website,
+            ld.website,
             COUNT(*) AS product_count,
-            SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) AS cheapest_count,
-            SUM(CASE WHEN price_category = 'expensive' THEN 1 ELSE 0 END) AS expensive_count,
-            SUM(CASE WHEN price_category = 'midrange' THEN 1 ELSE 0 END) AS midrange_count,
-            (SUM(CASE WHEN price_category = 'cheapest' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS percentage_cheapest
-        FROM price_comparison
-        GROUP BY website
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.website
     ),
-    ranked_websites AS (
+    website_ranked AS (
         SELECT 
-            website,
-            product_count,
-            cheapest_count,
-            expensive_count,
-            midrange_count,
-            percentage_cheapest,
-            RANK() OVER (ORDER BY percentage_cheapest DESC) AS price_rank
-        FROM category_counts
+            ws.website,
+            ws.product_count,
+            ws.cheapest_count,
+            ws.expensive_count,
+            ws.midrange_count,
+            ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            website_summary ws
     )
-    SELECT * FROM ranked_websites;    
-    `,[sourceQuery,categoryQuery]);
-    
+    SELECT 
+        website,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
+    FROM 
+        website_ranked;   
+    `,[categoryQuery]);
+
+    console.log(domesticData?.rows);
+
     return res.status(200).json({
         status:"success",
         message:"Competetion trends fetched succesfully",
