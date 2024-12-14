@@ -58,110 +58,95 @@ WHERE
 exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
 
     const sourceQuery = req?.query?.source;
-    const filter = req?.query?.filter;
+    let filter = req?.query?.filter;
 
-    if(!sourceQuery){
-        return next(
-            new AppError("Source param required",400)
-        )
-    }
+    if(filter=="all"||!filter) filter=null;
+    else filter = filter.split(",");
 
-    const brandCount = await pool.query(`WITH latest_prices AS (
-        -- Select the latest price for each product
+    // if(!sourceQuery){
+    //     return next(
+    //         new AppError("Source param required",400)
+    //     )
+    // }
+
+    const brandCount = await pool.query(`WITH unique_products AS (
         SELECT 
-            pr.product_id,
-            pr.price,
-            pr.date,
-            ROW_NUMBER() OVER (PARTITION BY pr.product_id ORDER BY pr.date DESC) AS row_num
+            DISTINCT ON (ppr.canprod_id) 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date,
+            p.brand AS product_brand
         FROM 
-            price pr
-    ),
-    normalized_products AS (
-        -- Normalize price per unit for aelia_auckland products using the latest price
-        SELECT 
-            p.id AS product_id,
-            p.title,
-            p.canprod_id,
-            p.brand,
-            p.tag,
-            lp.price AS flat_price,
-            p.qty,
-            p.unit,
-            CASE 
-                WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                ELSE NULL
-            END AS price_per_unit,
-            p.website
-        FROM 
-            product p
+            product_price_rank ppr
         JOIN 
-            latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
+            product p ON ppr.product_id = p.id
         WHERE 
-            p.website = $2
-            AND p.canprod_id IS NOT NULL
+            ($1::text[] IS NULL OR p.category = ANY($1))
+        ORDER BY 
+            ppr.canprod_id, p.brand
     ),
-    comparison_prices AS (
-        -- Normalize price per unit for all other websites using the latest price
+    filtered_data AS (
         SELECT 
-            mp.product_id AS aelia_product_id,
-            mp.price_per_unit AS aelia_price_per_unit,
-            mp.flat_price AS aelia_flat_price,
-            lp.price AS other_flat_price,
-            p.qty AS other_qty,
-            p.unit AS other_unit,
-            p.tag AS other_tag,
-            CASE 
-                WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                ELSE NULL
-            END AS other_price_per_unit
+            canprod_id,
+            product_brand,
+            MIN(price_rank) AS min_rank,
+            MAX(price_rank) AS max_rank
         FROM 
-            normalized_products mp
-        JOIN 
-            product p ON p.canprod_id = mp.canprod_id 
-                AND p.website != $2 -- Avoid self-comparison
-        JOIN 
-            latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
-        WHERE 
-            ($1 = 'all' OR p.tag = $1)
+            unique_products
+        GROUP BY 
+            canprod_id, product_brand
     ),
-    product_categories AS (
+    labeled_data AS (
         SELECT 
-            np.product_id,
-            np.brand,
-            CASE
-                WHEN NOT EXISTS (
-                    SELECT 1
-                    FROM comparison_prices cp
-                    WHERE cp.aelia_product_id = np.product_id
-                    AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) < COALESCE(np.price_per_unit, np.flat_price)
-                ) THEN 'cheapest'
-                WHEN NOT EXISTS (
-                    SELECT 1
-                    FROM comparison_prices cp
-                    WHERE cp.aelia_product_id = np.product_id
-                    AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) > COALESCE(np.price_per_unit, np.flat_price)
-                ) THEN 'expensive'
+            fd.product_brand,
+            fd.canprod_id,
+            CASE 
+                WHEN fd.min_rank = 1 THEN 'cheapest'
+                WHEN fd.max_rank = fd.min_rank THEN 'expensive'
                 ELSE 'midrange'
-            END AS price_category
+            END AS price_label
         FROM 
-            normalized_products np
+            filtered_data fd
+    ),
+    brand_summary AS (
+        SELECT 
+            ld.product_brand,
+            COUNT(DISTINCT ld.canprod_id) AS product_count,
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.product_brand
+    ),
+    brand_ranked AS (
+        SELECT 
+            bs.product_brand,
+            bs.product_count,
+            bs.cheapest_count,
+            bs.expensive_count,
+            bs.midrange_count,
+            ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            brand_summary bs
     )
     SELECT 
-        pc.brand,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'cheapest' THEN pc.product_id END) AS cheapest_count,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'expensive' THEN pc.product_id END) AS expensive_count,
-        COUNT(DISTINCT CASE WHEN pc.price_category = 'midrange' THEN pc.product_id END) AS midrange_count
+        product_brand AS brand,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
     FROM 
-        product_categories pc
-    GROUP BY 
-        pc.brand
-    ORDER BY 
-        pc.brand;
-    `,[filter,sourceQuery]);
+        brand_ranked;
+    `,[filter]);
 
     return res.status(200).json({
         status:"success",
@@ -175,112 +160,97 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
 exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
 
     const sourceQuery = req?.query?.source;
-    const filter = req?.query?.filter;
+    let filter = req?.query?.filter;
 
-    console.log(sourceQuery,filter);
+    if(filter=="all"||!filter) filter=null;
+    else filter = filter.split(",");
 
-    if(!sourceQuery){
-        return next(
-            new AppError("Source param required",400)
-        )
-    }
+    // if(!sourceQuery){
+    //     return next(
+    //         new AppError("Source param required",400)
+    //     )
+    // }
     const categoryCount = await pool.query(`
-    WITH latest_prices AS (
-        -- Select the latest price for each product
+    
+    WITH unique_products AS (
         SELECT 
-            pr.product_id,
-            pr.price,
-            pr.date,
-            ROW_NUMBER() OVER (PARTITION BY pr.product_id ORDER BY pr.date DESC) AS row_num
+            DISTINCT ON (ppr.canprod_id) 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date,
+            p.category AS product_category,
+            ROW_NUMBER() OVER (PARTITION BY ppr.canprod_id ORDER BY ppr.date DESC) AS row_num
         FROM 
-            price pr
-        ),
-        normalized_products AS (
-            -- Normalize price per unit for aelia_auckland products using the latest price
-            SELECT 
-                p.id AS product_id,
-                p.title,
-                p.canprod_id,
-                p.category,
-                p.tag,
-                lp.price AS flat_price,
-                p.qty,
-                p.unit,
-                CASE 
-                    WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                    WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                    WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                    ELSE NULL
-                END AS price_per_unit,
-                p.website
-            FROM 
-                product p
-            JOIN 
-                latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
-            WHERE 
-                p.website = $2
-                AND p.canprod_id IS NOT NULL
-        ),
-        comparison_prices AS (
-            -- Normalize price per unit for all other websites using the latest price
-            SELECT 
-                mp.product_id AS aelia_product_id,
-                mp.price_per_unit AS aelia_price_per_unit,
-                mp.flat_price AS aelia_flat_price,
-                lp.price AS other_flat_price,
-                p.qty AS other_qty,
-                p.unit AS other_unit,
-                p.tag AS other_tag,
-                CASE 
-                    WHEN LOWER(p.unit) IN ('g', 'gm') THEN lp.price / NULLIF(p.qty, 0)
-                    WHEN LOWER(p.unit) IN ('ml') THEN lp.price / NULLIF(p.qty, 0)
-                    WHEN LOWER(p.unit) IN ('l') THEN lp.price / NULLIF(p.qty * 1000, 0) -- Convert liters to milliliters
-                    ELSE NULL
-                END AS other_price_per_unit
-            FROM 
-                normalized_products mp
-            JOIN 
-                product p ON p.canprod_id = mp.canprod_id 
-                    AND p.website != $2 -- Avoid self-comparison
-            JOIN 
-                latest_prices lp ON p.id = lp.product_id AND lp.row_num = 1
-            WHERE 
-                ($1 = 'all' OR p.tag = $1)
-        ),
-        product_categories AS (
-            SELECT 
-                np.product_id,
-                np.category,
-                CASE
-                    WHEN NOT EXISTS (
-                        SELECT 1
-                        FROM comparison_prices cp
-                        WHERE cp.aelia_product_id = np.product_id
-                        AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) < COALESCE(np.price_per_unit, np.flat_price)
-                    ) THEN 'cheapest'
-                    WHEN NOT EXISTS (
-                        SELECT 1
-                        FROM comparison_prices cp
-                        WHERE cp.aelia_product_id = np.product_id
-                        AND COALESCE(cp.other_price_per_unit, cp.other_flat_price) > COALESCE(np.price_per_unit, np.flat_price)
-                    ) THEN 'expensive'
-                    ELSE 'midrange'
-                END AS price_category
-            FROM 
-                normalized_products np
-            )
-            SELECT 
-                pc.category,
-                COUNT(DISTINCT CASE WHEN pc.price_category = 'cheapest' THEN pc.product_id END) AS cheapest_count,
-                COUNT(DISTINCT CASE WHEN pc.price_category = 'expensive' THEN pc.product_id END) AS expensive_count,
-                COUNT(DISTINCT CASE WHEN pc.price_category = 'midrange' THEN pc.product_id END) AS midrange_count
-            FROM 
-                product_categories pc
-            GROUP BY 
-                pc.category
-            ORDER BY 
-                pc.category;   
-`,[filter,sourceQuery])
+            product_price_rank ppr
+        JOIN 
+            product p ON ppr.product_id = p.id
+        WHERE 
+            ($1::text[] IS NULL OR p.tag = ANY($1))
+    ),
+    filtered_data AS (
+        SELECT 
+            canprod_id,
+            product_category,
+            MIN(price_rank) AS min_rank,
+            MAX(price_rank) AS max_rank
+        FROM 
+            unique_products
+        WHERE 
+            row_num = 1
+        GROUP BY 
+            canprod_id, product_category
+    ),
+    labeled_data AS (
+        SELECT 
+            fd.product_category,
+            fd.canprod_id,
+            CASE 
+                WHEN fd.min_rank = 1 THEN 'cheapest'
+                WHEN fd.max_rank = fd.min_rank THEN 'expensive'
+                ELSE 'midrange'
+            END AS price_label
+        FROM 
+            filtered_data fd
+    ),
+    category_summary AS (
+        SELECT 
+            ld.product_category,
+            COUNT(DISTINCT ld.canprod_id) AS product_count,
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.product_category
+    ),
+    category_ranked AS (
+        SELECT 
+            cs.product_category,
+            cs.product_count,
+            cs.cheapest_count,
+            cs.expensive_count,
+            cs.midrange_count,
+            ROUND((cs.cheapest_count::NUMERIC / NULLIF(cs.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((cs.cheapest_count::NUMERIC / NULLIF(cs.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            category_summary cs
+    )
+    SELECT 
+        product_category AS category,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
+    FROM 
+        category_ranked;
+`,[filter])
 
     return res.status(200).json({
         status:"success",
