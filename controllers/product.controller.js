@@ -28,7 +28,69 @@ exports.getDashboardStatsFor = catchAsync(async (req,res,next)=>{
         )
     }
 
-    const statsQuery = await pool.query(`select * from daily_price_stats where date in (select max(date) from daily_price_stats) and website = $1;`,[sourceQuery]);
+    const statsQuery = await pool.query(`WITH unique_products AS (
+        SELECT 
+            DISTINCT ON (ppr.canprod_id, ppr.website) 
+            ppr.product_id,
+            ppr.canprod_id,
+            ppr.website,
+            ppr.price_rank,
+            ppr.total_peers,
+            ppr.price_per_unit,
+            ppr.date
+        FROM 
+            product_price_rank ppr
+        JOIN 
+            product p ON ppr.product_id = p.id
+        ORDER BY 
+            ppr.canprod_id, ppr.website, ppr.date DESC
+    ),
+    labeled_data AS (
+        SELECT 
+            up.website,
+            up.canprod_id,
+            CASE 
+                WHEN up.price_rank = 1 THEN 'cheapest'
+                WHEN up.price_rank = up.total_peers THEN 'expensive'
+                ELSE 'midrange'
+            END AS price_label
+        FROM 
+            unique_products up
+    ),
+    website_summary AS (
+        SELECT 
+            ld.website,
+            COUNT(DISTINCT ld.canprod_id) AS product_count,
+            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
+            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
+            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
+        FROM 
+            labeled_data ld
+        GROUP BY 
+            ld.website
+    ),
+    website_ranked AS (
+        SELECT 
+            ws.website,
+            ws.product_count,
+            ws.cheapest_count,
+            ws.expensive_count,
+            ws.midrange_count,
+            ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) AS percentage_cheapest,
+            RANK() OVER (ORDER BY ROUND((ws.cheapest_count::NUMERIC / NULLIF(ws.product_count, 0)) * 100, 2) DESC) AS price_rank
+        FROM 
+            website_summary ws
+    )
+    SELECT 
+        website,
+        product_count,
+        cheapest_count,
+        expensive_count,
+        midrange_count,
+        percentage_cheapest,
+        price_rank
+    FROM 
+        website_ranked where website = $1;`,[sourceQuery]);
 
     const distinctCount = await pool.query(`
     SELECT 
@@ -45,7 +107,7 @@ WHERE
         status:"success",
         message:"Stats calculated succesfully",
         data:{
-            totalProducts:statsQuery?.rows[0]?.total_mapped_products,
+            totalProducts:statsQuery?.rows[0]?.product_count,
             cheapestProducts:statsQuery?.rows[0]?.cheapest_count,
             midrangeProducts:statsQuery?.rows[0]?.midrange_count,
             expensiveProducts:statsQuery?.rows[0]?.expensive_count,
