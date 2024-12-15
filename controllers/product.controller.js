@@ -1,4 +1,5 @@
 const pool = require("../configs/postgresql.config");
+const redisClient = require("../configs/redis.config");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
@@ -19,6 +20,37 @@ const source = {
     whisky_and_more:"WHISKY_AND_MORE"
 }
 
+const calculatePricePerUnit = (qty, unit, price) => {
+    if (!qty || !unit || !price) return null; // Fallback if any value is missing
+    const unitMapping = {
+        ml: 1,
+        l: 1000,
+        g: 1,
+        kg: 1000,
+    };
+    const standardizedQty = qty * (unitMapping[unit.toLowerCase()] || 1);
+    return price / standardizedQty;
+};
+// Helper function to calculate ranks with ties
+const calculateRanksWithTies = (items, valueKey) => {
+    // Sort items by the value
+    const sortedItems = [...items].sort((a, b) => a[valueKey] - b[valueKey]);
+
+    // Assign ranks with ties
+    let rank = 1;
+    for (let i = 0; i < sortedItems.length; i++) {
+        if (i > 0 && sortedItems[i][valueKey] === sortedItems[i - 1][valueKey]) {
+            // If value is the same as the previous, keep the rank the same
+            sortedItems[i].rank = sortedItems[i - 1].rank;
+        } else {
+            // Assign the current rank
+            sortedItems[i].rank = rank;
+        }
+        rank++;
+    }
+
+    return sortedItems;
+};
 exports.getDashboardStatsFor = catchAsync(async (req,res,next)=>{
     const sourceQuery = req?.query?.source;
 
@@ -324,129 +356,148 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
 })
 //pending
 exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
-    const source = req?.query?.source;
-    const limit = req?.query?.limit || 50;
-    const offset = req?.query?.offset || 0;
-    const category = req?.query?.category?.split(",") || null;
-    const brand = req?.query?.brand?.split(",") || null;
-    const location = req?.query?.location?.split(",") || null;
-    const pricerank = req?.query?.pricerank?.split(",")?.map(Number) || null;
-    const sort = req?.query?.sort || 'price_low_to_high';
+    const source = req.query.source;
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const category = req.query.category?.split(",") || null;
+    const brand = req.query.brand?.split(",") || null;
+    const location = req.query.location?.split(",") || null;
+    const pricerank = req.query.pricerank?.split(",").map(Number) || null;
+    const sort = req.query.sort || 'price_low_to_high';
 
-    if(limit > 100){
-        return next(
-            new AppError("Limit should be equal or less than 100")
-        )
+    // Validate input
+    if (!source) {
+        return next(new AppError("Source param required", 400));
     }
-    if(!source){
-        return next(
-            new AppError("Source param required",400)
-        )
+    if (limit > 100) {
+        return next(new AppError("Limit should be equal or less than 100", 400));
     }
 
-    const data = await pool.query(`
-    WITH latest_promotions AS (
-        SELECT
-            promo.product_id,
-            JSON_AGG(
-                JSON_BUILD_OBJECT(
-                    'date', promo.date,
-                    'text', promo.text,
-                    'price', promo.price
-                )
-            ) AS promotions
-        FROM promotion promo
-        WHERE promo.date = (
-            SELECT MAX(promo_inner.date)
-            FROM promotion promo_inner
-            WHERE promo_inner.product_id = promo.product_id
-        )
-        GROUP BY promo.product_id
-    ),
-    latest_batch AS (
-        SELECT
-            pr.canprod_id,
-            MAX(pr.date) AS latest_date
-        FROM product_price_rank pr
-        GROUP BY pr.canprod_id
-    ),
-    filtered_rank AS (
-        SELECT
-            pr.*
-        FROM product_price_rank pr
-        JOIN latest_batch lb ON pr.canprod_id = lb.canprod_id AND pr.date = lb.latest_date
-    ),
-    source_products AS (
-        SELECT
-            p.canprod_id,
-            pr.product_id,
-            pr.website,
-            pr.price_rank,
-            p.brand,
-            p.category,
-            pr.date
-        FROM product p
-        JOIN filtered_rank pr ON p.id = pr.product_id
-        WHERE pr.website = $1 -- Source website
-          AND ($2::TEXT[] IS NULL OR p.brand = ANY($2))               -- Brand filter (only for source)
-          AND ($3::TEXT[] IS NULL OR p.category = ANY($3))            -- Category filter (only for source)
-          AND ($4::INT[] IS NULL OR pr.price_rank = ANY($4))          -- Price rank filter (only for source)
-    )
-    SELECT 
-        cp.id AS canprod_id,
-        JSON_AGG(
-            JSON_BUILD_OBJECT(
-                'qty', p.qty,
-                'url', p.url,
-                'unit', p.unit,
-                'brand', p.brand,
-                'title', p.title,
-                'website', pr.website,
-                'category', p.category,
-                'image_url', p.image_url,
-                'pricerank', CONCAT(pr.price_rank, '/', pr.total_peers),
-                'product_id', p.id,
-                'description', COALESCE(p.description, 'No desc'),
-                'latest_price', pr.price,
-                'sub_category', p.sub_category,
-                'latest_promotions', COALESCE(lp.promotions, '[]'::JSON)
-            )
-        ) AS products_data,
-        MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END) AS source_pricerank,
-        MAX(CASE WHEN pr.website = $1 THEN pr.price END) AS source_price
-    FROM 
-        cannonical_product cp
-    JOIN 
-        product p ON cp.id = p.canprod_id
-    JOIN 
-        filtered_rank pr ON p.id = pr.product_id
-    LEFT JOIN 
-        latest_promotions lp ON lp.product_id = p.id
-    JOIN 
-        source_products sp ON sp.canprod_id = p.canprod_id 
-                          AND sp.date = pr.date -- Ensure peers belong to the same batch as the source
-    WHERE 
-        p.canprod_id IS NOT NULL
-        AND ($5::TEXT[] IS NULL OR pr.website = ANY($5)) -- Location filter (applies to all products)
-    GROUP BY 
-        cp.id
-    ORDER BY 
-        CASE 
-            WHEN $6 = 'price_low_to_high' OR $6 IS NULL THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
-            WHEN $6 = 'pricerank_low_to_high' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
-        END ASC,
-        CASE 
-            WHEN $6 = 'price_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price END)
-            WHEN $6 = 'pricerank_high_to_low' THEN MAX(CASE WHEN pr.website = $1 THEN pr.price_rank END)
-        END DESC NULLS LAST
-    LIMIT $7 OFFSET $8;    
-`, [source, brand, category, pricerank, location, sort, limit, offset]);
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data');
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
 
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Apply filters on products_data
+    products = products.map(p => {
+        let filteredProductsData = p.products_data;
+
+        // Apply category filter
+        if (category) {
+            filteredProductsData = filteredProductsData.filter(prod => category.includes(prod.category));
+        }
+
+        // Apply brand filter
+        if (brand) {
+            filteredProductsData = filteredProductsData.filter(prod => brand.includes(prod.brand));
+        }
+
+        // Apply location filter
+        // if (location) {
+        //     filteredProductsData = filteredProductsData.filter(prod => location.includes(prod.website));
+
+        //     if (filteredProductsData.length > 0) {
+        //         // Recalculate pricerank based on filtered data
+        //         const sortedRanks = [...filteredProductsData]
+        //             .sort((a, b) => parseInt(a.pricerank.split('/')[0], 10) - parseInt(b.pricerank.split('/')[0], 10));
+
+        //         const rankAdjustMap = new Map();
+        //         let currentRank = 1;
+        //         sortedRanks.forEach((prod, idx, arr) => {
+        //             // Assign rank while maintaining ties
+        //             if (idx > 0 && parseInt(prod.pricerank.split('/')[0], 10) > parseInt(arr[idx - 1].pricerank.split('/')[0], 10)) {
+        //                 currentRank++;
+        //             }
+        //             rankAdjustMap.set(prod.website, currentRank);
+        //         });
+
+        //         // Update priceranks in filtered products
+        //         const totalPeers = rankAdjustMap.size;
+        //         filteredProductsData.forEach(prod => {
+        //             const newRank = rankAdjustMap.get(prod.website);
+        //             prod.pricerank = `${newRank}/${totalPeers}`;
+        //         });
+
+        //         // Update source_pricerank and source_price
+        //         const sourceProduct = filteredProductsData.find(prod => prod.website === source);
+        //         p.source_pricerank = sourceProduct ? rankAdjustMap.get(source) : null;
+        //         p.source_price = sourceProduct ? sourceProduct.latest_price : null;
+        //     }
+        // }
+
+        return {
+            ...p,
+            products_data: filteredProductsData,
+        };
+    });
+
+    // Filter by location and recalculate price rank
+        products = products.map(product => {
+            let filteredProductsData = product.products_data;
+            if (location) 
+            filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
+
+            // Calculate price per unit or fallback to flat price
+            const rankedProducts = filteredProductsData.map(pd => ({
+                ...pd,
+                price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+            }));
+
+            // Recalculate ranks with ties
+            const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+            rankedWithTies.forEach(pd => {
+                pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+            });
+
+            // Find the updated source pricerank and price
+            const sourceProduct = rankedWithTies.find(pd => pd.website === source);
+            const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
+            const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
+
+            return {
+                ...product,
+                products_data: rankedWithTies,
+                source_pricerank: sourcePriceRank,
+                source_price: sourcePrice,
+            };
+        }).filter(product => product.products_data.length > 0);
+
+    // Remove products where all products_data entries were filtered out
+    products = products.filter(p => p.products_data.length > 0);
+
+    // Apply pricerank filter
+    if (pricerank) {
+        products = products.filter(p =>
+            pricerank.includes(p.source_pricerank)
+        );
+    }
+
+    // Sort data
+    if (sort === 'price_low_to_high') {
+        products = products.sort((a, b) => a.source_price - b.source_price);
+    } else if (sort === 'price_high_to_low') {
+        products = products.sort((a, b) => b.source_price - a.source_price);
+    } else if (sort === 'pricerank_low_to_high') {
+        products = products.sort((a, b) => a.source_pricerank - b.source_pricerank);
+    } else if (sort === 'pricerank_high_to_low') {
+        products = products.sort((a, b) => b.source_pricerank - a.source_pricerank);
+    }
+
+    let paginatedProducts=products;
+    // Paginate results
+    if(offset&&limit)
+    paginatedProducts = products.slice(offset, offset + limit);
+
+    // Send response
     return res.status(200).json({
-        status:"success",
-        message:"All products for "+source+" fetched",
-        data:data.rows
-    })
+        status: "success",
+        message: `All products for ${source} fetched successfully`,
+        data: paginatedProducts,
+    });
 
 });
 
@@ -581,7 +632,6 @@ FROM
 exports.getPriceHistory = catchAsync(async (req,res,next)=>{
     const canprod_id = req?.params?.canprod_id;
 
-    console.log(req?.query);
     if(!canprod_id){
         return next(
             new AppError(`canprod_id required!`,400)
