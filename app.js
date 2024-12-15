@@ -109,7 +109,7 @@ app.use(globalErrorHandler);
 
 // insertStatsTemp();
 
-precomputeDailyData('aelia_auckland');
+// precomputeDailyData('aelia_auckland');
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('30 9 * * *', scrapingService, {
   scheduled: true,
