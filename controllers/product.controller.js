@@ -489,7 +489,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
 
     let paginatedProducts=products;
     // Paginate results
-    if(offset&&limit)
+    console.log(offset,limit);
+   
     paginatedProducts = products.slice(offset, offset + limit);
 
     // Send response
