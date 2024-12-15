@@ -22,7 +22,7 @@ const waitForXTime = require("./waitForXTime");
 const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
-   // await redisClient.flushAll();
+   await redisClient.flushAll();
 
    console.log('Cache cleared at 12 AM New Zealand time');
 
@@ -141,7 +141,6 @@ const scrapingService =async ()=>{
       }
    };
 
-   if(false)
    while(!doneAuckland||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||!doneChemistWarehouse){
 
       const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
@@ -267,9 +266,9 @@ const scrapingService =async ()=>{
 
       await waitForXTime(10000);
    }
-   // await extract_unit_and_quantity();
-   // await updateProductPriceRank();
-   // await updateDailyPriceStats('aelia_auckland');
+   await extract_unit_and_quantity();
+   await updateProductPriceRank();
+   await updateDailyPriceStats('aelia_auckland');
    await precomputeDailyData('aelia_auckland');
 }
 
