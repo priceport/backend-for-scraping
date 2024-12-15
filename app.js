@@ -99,7 +99,7 @@ app.all('*', (req, res, next) => {
 app.use(globalErrorHandler);
 
 //testing pupetter as well as ci/cd
-// scrapingService();
+scrapingService();
 
 // const insertStatsTemp = async ()=>{
 //    await updateProductPriceRank();
