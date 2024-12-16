@@ -11,6 +11,13 @@ const precomputeDailyData = async (source) => {
 
     const canprod_ids = await pool.query(`select * from cannonical_product;`);
     let finalData = []
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1); // Get yesterday's date
+
+    // Format dates to YYYY-MM-DD
+    const todayString = today.toISOString().split('T')[0];
+    const yesterdayString = yesterday.toISOString().split('T')[0];
 
     for(let i=0;i<canprod_ids?.rows?.length;i++){
         const products = await pool.query(`select * from product where canprod_id=$1`,[canprod_ids?.rows[i]?.id]);
@@ -51,7 +58,7 @@ const precomputeDailyData = async (source) => {
             FROM 
                 promotion p
             WHERE 
-                p.date::DATE = CURRENT_DATE - 5 AND product_id = $1;`,[temp.id]);
+                p.date::DATE = CURRENT_DATE AND product_id = $1;`,[temp.id]);
 
             temp.latest_promotions = promotions.rows;
             
@@ -65,6 +72,7 @@ const precomputeDailyData = async (source) => {
 
             temp.product_id = temp.id;
 
+            if(temp.last_checked.toISOString().split('T')[0] === todayString || temp.last_checked.toISOString().split('T')[0] === yesterdayString)
             finalData[i]?.products_data?.push(temp);
         }
 
@@ -197,6 +205,8 @@ const precomputeDailyData = async (source) => {
         // GROUP BY 
         //     cp.id;  
         // `,[source]);
+
+        finalData = finalData?.filter(data=>data.products_data.length!==0);
 
         // Store the result in Redis
         await redisClient.set(
