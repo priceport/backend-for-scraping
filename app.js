@@ -30,6 +30,8 @@ const checkMaintenance = require("./utils/checkMaintenance.js");
 const updateProductPriceRank = require("./helpers/updateProductPriceRank.js");
 const updateDailyPriceStats = require("./helpers/updateDailyPriceStats.js");
 const precomputeDailyData = require("./helpers/precomputeDailyData.js");
+const redisClient = require("./configs/redis.config.js");
+const pool = require("./configs/postgresql.config.js");
 
 const app = express();
 
@@ -107,9 +109,39 @@ app.use(globalErrorHandler);
 //    await updateDailyPriceStats('aelia_auckland');
 // }
 
+// const getBackStandardQty = (qty,unit)=>{
+//   if(unit=='l'||unit=='kg') return qty*100;
+//   else return qty*1;
+// }
 // insertStatsTemp();
+// const temp = async ()=>{
+//   const data = JSON.parse(await redisClient.get('daily_product_data'));
+//   const websiteCounts1 = {};
 
-// precomputeDailyData('aelia_auckland');
+//   data.map(el=>{
+//     el?.products_data?.map(el2=>{
+//       if(!websiteCounts1[el2?.website]) websiteCounts1[el2?.website]=1;
+//       else websiteCounts1[el2?.website]+=1;
+//     })
+//   })
+//   // console.log(data);
+//   // console.log(websiteCounts1);
+//   // console.log(data.find(el=>el.canprod_id==119));
+
+//   // const websiteCounts = {};
+
+//   // finalData.map(el=>{
+//   //   el?.products_data?.map(el2=>{
+//   //     if(!websiteCounts[el2?.website]) websiteCounts[el2?.website]=1;
+//   //     else websiteCounts[el2?.website]+=1;
+//   //   })
+//   // })
+//   // console.log(finalData);
+//   // console.log(websiteCounts);
+// }
+//pricerank, id->product_id, latest_price, latest_promotions, price_per_unit
+// temp();
+precomputeDailyData('aelia_auckland');
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('30 9 * * *', scrapingService, {
   scheduled: true,
