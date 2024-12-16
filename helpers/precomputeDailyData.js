@@ -72,7 +72,7 @@ const precomputeDailyData = async (source) => {
 
             temp.product_id = temp.id;
 
-            if(temp.last_checked.toISOString().split('T')[0] === todayString || temp.last_checked.toISOString().split('T')[0] === yesterdayString)
+            // if(temp.last_checked.toISOString().split('T')[0] === todayString || temp.last_checked.toISOString().split('T')[0] === yesterdayString)
             finalData[i]?.products_data?.push(temp);
         }
 
