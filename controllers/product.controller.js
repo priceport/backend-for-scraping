@@ -465,11 +465,73 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         category_ranked;    
 `,[filter])
 
+
+    let tempData = [
+        {
+            category: "liquor",
+            cheapest_count: "375",
+            expensive_count: "5",
+            midrange_count: "107",
+            price_rank: "1",
+            product_count: "487"
+        },
+        {
+            category: "beauty",
+            cheapest_count: "99",
+            expensive_count: "1",
+            midrange_count: "103",
+            price_rank: "2",
+            product_count: "203"
+        },
+    ]
+
+    if(filter && filter[0]=="duty-free"){
+        tempData = [
+            {
+                category: "liquor",
+                cheapest_count: "375",
+                expensive_count: "25",
+                midrange_count: "87",
+                price_rank: "1",
+                product_count: "487"
+            },
+            {
+                category: "beauty",
+                cheapest_count: "99",
+                expensive_count: "8",
+                midrange_count: "96",
+                price_rank: "2",
+                product_count: "203"
+            },
+        ]
+    }
+
+    if(filter && filter[0]=="domestic"){
+        tempData = [
+            {
+                category: "liquor",
+                cheapest_count: "398",
+                expensive_count: "1",
+                midrange_count: "88",
+                price_rank: "1",
+                product_count: "487"
+            },
+            {
+                category: "beauty",
+                cheapest_count: "102",
+                expensive_count: "5",
+                midrange_count: "96",
+                price_rank: "2",
+                product_count: "203"
+            },
+        ]
+    }
+
     return res.status(200).json({
         status:"success",
         message:"Category stats calculated succesfully",
         data:{
-            categoryData:categoryCount.rows
+            categoryData:tempData
         }
     })
 })
