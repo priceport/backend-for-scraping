@@ -277,7 +277,7 @@ exports.getTimeTrends = catchAsync(async (req,res,next)=>{
             distinct brand,category
             FROM product
             WHERE website = $2
-            AND (created_at <= $1 AND last_checked >= $1)
+            AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
             `;
     
             // Execute the query
@@ -290,7 +290,7 @@ exports.getTimeTrends = catchAsync(async (req,res,next)=>{
             category
             FROM product
             WHERE website = $2
-            AND (created_at <= $1 AND last_checked >= $1)
+            AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
             `;
 
             const past_results_titles = await pool.query(query, [past_date, source]);
@@ -307,6 +307,7 @@ exports.getTimeTrends = catchAsync(async (req,res,next)=>{
                     ) AS price
                 FROM product p
                 WHERE p.website = 'aelia_auckland'
+                AND p.canprod_id is not null
                 AND p.created_at <= $1
                 AND p.last_checked >= $1;
             `;
