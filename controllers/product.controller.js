@@ -323,30 +323,19 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
         WHERE 
             ($1::text[] IS NULL OR p.category = ANY($1))
         ORDER BY 
-            ppr.canprod_id, p.brand
-    ),
-    filtered_data AS (
-        SELECT 
-            canprod_id,
-            product_brand,
-            MIN(price_rank) AS min_rank,
-            MAX(price_rank) AS max_rank
-        FROM 
-            unique_products
-        GROUP BY 
-            canprod_id, product_brand
+            ppr.canprod_id, p.brand, ppr.date DESC
     ),
     labeled_data AS (
         SELECT 
-            fd.product_brand,
-            fd.canprod_id,
+            up.product_brand,
+            up.canprod_id,
             CASE 
-                WHEN fd.min_rank = 1 THEN 'cheapest'
-                WHEN fd.max_rank = fd.min_rank THEN 'expensive'
+                WHEN up.price_rank = 1 THEN 'cheapest'
+                WHEN up.price_rank = up.total_peers THEN 'expensive'
                 ELSE 'midrange'
             END AS price_label
         FROM 
-            filtered_data fd
+            unique_products up
     ),
     brand_summary AS (
         SELECT 
@@ -381,7 +370,7 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
         percentage_cheapest,
         price_rank
     FROM 
-        brand_ranked;
+        brand_ranked;    
     `,[filter]);
 
     return res.status(200).json({
@@ -418,39 +407,27 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
             ppr.total_peers,
             ppr.price_per_unit,
             ppr.date,
-            p.category AS product_category,
-            ROW_NUMBER() OVER (PARTITION BY ppr.canprod_id ORDER BY ppr.date DESC) AS row_num
+            p.category AS product_category
         FROM 
             product_price_rank ppr
         JOIN 
             product p ON ppr.product_id = p.id
         WHERE 
             ($1::text[] IS NULL OR p.tag = ANY($1))
-    ),
-    filtered_data AS (
-        SELECT 
-            canprod_id,
-            product_category,
-            MIN(price_rank) AS min_rank,
-            MAX(price_rank) AS max_rank
-        FROM 
-            unique_products
-        WHERE 
-            row_num = 1
-        GROUP BY 
-            canprod_id, product_category
+        ORDER BY 
+            ppr.canprod_id, ppr.date DESC
     ),
     labeled_data AS (
         SELECT 
-            fd.product_category,
-            fd.canprod_id,
+            up.product_category,
+            up.canprod_id,
             CASE 
-                WHEN fd.min_rank = 1 THEN 'cheapest'
-                WHEN fd.max_rank = fd.min_rank THEN 'expensive'
+                WHEN up.price_rank = 1 THEN 'cheapest'
+                WHEN up.price_rank = up.total_peers THEN 'expensive'
                 ELSE 'midrange'
             END AS price_label
         FROM 
-            filtered_data fd
+            unique_products up
     ),
     category_summary AS (
         SELECT 
@@ -485,7 +462,7 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         percentage_cheapest,
         price_rank
     FROM 
-        category_ranked;
+        category_ranked;    
 `,[filter])
 
     return res.status(200).json({
