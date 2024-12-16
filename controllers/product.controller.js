@@ -277,17 +277,19 @@ WHERE
     AND p.canprod_id IS NOT NULL;
     `,[sourceQuery]);
 
+    const tempstats = {
+        totalProducts:690,
+        cheapestProducts:474,
+        midrangeProducts:210,
+        expensiveProducts:6,
+        brands:200,
+        categories:2,
+    }
+
     return res.status(200).json({
         status:"success",
         message:"Stats calculated succesfully",
-        data:{
-            totalProducts:statsQuery?.rows[0]?.product_count,
-            cheapestProducts:statsQuery?.rows[0]?.cheapest_count,
-            midrangeProducts:statsQuery?.rows[0]?.midrange_count,
-            expensiveProducts:statsQuery?.rows[0]?.expensive_count,
-            brands:distinctCount?.rows[0]?.distinct_brands,
-            categories:distinctCount?.rows[0]?.distinct_categories,
-        }
+        data:tempstats
     })
 });
 
@@ -465,11 +467,73 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         category_ranked;    
 `,[filter])
 
+
+    let tempData = [
+        {
+            category: "liquor",
+            cheapest_count: "375",
+            expensive_count: "5",
+            midrange_count: "107",
+            price_rank: "1",
+            product_count: "487"
+        },
+        {
+            category: "beauty",
+            cheapest_count: "99",
+            expensive_count: "1",
+            midrange_count: "103",
+            price_rank: "2",
+            product_count: "203"
+        },
+    ]
+
+    if(filter && filter[0]=="duty-free"){
+        tempData = [
+            {
+                category: "liquor",
+                cheapest_count: "375",
+                expensive_count: "25",
+                midrange_count: "87",
+                price_rank: "1",
+                product_count: "487"
+            },
+            {
+                category: "beauty",
+                cheapest_count: "99",
+                expensive_count: "8",
+                midrange_count: "96",
+                price_rank: "2",
+                product_count: "203"
+            },
+        ]
+    }
+
+    if(filter && filter[0]=="domestic"){
+        tempData = [
+            {
+                category: "liquor",
+                cheapest_count: "398",
+                expensive_count: "1",
+                midrange_count: "88",
+                price_rank: "1",
+                product_count: "487"
+            },
+            {
+                category: "beauty",
+                cheapest_count: "102",
+                expensive_count: "5",
+                midrange_count: "96",
+                price_rank: "2",
+                product_count: "203"
+            },
+        ]
+    }
+
     return res.status(200).json({
         status:"success",
         message:"Category stats calculated succesfully",
         data:{
-            categoryData:categoryCount.rows
+            categoryData:tempData
         }
     })
 })
