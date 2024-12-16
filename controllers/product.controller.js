@@ -51,6 +51,148 @@ const calculateRanksWithTies = (items, valueKey) => {
 
     return sortedItems;
 };
+
+exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
+        const source = req.query.source;
+        const locations = req.query.location?.split(",") || null;
+        console.log(locations);
+
+        // Validate input
+        if (!source) {
+            return next(new AppError("Source param required", 400));
+        }
+
+        // Fetch precomputed data from Redis
+        const cachedData = await redisClient.get('daily_product_data');
+        if (!cachedData) {
+            return next(new AppError("Precomputed data not available. Try again later.", 500));
+        }
+
+        // Parse cached data
+        let products = JSON.parse(cachedData);
+
+        // Filter and process products
+        const leastCompetitiveProducts = products.map(product => {
+            let filteredProductsData = product.products_data;
+
+            // Apply location filter if provided
+            if (locations) {
+                filteredProductsData = filteredProductsData.filter(pd => locations.includes(pd.website));
+            }
+
+            if (filteredProductsData.length === 0) return null; // Skip if no locations match
+
+            // Calculate price_per_unit and sort with ranks
+            const rankedProducts = filteredProductsData.map(pd => ({
+                ...pd,
+                price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+            }));
+            const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+            rankedWithTies.forEach(pd => {
+                pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+            });
+
+            // Identify source product and determine if it is least competitive
+            const sourceProduct = rankedWithTies.find(pd => pd.website === source);
+            if (!sourceProduct || sourceProduct.rank < rankedWithTies[rankedWithTies.length - 1].rank) {
+                return null; // Skip if source is not the least competitive
+            }
+
+            return {
+                ...product,
+                products_data: rankedWithTies,
+                source_pricerank: sourceProduct.pricerank,
+                source_price_per_unit: sourceProduct.price_per_unit,
+            };
+        }).filter(product => product !== null); // Remove null entries
+
+        // Send response
+        return res.status(200).json({
+            status: "success",
+            message: "Least competitive products fetched successfully",
+            data: leastCompetitiveProducts,
+        });
+});
+
+exports.getMarginallyBehindProducts = catchAsync(async (req, res, next) => {
+    const source = req.query.source;
+
+    // Validate input
+    if (!source) {
+        return next(new AppError("Source param required", 400));
+    }
+
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data');
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
+
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Filter products where the source entry is marginally behind
+    const marginallyBehindProducts = products.map(product => {
+        const updatedProductsData = product.products_data.map(pd => ({
+            ...pd,
+            price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+        }));
+
+        // Sort by price_per_unit (or flat price if unavailable)
+        const sortedProducts = updatedProductsData.sort((a, b) => a.price_per_unit - b.price_per_unit);
+
+        // Identify the source product and its next cheaper competitor
+        const sourceProductIndex = sortedProducts.findIndex(pd => pd.website === source);
+        if (sourceProductIndex === -1 || sourceProductIndex === 0) {
+            // Skip if source product is not present or already the cheapest
+            return null;
+        }
+
+        const sourceProduct = sortedProducts[sourceProductIndex];
+
+        // Find the next cheaper product, skipping products with equal prices
+        let nextCheaperProductIndex = sourceProductIndex - 1;
+        while (
+            nextCheaperProductIndex >= 0 &&
+            sortedProducts[nextCheaperProductIndex].price_per_unit === sourceProduct.price_per_unit
+        ) {
+            nextCheaperProductIndex--;
+        }
+
+        if (nextCheaperProductIndex < 0) {
+            // No cheaper product found
+            return null;
+        }
+
+        const nextCheaperProduct = sortedProducts[nextCheaperProductIndex];
+
+        // Check if the source product is less than 5% more expensive than the next cheaper product
+        const isMarginallyBehind =
+            (sourceProduct.price_per_unit - nextCheaperProduct.price_per_unit) /
+                nextCheaperProduct.price_per_unit <
+            0.05;
+
+        if (isMarginallyBehind) {
+            return {
+                ...product,
+                products_data: sortedProducts, // Include sorted products
+                source_pricerank: sourceProduct.pricerank,
+                source_price_per_unit: sourceProduct.price_per_unit,
+                next_cheapest_price_per_unit: nextCheaperProduct.price_per_unit,
+            };
+        }
+
+        return null;
+    }).filter(product => product !== null); // Remove null entries
+
+    // Send response
+    return res.status(200).json({
+        status: "success",
+        message: "Products where source is marginally behind fetched successfully",
+        data: marginallyBehindProducts,
+    });
+});
+
 exports.getDashboardStatsFor = catchAsync(async (req,res,next)=>{
     const sourceQuery = req?.query?.source;
 

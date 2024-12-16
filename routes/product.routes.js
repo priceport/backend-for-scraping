@@ -8,6 +8,12 @@ const router = express.Router();
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
+router.route("/marginally-behind")
+.get(UserController.isLoggedIn,cacheMiddleware,ProductController.getMarginallyBehindProducts);
+
+router.route("/least-competitive")
+.get(UserController.isLoggedIn,cacheMiddleware,ProductController.getLeastCompetitiveProducts);
+
 router.route("/dashboard")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getDashboardStatsFor);
 
