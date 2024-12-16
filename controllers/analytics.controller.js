@@ -173,8 +173,6 @@ exports.getCompetetionTrendsData = catchAsync(async (req,res,next)=>{
         website_ranked;
   `, [categoryQuery]);
 
-    console.log(dutyFreeData?.rows);
-
     const domesticData = await pool.query(`WITH latest_data AS (
         SELECT 
             ppr.product_id,
@@ -254,8 +252,6 @@ exports.getCompetetionTrendsData = catchAsync(async (req,res,next)=>{
         website_ranked;   
     `,[categoryQuery]);
 
-    console.log(domesticData?.rows);
-
     return res.status(200).json({
         status:"success",
         message:"Competetion trends fetched succesfully",
@@ -268,239 +264,219 @@ exports.getCompetetionTrendsData = catchAsync(async (req,res,next)=>{
 });
 
 exports.getTimeTrends = catchAsync(async (req,res,next)=>{
-    const { latest_date, past_date, source } = req.query;
-
-    const data = await pool.query(`WITH
-    -- Step 1: Identify cheapest prices per mapped product across websites
-    cheapest_prices AS (
-        SELECT
-            p.canprod_id,
-            p.category,
-            pr.website,
-            MIN(pr.price) AS cheapest_price
-        FROM
-            product p
-        JOIN
-            price pr ON p.id = pr.product_id
-        WHERE
-            pr.date IN ($1, $2) -- latest_date and past_date
-            AND p.canprod_id IS NOT NULL -- Only include mapped products
-        GROUP BY
-            p.canprod_id, p.category, pr.website
-    ),
-    -- Step 2: Calculate the percentage of cheapest products per category and website
-    price_rank_data AS (
-        SELECT
-            cp.website,
-            cp.category,
-            COUNT(DISTINCT CASE WHEN cp.cheapest_price = (
-                SELECT MIN(pr2.price)
-                FROM price pr2
-                WHERE pr2.product_id = cp.canprod_id
-                AND pr2.date = $1 -- latest_date
-            ) THEN cp.canprod_id END) AS cheapest_latest_count,
-            COUNT(DISTINCT CASE WHEN cp.cheapest_price = (
-                SELECT MIN(pr2.price)
-                FROM price pr2
-                WHERE pr2.product_id = cp.canprod_id
-                AND pr2.date = $2 -- past_date
-            ) THEN cp.canprod_id END) AS cheapest_past_count,
-            COUNT(DISTINCT cp.canprod_id) AS total_products
-        FROM
-            cheapest_prices cp
-        GROUP BY
-            cp.website, cp.category
-    ),
-    -- Step 3: Rank websites based on the percentage of cheapest products
-    ranked_data AS (
-        SELECT
-            prd.category,
-            prd.website,
-            RANK() OVER (PARTITION BY prd.category ORDER BY (prd.cheapest_latest_count * 1.0 / NULLIF(prd.total_products, 0)) DESC) AS latest_rank,
-            RANK() OVER (PARTITION BY prd.category ORDER BY (prd.cheapest_past_count * 1.0 / NULLIF(prd.total_products, 0)) DESC) AS past_rank,
-            (prd.cheapest_latest_count * 100.0 / NULLIF(prd.total_products, 0)) AS latest_price_percentage,
-            (prd.cheapest_past_count * 100.0 / NULLIF(prd.total_products, 0)) AS past_price_percentage
-        FROM
-            price_rank_data prd
-    ),
-    -- Step 4: Fetch brand and product counts for both past and latest dates
-    brand_and_product_counts AS (
-        SELECT
-            p.website,
-            p.category,
-            COUNT(DISTINCT CASE WHEN pr.date = $1 THEN p.brand END) AS brand_count_latest,
-            COUNT(DISTINCT CASE WHEN pr.date = $2 THEN p.brand END) AS brand_count_past,
-            COUNT(DISTINCT CASE WHEN pr.date = $1 THEN p.id END) AS product_count_latest,
-            COUNT(DISTINCT CASE WHEN pr.date = $2 THEN p.id END) AS product_count_past
-        FROM
-            product p
-        JOIN
-            price pr ON p.id = pr.product_id
-        WHERE
-            pr.date IN ($1, $2)
-            AND p.canprod_id IS NOT NULL -- Only include mapped products
-        GROUP BY
-            p.website, p.category
-    ),
-    -- Step 5: Aggregate stats across all categories
-    aggregated_stats AS (
-        SELECT
-            'All Categories' AS category,
-            r.website,
-            AVG(r.latest_price_percentage) AS avg_price_percentage_latest,
-            AVG(r.past_price_percentage) AS avg_price_percentage_past,
-            SUM(bpc.brand_count_latest) AS total_brands_latest,
-            SUM(bpc.brand_count_latest - bpc.brand_count_past) AS total_brand_change,
-            SUM(bpc.product_count_latest) AS total_products_latest,
-            SUM(bpc.product_count_latest - bpc.product_count_past) AS total_product_change
-        FROM
-            ranked_data r
-        JOIN
-            brand_and_product_counts bpc ON r.category = bpc.category AND r.website = bpc.website
-        WHERE
-            r.website = $3 -- Filter by source
-        GROUP BY
-            r.website
-    ),
-    -- Step 6: Final Combined Data
-    combined_data AS (
-        SELECT
-            r.category,
-            r.website,
-            r.latest_rank AS "Latest Date Price Rank",
-            (r.past_rank - r.latest_rank) AS "Price Rank Difference from Past Date",
-            bpc.brand_count_latest AS "Latest Date Brands Count",
-            (bpc.brand_count_latest - bpc.brand_count_past) AS "Brand Count Change from Past Date",
-            bpc.product_count_latest AS "Latest Date Products Count",
-            (bpc.product_count_latest - bpc.product_count_past) AS "Product Count Change from Past Date"
-        FROM
-            ranked_data r
-        JOIN
-            brand_and_product_counts bpc ON r.category = bpc.category AND r.website = bpc.website
-        WHERE
-            r.website = $3 -- Filter by source
-    )
-    SELECT * FROM combined_data
-    UNION ALL
-    SELECT
-        a.category,
-        a.website,
-        NULL AS "Latest Date Price Rank",
-        NULL AS "Price Rank Difference from Past Date",
-        a.total_brands_latest AS "Latest Date Brands Count",
-        a.total_brand_change AS "Brand Count Change from Past Date",
-        a.total_products_latest AS "Latest Date Products Count",
-        a.total_product_change AS "Product Count Change from Past Date"
-    FROM
-        aggregated_stats a;             
-    `,[latest_date,past_date,source]);
-
-    const aggregated = await pool.query(`WITH
-    -- Step 1: Identify cheapest prices per mapped product across websites
-    cheapest_prices AS (
-        SELECT
-            p.canprod_id,
-            pr.website,
-            MIN(pr.price) AS cheapest_price
-        FROM
-            product p
-        JOIN
-            price pr ON p.id = pr.product_id
-        WHERE
-            pr.date IN ($1, $2) -- latest_date and past_date
-            AND p.canprod_id IS NOT NULL -- Only include mapped products
-        GROUP BY
-            p.canprod_id, pr.website
-    ),
-    -- Step 2: Calculate the percentage of cheapest products for each website (all categories combined)
-    aggregated_cheapest_data AS (
-        SELECT
-            cp.website,
-            COUNT(DISTINCT CASE WHEN cp.cheapest_price = (
-                SELECT MIN(pr2.price)
-                FROM price pr2
-                WHERE pr2.product_id = cp.canprod_id
-                AND pr2.date = $1 -- latest_date
-            ) THEN cp.canprod_id END) AS cheapest_latest_count,
-            COUNT(DISTINCT CASE WHEN cp.cheapest_price = (
-                SELECT MIN(pr2.price)
-                FROM price pr2
-                WHERE pr2.product_id = cp.canprod_id
-                AND pr2.date = $2 -- past_date
-            ) THEN cp.canprod_id END) AS cheapest_past_count,
-            COUNT(DISTINCT cp.canprod_id) AS total_products
-        FROM
-            cheapest_prices cp
-        GROUP BY
-            cp.website
-    ),
-    -- Step 3: Rank websites based on aggregated percentage of cheapest products
-    aggregated_price_ranks AS (
-        SELECT
-            acd.website,
-            RANK() OVER (ORDER BY (acd.cheapest_latest_count * 1.0 / NULLIF(acd.total_products, 0)) DESC) AS latest_rank,
-            RANK() OVER (ORDER BY (acd.cheapest_past_count * 1.0 / NULLIF(acd.total_products, 0)) DESC) AS past_rank
-        FROM
-            aggregated_cheapest_data acd
-    ),
-    -- Step 4: Fetch brand and product counts for both past and latest dates (all categories combined)
-    brand_and_product_counts AS (
-        SELECT
-            p.website,
-            COUNT(DISTINCT CASE WHEN pr.date = $1 THEN p.brand END) AS brand_count_latest,
-            COUNT(DISTINCT CASE WHEN pr.date = $2 THEN p.brand END) AS brand_count_past,
-            COUNT(DISTINCT CASE WHEN pr.date = $1 THEN p.id END) AS product_count_latest,
-            COUNT(DISTINCT CASE WHEN pr.date = $2 THEN p.id END) AS product_count_past
-        FROM
-            product p
-        JOIN
-            price pr ON p.id = pr.product_id
-        WHERE
-            pr.date IN ($1, $2)
-            AND p.canprod_id IS NOT NULL -- Only include mapped products
-        GROUP BY
-            p.website
-    ),
-    -- Step 5: Combine aggregated stats for "All Categories"
-    aggregated_stats AS (
-        SELECT
-            'All Categories' AS category,
-            bpc.website,
-            apr.latest_rank AS latest_price_rank,
-            (apr.past_rank - apr.latest_rank) AS price_rank_difference,
-            bpc.brand_count_latest AS total_brands_latest,
-            (bpc.brand_count_latest - bpc.brand_count_past) AS brand_count_change,
-            bpc.product_count_latest AS total_products_latest,
-            (bpc.product_count_latest - bpc.product_count_past) AS product_count_change
-        FROM
-            brand_and_product_counts bpc
-        JOIN
-            aggregated_price_ranks apr ON bpc.website = apr.website
-        WHERE
-            bpc.website = $3 -- Filter by source
-    )
-    -- Step 6: Final Combined Data
-    SELECT
-        'All Categories' AS category,
-        website,
-        latest_price_rank AS "Latest Date Price Rank",
-        price_rank_difference AS "Price Rank Difference from Past Date",
-        total_brands_latest AS "Latest Date Brands Count",
-        brand_count_change AS "Brand Count Change from Past Date",
-        total_products_latest AS "Latest Date Products Count",
-        product_count_change AS "Product Count Change from Past Date"
-    FROM
-        aggregated_stats;    
-    `,[latest_date,past_date,source])
-
-    return res.status(200).json({
-        status:"success",
-        message:"Time trends fetched succesfully",
-        data:{
-            categories:data?.rows,
-            aggregated:aggregated.rows
+        const { past_date, latest_date, source } = req.query;
+    
+        // Validate input parameters
+        if (!past_date || !latest_date || !source) {
+            return res.status(400).json({ error: 'Missing required query parameters: past_date, latest_date, or source' });
         }
-    })
+
+            // SQL query
+            let query = `
+            SELECT 
+            distinct brand,category
+            FROM product
+            WHERE website = $2
+            AND (created_at <= $1 AND last_checked >= $1)
+            `;
+    
+            // Execute the query
+            const past_results_brands = await pool.query(query, [past_date, source]);
+            const latest_results_brands = await pool.query(query, [latest_date, source]);
+
+            query = `
+            SELECT 
+            title,
+            category
+            FROM product
+            WHERE website = $2
+            AND (created_at <= $1 AND last_checked >= $1)
+            `;
+
+            const past_results_titles = await pool.query(query, [past_date, source]);
+            const latest_results_titles = await pool.query(query, [latest_date, source]);
+    
+
+            const sourceProductsQuery = `
+                SELECT p.id AS product_id, p.canprod_id, p.category, p.qty, p.unit, 
+                    COALESCE(
+                        (SELECT price FROM price 
+                            WHERE product_id = p.id AND date <= $1
+                            ORDER BY date DESC LIMIT 1),
+                        0
+                    ) AS price
+                FROM product p
+                WHERE p.website = 'aelia_auckland'
+                AND p.created_at <= $1
+                AND p.last_checked >= $1;
+            `;
+            const { rows: sourceProductsPast } = await pool.query(sourceProductsQuery, [past_date]);
+            const { rows: sourceProductsLatest } = await pool.query(sourceProductsQuery, [latest_date]);
+
+            // Step 2: Compare source products with their peers
+            const comparisonsPast = await Promise.all(
+                sourceProductsPast.map(async (product) => {
+                    const peerPricesQuery = `
+                        SELECT 
+                            p.website, 
+                            p.id AS peer_product_id, 
+                            COALESCE(
+                                (SELECT price FROM price 
+                                WHERE product_id = p.id AND date <= $1
+                                ORDER BY date DESC LIMIT 1),
+                                0
+                            ) AS peer_price,
+                            p.qty, 
+                            p.unit
+                        FROM product p
+                        WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
+                    `;
+                    const { rows: peers } = await pool.query(peerPricesQuery, [past_date, product.canprod_id]);
+
+                    // Calculate price_per_unit for source
+                    const sourcePricePerUnit = product.qty && product.unit
+                        ? product.price / product.qty
+                        : product.price;
+
+                    // Rank the source product among peers
+                    const allPrices = peers.map(peer => {
+                        const peerPricePerUnit = peer.qty && peer.unit
+                            ? peer.peer_price / peer.qty
+                            : peer.peer_price;
+                        return peerPricePerUnit;
+                    });
+
+                    allPrices.push(sourcePricePerUnit);
+                    allPrices.sort((a, b) => a - b);
+
+                    const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
+
+                    return {
+                        category: product.category,
+                        rank,
+                        totalPeers: allPrices.length
+                    };
+                })
+            );
+
+            const comparisonsLatest = await Promise.all(
+                sourceProductsLatest.map(async (product) => {
+                    const peerPricesQuery = `
+                        SELECT 
+                            p.website, 
+                            p.id AS peer_product_id, 
+                            COALESCE(
+                                (SELECT price FROM price 
+                                WHERE product_id = p.id AND date <= $1
+                                ORDER BY date DESC LIMIT 1),
+                                0
+                            ) AS peer_price,
+                            p.qty, 
+                            p.unit
+                        FROM product p
+                        WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
+                    `;
+                    const { rows: peers } = await pool.query(peerPricesQuery, [latest_date, product.canprod_id]);
+
+                    // Calculate price_per_unit for source
+                    const sourcePricePerUnit = product.qty && product.unit
+                        ? product.price / product.qty
+                        : product.price;
+
+                    // Rank the source product among peers
+                    const allPrices = peers.map(peer => {
+                        const peerPricePerUnit = peer.qty && peer.unit
+                            ? peer.peer_price / peer.qty
+                            : peer.peer_price;
+                        return peerPricePerUnit;
+                    });
+
+                    allPrices.push(sourcePricePerUnit);
+                    allPrices.sort((a, b) => a - b);
+
+                    const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
+
+                    return {
+                        category: product.category,
+                        rank,
+                        totalPeers: allPrices.length
+                    };
+                })
+            );
+
+            // Step 3: Aggregate rankings by category
+            const categoryRanksPast = comparisonsPast.reduce((acc, comp) => {
+                if (!acc[comp.category]) {
+                    acc[comp.category] = { totalRank: 0, count: 0 };
+                }
+                acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
+                acc[comp.category].count += 1;
+                return acc;
+            }, {});
+
+            const categoryRanksLatest = comparisonsLatest.reduce((acc, comp) => {
+                if (!acc[comp.category]) {
+                    acc[comp.category] = { totalRank: 0, count: 0 };
+                }
+                acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
+                acc[comp.category].count += 1;
+                return acc;
+            }, {});
+
+            const categoryRankListPast = Object.entries(categoryRanksPast)
+                .map(([category, data]) => ({
+                    category,
+                    avgRank: data.totalRank / data.count
+                }))
+                .sort((a, b) => a.avgRank - b.avgRank);
+
+            const categoryRankListLatest = Object.entries(categoryRanksLatest)
+                .map(([category, data]) => ({
+                    category,
+                    avgRank: data.totalRank / data.count
+                }))
+                .sort((a, b) => a.avgRank - b.avgRank);
+
+            // Assign ranks to categories based on their average rank
+            categoryRankListPast.forEach((item, index) => {
+                item.priceRank = index + 1; // Cheapest is rank 1
+            });
+
+            categoryRankListLatest.forEach((item, index) => {
+                item.priceRank = index + 1; // Cheapest is rank 1
+            });
+
+            // Send the response
+            res.status(200).json({
+                status:"success",
+                message:"time trends fetched succesfully",
+                data:{
+                    brands:{
+                        past:{
+                        count:past_results_brands?.rows?.length,
+                        data:past_results_brands?.rows
+                        },
+                        latest:{
+                        count:latest_results_brands?.rows?.length,
+                        data:latest_results_brands?.rows
+                        }
+                    },
+                    products:{
+                        past:{
+                        count:past_results_titles?.rows?.length,
+                        data:past_results_titles?.rows
+                        },
+                        latest:{
+                        count:latest_results_titles?.rows?.length,
+                        data:latest_results_titles?.rows
+                        }
+                    },
+                    priceranks:{
+                        past:categoryRankListPast,
+                        latest:categoryRankListLatest
+                    }
+                }
+            });  
 })
 
 exports.pricePerCategory = catchAsync(async (req,res,next)=>{
