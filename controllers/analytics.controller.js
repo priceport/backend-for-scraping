@@ -271,182 +271,217 @@ exports.getTimeTrends = catchAsync(async (req,res,next)=>{
             return res.status(400).json({ error: 'Missing required query parameters: past_date, latest_date, or source' });
         }
 
-            // SQL query
-            let query = `
-            SELECT 
-            distinct brand,category
+        //     // SQL query
+        //     let query = `
+        //     SELECT 
+        //     distinct brand,category
+        //     FROM product
+        //     WHERE website = $2
+        //     AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
+        //     `;
+    
+        //     // Execute the query
+        //     const past_results_brands = await pool.query(query, [past_date, source]);
+        //     const latest_results_brands = await pool.query(query, [latest_date, source]);
+
+        //     query = `
+        //     SELECT 
+        //     title,
+        //     category
+        //     FROM product
+        //     WHERE website = $2
+        //     AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
+        //     `;
+
+        //     const past_results_titles = await pool.query(query, [past_date, source]);
+        //     const latest_results_titles = await pool.query(query, [latest_date, source]);
+    
+
+        //     const sourceProductsQuery = `
+        //         SELECT p.id AS product_id, p.canprod_id, p.category, p.qty, p.unit, 
+        //             COALESCE(
+        //                 (SELECT price FROM price 
+        //                     WHERE product_id = p.id AND date <= $1
+        //                     ORDER BY date DESC LIMIT 1),
+        //                 0
+        //             ) AS price
+        //         FROM product p
+        //         WHERE p.website = 'aelia_auckland'
+        //         AND p.canprod_id is not null
+        //         AND p.created_at <= $1
+        //         AND p.last_checked >= $1;
+        //     `;
+        //     const { rows: sourceProductsPast } = await pool.query(sourceProductsQuery, [past_date]);
+        //     const { rows: sourceProductsLatest } = await pool.query(sourceProductsQuery, [latest_date]);
+
+        //     // Step 2: Compare source products with their peers
+        //     const comparisonsPast = await Promise.all(
+        //         sourceProductsPast.map(async (product) => {
+        //             const peerPricesQuery = `
+        //                 SELECT 
+        //                     p.website, 
+        //                     p.id AS peer_product_id, 
+        //                     COALESCE(
+        //                         (SELECT price FROM price 
+        //                         WHERE product_id = p.id AND date <= $1
+        //                         ORDER BY date DESC LIMIT 1),
+        //                         0
+        //                     ) AS peer_price,
+        //                     p.qty, 
+        //                     p.unit
+        //                 FROM product p
+        //                 WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
+        //             `;
+        //             const { rows: peers } = await pool.query(peerPricesQuery, [past_date, product.canprod_id]);
+
+        //             // Calculate price_per_unit for source
+        //             const sourcePricePerUnit = product.qty && product.unit
+        //                 ? product.price / product.qty
+        //                 : product.price;
+
+        //             // Rank the source product among peers
+        //             const allPrices = peers.map(peer => {
+        //                 const peerPricePerUnit = peer.qty && peer.unit
+        //                     ? peer.peer_price / peer.qty
+        //                     : peer.peer_price;
+        //                 return peerPricePerUnit;
+        //             });
+
+        //             allPrices.push(sourcePricePerUnit);
+        //             allPrices.sort((a, b) => a - b);
+
+        //             const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
+
+        //             return {
+        //                 category: product.category,
+        //                 rank,
+        //                 totalPeers: allPrices.length
+        //             };
+        //         })
+        //     );
+
+        //     const comparisonsLatest = await Promise.all(
+        //         sourceProductsLatest.map(async (product) => {
+        //             const peerPricesQuery = `
+        //                 SELECT 
+        //                     p.website, 
+        //                     p.id AS peer_product_id, 
+        //                     COALESCE(
+        //                         (SELECT price FROM price 
+        //                         WHERE product_id = p.id AND date <= $1
+        //                         ORDER BY date DESC LIMIT 1),
+        //                         0
+        //                     ) AS peer_price,
+        //                     p.qty, 
+        //                     p.unit
+        //                 FROM product p
+        //                 WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
+        //             `;
+        //             const { rows: peers } = await pool.query(peerPricesQuery, [latest_date, product.canprod_id]);
+
+        //             // Calculate price_per_unit for source
+        //             const sourcePricePerUnit = product.qty && product.unit
+        //                 ? product.price / product.qty
+        //                 : product.price;
+
+        //             // Rank the source product among peers
+        //             const allPrices = peers.map(peer => {
+        //                 const peerPricePerUnit = peer.qty && peer.unit
+        //                     ? peer.peer_price / peer.qty
+        //                     : peer.peer_price;
+        //                 return peerPricePerUnit;
+        //             });
+
+        //             allPrices.push(sourcePricePerUnit);
+        //             allPrices.sort((a, b) => a - b);
+
+        //             const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
+
+        //             return {
+        //                 category: product.category,
+        //                 rank,
+        //                 totalPeers: allPrices.length
+        //             };
+        //         })
+        //     );
+
+        //     // Step 3: Aggregate rankings by category
+        //     const categoryRanksPast = comparisonsPast.reduce((acc, comp) => {
+        //         if (!acc[comp.category]) {
+        //             acc[comp.category] = { totalRank: 0, count: 0 };
+        //         }
+        //         acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
+        //         acc[comp.category].count += 1;
+        //         return acc;
+        //     }, {});
+
+        //     const categoryRanksLatest = comparisonsLatest.reduce((acc, comp) => {
+        //         if (!acc[comp.category]) {
+        //             acc[comp.category] = { totalRank: 0, count: 0 };
+        //         }
+        //         acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
+        //         acc[comp.category].count += 1;
+        //         return acc;
+        //     }, {});
+
+        //     const categoryRankListPast = Object.entries(categoryRanksPast)
+        //         .map(([category, data]) => ({
+        //             category,
+        //             avgRank: data.totalRank / data.count
+        //         }))
+        //         .sort((a, b) => a.avgRank - b.avgRank);
+
+        //     const categoryRankListLatest = Object.entries(categoryRanksLatest)
+        //         .map(([category, data]) => ({
+        //             category,
+        //             avgRank: data.totalRank / data.count
+        //         }))
+        //         .sort((a, b) => a.avgRank - b.avgRank);
+
+        //     // Assign ranks to categories based on their average rank
+        //     categoryRankListPast.forEach((item, index) => {
+        //         item.priceRank = index + 1; // Cheapest is rank 1
+        //     });
+
+        //     categoryRankListLatest.forEach((item, index) => {
+        //         item.priceRank = index + 1; // Cheapest is rank 1
+        //     });
+
+
+            //new logic
+            let past_data = await pool.query(`SELECT 
+            *
             FROM product
             WHERE website = $2
-            AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
-            `;
-    
-            // Execute the query
-            const past_results_brands = await pool.query(query, [past_date, source]);
-            const latest_results_brands = await pool.query(query, [latest_date, source]);
+            AND (created_at::date <= $1 AND last_checked::date >= $1) AND canprod_id is not null`,[past_date,source]);
 
-            query = `
-            SELECT 
-            title,
-            category
+            let latest_data = await pool.query(`SELECT 
+            *
             FROM product
             WHERE website = $2
-            AND (created_at <= $1 AND last_checked >= $1) AND canprod_id is not null
-            `;
+            AND (created_at::date <= $1 AND last_checked::date >= $1) AND canprod_id is not null`,[latest_date,source]);
 
-            const past_results_titles = await pool.query(query, [past_date, source]);
-            const latest_results_titles = await pool.query(query, [latest_date, source]);
-    
+            past_data = past_data.rows;
+            latest_data = latest_data.rows;
 
-            const sourceProductsQuery = `
-                SELECT p.id AS product_id, p.canprod_id, p.category, p.qty, p.unit, 
-                    COALESCE(
-                        (SELECT price FROM price 
-                            WHERE product_id = p.id AND date <= $1
-                            ORDER BY date DESC LIMIT 1),
-                        0
-                    ) AS price
-                FROM product p
-                WHERE p.website = 'aelia_auckland'
-                AND p.canprod_id is not null
-                AND p.created_at <= $1
-                AND p.last_checked >= $1;
-            `;
-            const { rows: sourceProductsPast } = await pool.query(sourceProductsQuery, [past_date]);
-            const { rows: sourceProductsLatest } = await pool.query(sourceProductsQuery, [latest_date]);
+            let past_brand = {}, past_category = {}, latest_brand = {}, latest_category={};
 
-            // Step 2: Compare source products with their peers
-            const comparisonsPast = await Promise.all(
-                sourceProductsPast.map(async (product) => {
-                    const peerPricesQuery = `
-                        SELECT 
-                            p.website, 
-                            p.id AS peer_product_id, 
-                            COALESCE(
-                                (SELECT price FROM price 
-                                WHERE product_id = p.id AND date <= $1
-                                ORDER BY date DESC LIMIT 1),
-                                0
-                            ) AS peer_price,
-                            p.qty, 
-                            p.unit
-                        FROM product p
-                        WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
-                    `;
-                    const { rows: peers } = await pool.query(peerPricesQuery, [past_date, product.canprod_id]);
+            for(let i =0;i<past_data?.length;i++){
+                past_brand[past_data[i]?.brand] = {brand:past_data[i]?.brand,category:past_data[i]?.category};
+                past_category[past_data[i]?.category] = true;
+            }
 
-                    // Calculate price_per_unit for source
-                    const sourcePricePerUnit = product.qty && product.unit
-                        ? product.price / product.qty
-                        : product.price;
+            for(let i =0;i<latest_data?.length;i++){
+                latest_brand[latest_data[i]?.brand] = {brand:latest_data[i]?.brand,category:latest_data[i]?.category};
+                latest_category[latest_data[i]?.category] = true;
+            }
 
-                    // Rank the source product among peers
-                    const allPrices = peers.map(peer => {
-                        const peerPricePerUnit = peer.qty && peer.unit
-                            ? peer.peer_price / peer.qty
-                            : peer.peer_price;
-                        return peerPricePerUnit;
-                    });
-
-                    allPrices.push(sourcePricePerUnit);
-                    allPrices.sort((a, b) => a - b);
-
-                    const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
-
-                    return {
-                        category: product.category,
-                        rank,
-                        totalPeers: allPrices.length
-                    };
-                })
-            );
-
-            const comparisonsLatest = await Promise.all(
-                sourceProductsLatest.map(async (product) => {
-                    const peerPricesQuery = `
-                        SELECT 
-                            p.website, 
-                            p.id AS peer_product_id, 
-                            COALESCE(
-                                (SELECT price FROM price 
-                                WHERE product_id = p.id AND date <= $1
-                                ORDER BY date DESC LIMIT 1),
-                                0
-                            ) AS peer_price,
-                            p.qty, 
-                            p.unit
-                        FROM product p
-                        WHERE p.canprod_id = $2 AND p.website != 'aelia_auckland';
-                    `;
-                    const { rows: peers } = await pool.query(peerPricesQuery, [latest_date, product.canprod_id]);
-
-                    // Calculate price_per_unit for source
-                    const sourcePricePerUnit = product.qty && product.unit
-                        ? product.price / product.qty
-                        : product.price;
-
-                    // Rank the source product among peers
-                    const allPrices = peers.map(peer => {
-                        const peerPricePerUnit = peer.qty && peer.unit
-                            ? peer.peer_price / peer.qty
-                            : peer.peer_price;
-                        return peerPricePerUnit;
-                    });
-
-                    allPrices.push(sourcePricePerUnit);
-                    allPrices.sort((a, b) => a - b);
-
-                    const rank = allPrices.indexOf(sourcePricePerUnit) + 1;
-
-                    return {
-                        category: product.category,
-                        rank,
-                        totalPeers: allPrices.length
-                    };
-                })
-            );
-
-            // Step 3: Aggregate rankings by category
-            const categoryRanksPast = comparisonsPast.reduce((acc, comp) => {
-                if (!acc[comp.category]) {
-                    acc[comp.category] = { totalRank: 0, count: 0 };
-                }
-                acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
-                acc[comp.category].count += 1;
-                return acc;
-            }, {});
-
-            const categoryRanksLatest = comparisonsLatest.reduce((acc, comp) => {
-                if (!acc[comp.category]) {
-                    acc[comp.category] = { totalRank: 0, count: 0 };
-                }
-                acc[comp.category].totalRank += (comp.rank/comp.totalPeers);
-                acc[comp.category].count += 1;
-                return acc;
-            }, {});
-
-            const categoryRankListPast = Object.entries(categoryRanksPast)
-                .map(([category, data]) => ({
-                    category,
-                    avgRank: data.totalRank / data.count
-                }))
-                .sort((a, b) => a.avgRank - b.avgRank);
-
-            const categoryRankListLatest = Object.entries(categoryRanksLatest)
-                .map(([category, data]) => ({
-                    category,
-                    avgRank: data.totalRank / data.count
-                }))
-                .sort((a, b) => a.avgRank - b.avgRank);
-
-            // Assign ranks to categories based on their average rank
-            categoryRankListPast.forEach((item, index) => {
-                item.priceRank = index + 1; // Cheapest is rank 1
-            });
-
-            categoryRankListLatest.forEach((item, index) => {
-                item.priceRank = index + 1; // Cheapest is rank 1
-            });
-
+            past_brand = Object.keys(past_brand)?.map(key=>past_brand[key]);
+            past_category = Object.keys(past_category)?.map(key=>key);
+            latest_brand = Object.keys(latest_brand)?.map(key=>latest_brand[key]);
+            latest_category = Object.keys(latest_category)?.map(key=>key);
+            
+            // rabanne invictus parfum 100ml
             // Send the response
             res.status(200).json({
                 status:"success",
@@ -454,27 +489,23 @@ exports.getTimeTrends = catchAsync(async (req,res,next)=>{
                 data:{
                     brands:{
                         past:{
-                        count:past_results_brands?.rows?.length,
-                        data:past_results_brands?.rows
+                        count:past_brand?.length,
+                        data:past_brand
                         },
                         latest:{
-                        count:latest_results_brands?.rows?.length,
-                        data:latest_results_brands?.rows
+                        count:latest_brand?.length,
+                        data:latest_brand
                         }
                     },
                     products:{
                         past:{
-                        count:past_results_titles?.rows?.length,
-                        data:past_results_titles?.rows
+                        count:past_data?.length,
+                        data:past_data
                         },
                         latest:{
-                        count:latest_results_titles?.rows?.length,
-                        data:latest_results_titles?.rows
+                        count:latest_data?.length,
+                        data:latest_data
                         }
-                    },
-                    priceranks:{
-                        past:categoryRankListPast,
-                        latest:categoryRankListLatest
                     }
                 }
             });  
