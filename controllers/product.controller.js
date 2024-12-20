@@ -55,7 +55,6 @@ const calculateRanksWithTies = (items, valueKey) => {
 exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
         const source = req.query.source;
         const locations = req.query.location?.split(",") || null;
-        console.log(locations);
 
         // Validate input
         if (!source) {
@@ -537,7 +536,16 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
         }
     })
 })
-//pending
+
+function looseMatch(string, search) {
+    // Convert both strings to lowercase for case-insensitive comparison
+    const lowerString = string.toLowerCase();
+    const lowerSearch = search.toLowerCase();
+
+    // Check if the search term exists in the string
+    return lowerString.includes(lowerSearch);
+}
+
 exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const source = req.query.source;
     const limit = parseInt(req.query.limit, 10) || 50;
@@ -547,6 +555,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const location = req.query.location?.split(",") || null;
     const pricerank = req.query.pricerank?.split(",").map(Number) || null;
     const sort = req.query.sort || 'price_low_to_high';
+    const search = req.query.search || null;
+    const pricerange = req.query.pricerange || null;
 
     // Validate input
     if (!source) {
@@ -640,22 +650,30 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             const sourceProduct = rankedWithTies.find(pd => pd.website === source);
             const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
             const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
+            const sourceName = sourceProduct ? sourceProduct.title : null;
 
             return {
                 ...product,
                 products_data: rankedWithTies,
                 source_pricerank: sourcePriceRank,
                 source_price: sourcePrice,
+                source_name: sourceName
             };
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    products = products.filter(p => p.products_data.length > 0);
+    products = products.filter(p => p.products_data.length > 1);
 
     // Apply pricerank filter
     if (pricerank) {
         products = products.filter(p =>
             pricerank.includes(p.source_pricerank)
+        );
+    }
+
+    if(search){
+        products = products.filter(p=>
+            looseMatch(p.source_name,search)
         );
     }
 
@@ -671,15 +689,117 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     }
 
     let paginatedProducts=products;
-    // Paginate results
-    console.log(offset,limit);
+
+    let product_count , cheapest_count = 0, midrange_count = 0, expensive_count = 0,brand_stats={}, category_stats = {};
    
+    for(let i=0;i<products?.length;i++){
+        let maxrank = 0, sourcerank = 0, source_brand = "", source_category = "", isConsidered=false;
+
+        for(let j=0;j<products[i]?.products_data?.length;j++){
+
+            if(products[i]?.products_data[j]?.rank > maxrank) maxrank =  products[i]?.products_data[j]?.rank;
+
+            if(products[i]?.products_data[j]?.website == source) {
+                sourcerank = products[i]?.products_data[j]?.rank;
+                source_brand = products[i]?.products_data[j]?.brand;
+                source_category = products[i]?.products_data[j]?.category;
+            }
+        }
+
+        if(!brand_stats[source_brand]) 
+        brand_stats[source_brand] = { 
+            brand: source_brand,
+            cheapest_count: 0,
+            midrange_count: 0,
+            expensive_count: 0,
+            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
+        }
+
+        if(!category_stats[source_category]) 
+        category_stats[source_category] = { 
+            brand: source_category,
+            cheapest_count: 0,
+            midrange_count: 0,
+            expensive_count: 0,
+            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
+        }
+
+        if(sourcerank == 1) {
+            if((!pricerange || pricerange=="cheapest")){
+                cheapest_count+=1;
+                brand_stats[source_brand].cheapest_count+=1;
+                category_stats[source_category].cheapest_count+=1;
+                products[i].price_range = "cheapest";
+                isConsidered=true;
+            }
+        }
+        else if(sourcerank == maxrank){ 
+            if(!pricerange || pricerange=="expensive"){
+                expensive_count +=1;
+                brand_stats[source_brand].expensive_count+=1;
+                category_stats[source_category].expensive_count+=1;
+                products[i].price_range = "expensive";
+                isConsidered=true;
+            }
+        }
+        else{
+            if((!pricerange || pricerange=="midrange")){
+                midrange_count +=1;
+                brand_stats[source_brand].midrange_count+=1;
+                category_stats[source_category].midrange_count+=1;
+                products[i].price_range = "midrange";
+                isConsidered=true;
+            }
+        }
+
+        if(isConsidered){
+            if(!brand_stats[source_brand].pricerank_wise_product_count[sourcerank]) brand_stats[source_brand].pricerank_wise_product_count[sourcerank]=1;
+            else  brand_stats[source_brand].pricerank_wise_product_count[sourcerank]+=1;
+
+            if(!category_stats[source_category].pricerank_wise_product_count[sourcerank]) category_stats[source_category].pricerank_wise_product_count[sourcerank]=1;
+            else  category_stats[source_category].pricerank_wise_product_count[sourcerank]+=1;
+        }
+    }
+
+    if(pricerange){
+        products = products.filter(p=>
+            p.price_range==pricerange
+        );
+    }
+
+    product_count = products?.length;
+
+    brand_stats = Object.keys(brand_stats)?.map(key=>{
+        let data = brand_stats[key];
+        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el=>data.pricerank_wise_product_count[el]);
+        return data;
+    })
+
+    category_stats = Object.keys(category_stats)?.map(key=>{
+        let data = category_stats[key];
+        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el=>data.pricerank_wise_product_count[el]);
+        return data;
+    })
+
+    brand_stats = brand_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
+    category_stats = category_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
+
     paginatedProducts = products.slice(offset, offset + limit);
 
     // Send response
     return res.status(200).json({
         status: "success",
         message: `All products for ${source} fetched successfully`,
+        stats:{
+            productCount:product_count,
+            cheapestProducts:cheapest_count,
+            midrangeProducts:midrange_count,
+            expensiveProducts:expensive_count,
+            brands:brand_stats?.length,
+            categories:category_stats?.length
+        },
+        category_stats,
+        brand_stats,
         data: paginatedProducts,
     });
 
