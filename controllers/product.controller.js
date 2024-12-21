@@ -717,7 +717,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
 
         if(!category_stats[source_category]) 
         category_stats[source_category] = { 
-            brand: source_category,
+            category: source_category,
             cheapest_count: 0,
             midrange_count: 0,
             expensive_count: 0,
