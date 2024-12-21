@@ -49,6 +49,11 @@ const precomputeDailyData = async (source) => {
                 ) AND product_id = $1;`,[temp.id]);
             // console.log(price.rows[0].price);
 
+            if(!price?.rows || price?.rows?.length == 0){
+                console.log("No prices found for:"+temp.id);
+                continue;
+            }
+
             temp.latest_price = price.rows[0].price;
 
             if(temp.website == source) source_price = price.rows[0].price;
