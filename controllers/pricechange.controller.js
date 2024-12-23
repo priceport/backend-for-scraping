@@ -5,7 +5,7 @@ function getParts(array, parts) {
     const result = [];
     const length = array.length;
 
-    if (!parts || parts <= 0 || length === 0) return result; // Handle edge cases
+    if (!parts || parts <= 0 || length === 0) return array; // Handle edge cases
 
     // Calculate the step size between selected elements
     const step = (length - 1) / (parts - 1);
