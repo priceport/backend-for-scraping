@@ -46,6 +46,14 @@ const updateDBEntry = async (data) => {
                         [product?.rows[0]?.id, price[0].price, "aelia_auckland", price_per_unit]
                     );
                 }
+
+                 // Update last_checked timestamp
+                 await pool.query(
+                    `UPDATE product 
+                    SET last_checked = current_timestamp 
+                    WHERE id = $1`,
+                    [product?.rows[0]?.id]
+                );
             }
 
             // Promo insertion logic
