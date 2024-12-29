@@ -579,14 +579,18 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     products = products.map(p => {
         let filteredProductsData = p.products_data;
 
+        const sourceIndex = p.products_data?.findIndex(el=>el.website == source);
+
+        if(!sourceIndex) return {...p,products_data:[]};
+
         // Apply category filter
-        if (category) {
-            filteredProductsData = filteredProductsData.filter(prod => category.includes(prod.category));
+        if (category&&!category.includes(filteredProductsData[sourceIndex]?.category)) {
+            return {...p,products_data:[]};
         }
 
         // Apply brand filter
-        if (brand) {
-            filteredProductsData = filteredProductsData.filter(prod => brand.includes(prod.brand));
+        if (brand&&!brand.includes(filteredProductsData[sourceIndex]?.brand)) {
+            return {...p,products_data:[]};
         }
 
         // Apply location filter
