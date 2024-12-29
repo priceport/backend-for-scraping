@@ -38,8 +38,9 @@ const beauty = async (start,end,browser)=>{
           productElements.forEach(product => {
             const titleElement = product.querySelector('h3 > a');
             const brandElement = product.querySelector('.sf__pcard-vendor'); // Adjust if the brand selector is different
-            const priceElement = product.querySelector('.f-price__regular-container .f-price-item');
-            // const priceElement = product.querySelector('.sf__col-item .f-price-item-discount-sale');
+            let priceElement = product.querySelector('.f-price__regular-container .f-price-item');
+            if(!priceElement)
+            priceElement = product.querySelector('.sf__col-item .f-price-item-discount-sale');
             const promoElement = product.querySelectorAll('.bundle-offers-block');
             const urlElement = product.querySelector('.sf__pcard');
             const imgElement = product.querySelector('.sf__pcard');
