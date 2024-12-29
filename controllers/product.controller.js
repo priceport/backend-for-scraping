@@ -562,8 +562,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     if (!source) {
         return next(new AppError("Source param required", 400));
     }
-    if (limit > 100) {
-        return next(new AppError("Limit should be equal or less than 100", 400));
+    if (limit > 1000) {
+        return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
     // Fetch precomputed data from Redis
