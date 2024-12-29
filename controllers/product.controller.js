@@ -548,7 +548,7 @@ function looseMatch(string, search) {
 
 exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const source = req.query.source;
-    const limit = parseInt(req.query.limit, 10) || 50;
+    const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
     const category = req.query.category?.split(",") || null;
     const brand = req.query.brand?.split(",") || null;
