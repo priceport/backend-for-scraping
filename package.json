@@ -23,6 +23,7 @@
     "luxon": "^3.5.0",
     "mongoose": "^8.5.2",
     "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "nodemon": "^3.1.4",
@@ -32,6 +33,7 @@
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "redis": "^4.7.0",
     "tesseract.js": "^5.1.1",
+    "xlsx": "^0.18.5",
     "xss-clean": "^0.1.4"
   }
 }

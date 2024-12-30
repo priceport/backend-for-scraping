@@ -21,6 +21,8 @@ const pricechangeRouter = require("./routes/pricechange.routes.js");
 const watchlistRouter = require("./routes/watchlist.routes.js");
 const analyticsRouter = require("./routes/analytics.routes.js");
 const reportsRouter = require("./routes/reports.routes.js");
+const fnbproductRouter = require("./routes/fnbproduct.routes.js");
+
 
 const scrapingService = require("./helpers/scrapingService.js");
 
@@ -32,6 +34,7 @@ const updateDailyPriceStats = require("./helpers/updateDailyPriceStats.js");
 const precomputeDailyData = require("./helpers/precomputeDailyData.js");
 const redisClient = require("./configs/redis.config.js");
 const pool = require("./configs/postgresql.config.js");
+const precomputeDailyDataFNB = require("./helpers/precomputeDailyDataFNB.js");
 
 const app = express();
 
@@ -92,6 +95,9 @@ app.use("/api/v1/watchlist",watchlistRouter);
 app.use("/api/v1/analytics",analyticsRouter);
 app.use("/api/v1/reports",reportsRouter);
 
+app.use("/api/v1/fnbproduct",fnbproductRouter);
+
+
 
 //Throwing error if no matched route found
 app.all('*', (req, res, next) => {
@@ -142,6 +148,8 @@ app.use(globalErrorHandler);
 //pricerank, id->product_id, latest_price, latest_promotions, price_per_unit
 // temp();
 precomputeDailyData('aelia_auckland');
+precomputeDailyDataFNB();
+
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('30 9 * * *', scrapingService, {
   scheduled: true,
