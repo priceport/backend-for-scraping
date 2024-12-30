@@ -12,6 +12,6 @@ router.route("/upload")
 .post(UserController.isLoggedIn, upload.single('fnbdata'),FNBProductController.addFnbProductsWithExcel);
 
 router.route("/")
-.get(UserController.isLoggedIn,FNBProductController.getAllFnbProductsFor);
+.get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllFnbProductsFor);
 
 module.exports = router;
