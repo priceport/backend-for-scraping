@@ -30,47 +30,40 @@ exports.addFnbProductsWithExcel = catchAsync(async (req,res,next)=>{
 
     // Process each row in the sheet
     for (const row of data) {
-        const id = row['id'];
         const name = row['name'];
-        const store_id = row['store_id'];
+        const store = row['store'];
         const note = row['note'];
         const type = row['type'];
         const description = row['description'];
-        const terminal_id = row['terminal_id'];
+        const terminal = row['terminal'];
         const canprod_id = row['cannonical_id'];
         const price = row['price'];
 
-        if (!price || !name  || !terminal_id) {
+        if (!price || !name  || !terminal) {
             console.warn('Skipping row with missing required fields:', row);
             continue;
         }
 
-        if (!id) {
-            // Create a new product
-            const productQuery = `
-                INSERT INTO product_fnb (name, store_id, note, type, description, terminal_id, canprod_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;
-            `;
-            const productResult = await pool.query(productQuery, [
-                name, store_id, note, type, description, terminal_id, canprod_id
-            ]);
+        let terminalData = await pool.query(`SELECT * FROM terminal where name=$1 and location=$2;`,[terminal,"AUCKLAND"]);
 
-            const newProductId = productResult.rows[0].id;
-
-            // Insert price for the new product
-            const priceQuery = `
-                INSERT INTO price_fnb (product_id, date, price)
-                VALUES ($1, CURRENT_DATE, $2);
-            `;
-            await pool.query(priceQuery, [newProductId, price]);
-        } else {
-            // Insert price for existing product
-            const priceQuery = `
-                INSERT INTO price_fnb (product_id, date, price)
-                VALUES ($1, CURRENT_DATE, $2);
-            `;
-            await pool.query(priceQuery, [id, price]);
+        if(!terminalData||terminalData?.rows?.length==0){
+            terminalData = await pool.query('insert into terminal(name, location) VALUES($1,$2) RETURNING *;',[terminal,"AUCKLAND"])
         }
+
+        let storeData = await pool.query(`SELECT * FROM store where name=$1 and terminal_id=$2;`,[store,terminalData?.rows[0]?.id]);
+
+        if(!storeData||storeData?.rows?.length==0){
+            storeData = await pool.query(`insert into store(name,terminal_id) values($1,$2) RETURNING *;`,[store,terminalData?.rows[0]?.id]);
+        }
+   
+        let productData = await pool.query(`SELECT * FROM product_fnb where name=$1 and store_id=$2 and terminal_id=$3;`,[name,storeData?.rows[0]?.id,terminalData?.rows[0]?.id]);
+
+        if(!productData||productData?.rows?.length==0){
+            productData = await pool.query(`insert into product_fnb(name, store_id, note, type, description, terminal_id, canprod_id) values ($1, $2, $3, $4, $5, $6, $7) RETURNING *;`,[name, storeData?.rows[0]?.id, note, type, description, terminalData?.rows[0]?.id, canprod_id]);
+        } 
+
+
+        await pool.query(`INSERT INTO price_fnb (product_id, date, price) VALUES ($1, CURRENT_DATE, $2);`, [productData?.rows[0]?.id, price]);
     }
 
     fs.unlinkSync(req.file.path); // Clean up uploaded file
