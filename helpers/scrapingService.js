@@ -2,6 +2,7 @@ const redisClient = require("../configs/redis.config");
 const extract_unit_and_quantity = require("./extract_unit_and_quantity");
 const logError = require("./logError");
 const precomputeDailyData = require("./precomputeDailyData");
+const precomputeDailyDataFNB = require("./precomputeDailyDataFNB");
 const scrapeAelia = require("./scrapeAelia");
 const scrapeAeliaChristchurch = require("./scrapeAeliaChristchurch");
 const scrapeAeliaQueensland = require("./scrapeAeliaQueensland");
@@ -22,9 +23,6 @@ const waitForXTime = require("./waitForXTime");
 const puppeteer = require('puppeteer');
 
 const scrapingService =async ()=>{
-   await redisClient.flushAll();
-
-   console.log('Cache cleared at 12 AM New Zealand time');
 
    console.log("scraping started at:"+Date.now());
 
@@ -266,10 +264,13 @@ const scrapingService =async ()=>{
 
       await waitForXTime(10000);
    }
+   await redisClient.flushAll();
+   console.log('Cache cleared');
    await extract_unit_and_quantity();
    await updateProductPriceRank();
    await updateDailyPriceStats('aelia_auckland');
    await precomputeDailyData('aelia_auckland');
+   await precomputeDailyDataFNB();
 }
 
 module.exports = scrapingService;
