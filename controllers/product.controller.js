@@ -581,7 +581,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
 
         const sourceIndex = p.products_data?.findIndex(el=>el.website == source);
 
-        if(!sourceIndex) return {...p,products_data:[]};
+        if(sourceIndex==-1) return {...p,products_data:[]};
 
         // Apply category filter
         if (category&&!category.includes(filteredProductsData[sourceIndex]?.category)) {
