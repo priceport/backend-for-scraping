@@ -63,7 +63,7 @@ const precomputeDailyData = async (source) => {
             FROM 
                 promotion p
             WHERE 
-                p.date::DATE = CURRENT_DATE AND product_id = $1;`,[temp.id]);
+                p.date::DATE = CURRENT_DATE - 1 AND product_id = $1;`,[temp.id]);
 
             temp.latest_promotions = promotions.rows;
             
