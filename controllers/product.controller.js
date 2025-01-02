@@ -788,6 +788,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     brand_stats = brand_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
     category_stats = category_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
 
+    const totals = products?.length;
+
     paginatedProducts = products.slice(offset, offset + limit);
 
     // Send response
@@ -805,6 +807,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         category_stats,
         brand_stats,
         data: paginatedProducts,
+        totals
     });
 
 });

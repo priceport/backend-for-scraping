@@ -356,12 +356,15 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
         }
     })
 
+    const totals = data?.rows?.length;
+
     if(offset!==undefined&&limit!==undefined){
     data.rows = data.rows.slice(offset, parseInt(offset) + parseInt(limit));
     }
     return res.status(200).json({
         status:"success",
         message:"Live price monitoring",
-        data:data.rows
+        data:data.rows,
+        totals
     })
 })
