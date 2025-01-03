@@ -20,14 +20,14 @@ const updateDBEntry = async (data) => {
 
             if (product.rowCount === 0) {
                 // If no product exists, create one
-                console.log("new");
+                // console.log("new");
                 product = await pool.query(
                     `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, sub_category, website, tag)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
                     [title?.slice(0, 299), brand, "No desc", url, img, quantity, unit, category, sub_category, "heinemann_sydney", "duty-free"]
                 );
             } else {
-                console.log("old");
+                // console.log("old");
                 // If product exists, update last check
                 await pool.query(
                     `UPDATE product 
@@ -37,7 +37,7 @@ const updateDBEntry = async (data) => {
                 );
             }
 
-            console.log("price");
+            // console.log("price");
             // Check the most recent price for this product and website
             const latestPrice = await pool.query(
                 `SELECT price 
@@ -49,7 +49,7 @@ const updateDBEntry = async (data) => {
             );
 
             // Insert new price only if it has changed
-            console.log(latestPrice.rows[0].price,price[0].price.toFixed(2));
+            // console.log(latestPrice.rows[0].price,price[0].price.toFixed(2));
             if (latestPrice.rowCount === 0 || latestPrice.rows[0].price != price[0].price.toFixed(2)) {
                 await pool.query(
                     `INSERT INTO price (product_id, date, price, website, price_per_unit)
@@ -61,30 +61,35 @@ const updateDBEntry = async (data) => {
 
             // Promo insertion logic
             for (let i = 0; i < promo?.length; i++) {
-                if (promo[i]?.includes("FOR")) {
-                    let p = promo[i]?.split("FOR");
-                    p = parseFloat(p[1]?.replace("$", "")) / parseFloat(p[0]);
+                await pool.query(
+                    `INSERT INTO promotion (product_id, text, price, website) 
+                    VALUES ($1, $2, $3, $4)`,
+                    [product?.rows[0]?.id, promo[i]?.text, promo[i]?.price, "heinemann_sydney"]
+                );
+                // if (promo[i]?.includes("FOR")) {
+                //     let p = promo[i]?.split("FOR");
+                //     p = parseFloat(p[1]?.replace("$", "")) / parseFloat(p[0]);
 
-                    if (isNaN(p)) continue;
+                //     if (isNaN(p)) continue;
 
-                    console.log("promo");
-                    await pool.query(
-                        `INSERT INTO promotion (product_id, text, price, website, tag) 
-                        VALUES ($1, $2, $3, $4, $5)`,
-                        [product?.rows[0]?.id, promo[i], p, "heinemann_sydney", "duty-free"]
-                    );
-                } else if (promo[i]?.includes("SAVE")) {
-                    let p = price[0]?.price * ((100 - parseFloat(promo[i].split(" ")[4]?.replace("%", ""))) / 100);
+                //     console.log("promo");
+                //     // await pool.query(
+                //     //     `INSERT INTO promotion (product_id, text, price, website, tag) 
+                //     //     VALUES ($1, $2, $3, $4, $5)`,
+                //     //     [product?.rows[0]?.id, promo[i], p, "heinemann_sydney", "duty-free"]
+                //     // );
+                // } else if (promo[i]?.includes("SAVE")) {
+                //     let p = price[0]?.price * ((100 - parseFloat(promo[i].split(" ")[4]?.replace("%", ""))) / 100);
 
-                    if (isNaN(p)) continue;
+                //     if (isNaN(p)) continue;
 
-                    console.log("promo");
-                    await pool.query(
-                        `INSERT INTO promotion (product_id, text, price, website) 
-                        VALUES ($1, $2, $3, $4)`,
-                        [product?.rows[0]?.id, promo[i], p, "heinemann_sydney"]
-                    );
-                }
+                //     console.log("promo");
+                //     // await pool.query(
+                //     //     `INSERT INTO promotion (product_id, text, price, website) 
+                //     //     VALUES ($1, $2, $3, $4)`,
+                //     //     [product?.rows[0]?.id, promo[i], p, "heinemann_sydney"]
+                //     // );
+                // }
             }
 
             db_ops += 1;

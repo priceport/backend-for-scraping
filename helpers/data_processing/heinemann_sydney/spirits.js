@@ -322,6 +322,42 @@ function parseProductTitle(input) {
     };
 }
 
+function calculatePriceFromText(text, og_price) {
+    const prices = [];
+
+    // Split by '/' in case there are multiple offers like "2 for $79 / 3 for $110"
+    const offers = text;
+
+    console.log("offers",offers);
+
+    offers.forEach(offer => {
+        offer = offer.trim(); // Clean up extra spaces
+        
+        // Case 1: Handle "2 for $79" type texts
+        const matchForXForY = offer.match(/BUY (\d+) FOR ([\d.]+)/);
+        if (matchForXForY) {
+            const quantity = parseInt(matchForXForY[1], 10);
+            const price = parseFloat(matchForXForY[2]);
+            prices.push({text:offer,price:aud_to_usd((price / quantity).toFixed(2))}); // Price per item
+            return;
+        }
+
+        // Case 2: Handle "Buy 2 save 15%" type texts
+        const matchBuyXSaveYPercent = offer.match(/BUY (\d+) SAVE (\d+)%/);
+        if (matchBuyXSaveYPercent) {
+            const quantity = parseInt(matchBuyXSaveYPercent[1], 10);
+            const discount = parseInt(matchBuyXSaveYPercent[2], 10) / 100;
+            const effectivePrice = og_price * (1 - discount);
+            prices.push({text:offer,price:aud_to_usd(effectivePrice.toFixed(2))}); // Apply the discount to the original price
+            return;
+        }
+    });
+
+    if(prices?.length==0) return null;
+
+    console.log(prices);
+    return prices;
+}
 
 const processDataForSpirits = async (data)=>{
     const output = [];
@@ -366,7 +402,7 @@ const processDataForSpirits = async (data)=>{
 
             finalData.img = rawData.img;
 
-            finalData.promo = rawData.promo;
+            finalData.promo = calculatePriceFromText(rawData.promo,rawData.price.replace("$",""));
 
             output.push(finalData);
             
