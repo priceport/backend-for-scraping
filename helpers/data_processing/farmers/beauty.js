@@ -175,7 +175,7 @@ function parseProductTitle(input) {
 //         if (matchForXForY) {
 //             const quantity = parseInt(matchForXForY[1], 10);
 //             const price = parseFloat(matchForXForY[2]);
-//             prices.push({text:offer,price:(price / quantity).toFixed(2)}); // Price per item
+//             prices.push({text:offer,price:(price / quantity).toFixed(3)}); // Price per item
 //             return;
 //         }
 
@@ -195,7 +195,7 @@ const processPromoText = (text,og_price)=>{
         // We pay full price for buyQty items and half price for getQty items
         const effectivePrice = ((buyQty * og_price) + (getQty * og_price * 0.5)) / totalQty;
 
-        return {text,price:effectivePrice.toFixed(2)}; // Price per item
+        return {text,price:effectivePrice.toFixed(3)}; // Price per item
     }
 
     const matchGetThe1Free = text.match(/Buy (\d+) Get the (\d+)(?:rd|th|st|nd) FREE/i);
@@ -209,7 +209,7 @@ const processPromoText = (text,og_price)=>{
         // We pay full price for buyQty items, and get one item free
         const effectivePrice = (buyQty * og_price) / totalQty;
 
-        return {text,price:effectivePrice.toFixed(2)}; // Price per item
+        return {text,price:effectivePrice.toFixed(3)}; // Price per item
     }
 
     const matchGet1Free = text.match(/Buy (\d+) Get (\d+)(?:rd|th|st|nd) FREE/i);
@@ -223,7 +223,7 @@ const processPromoText = (text,og_price)=>{
         // We pay full price for buyQty items, and get one item free
         const effectivePrice = (buyQty * og_price) / totalQty;
 
-        return {text,price:effectivePrice.toFixed(2)}; // Price per item
+        return {text,price:effectivePrice.toFixed(3)}; // Price per item
     }
 
     const saveXwhen =  text.match(/Save (\d+)% when you buy (\d+) or more/i);
@@ -234,7 +234,7 @@ const processPromoText = (text,og_price)=>{
         const discountMultiplier = (100 - discountPercent) / 100;
         const effectivePrice = og_price * discountMultiplier;
 
-        return {text,price:effectivePrice.toFixed(2)}; // Price per item
+        return {text,price:effectivePrice.toFixed(3)}; // Price per item
     }
 
     console.log(text,og_price);

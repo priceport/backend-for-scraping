@@ -340,19 +340,19 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
     if(action&&(diff_value!==null))
     data.rows = data.rows.filter(el=>{
         if(action=='equal'){
-            return parseFloat(el.percentage_diff.toFixed(2)) == parseFloat(parseFloat(diff_value).toFixed(2));
+            return parseFloat(el.percentage_diff.toFixed(3)) == parseFloat(parseFloat(diff_value).toFixed(3));
         }
         else if(action=='greater_than'){
-            return parseFloat(el.percentage_diff.toFixed(2)) > parseFloat(parseFloat(diff_value).toFixed(2));
+            return parseFloat(el.percentage_diff.toFixed(3)) > parseFloat(parseFloat(diff_value).toFixed(3));
         }
         else if(action=='greater_than_equal_to'){
-            return parseFloat(el.percentage_diff.toFixed(2)) >= parseFloat(parseFloat(diff_value).toFixed(2));
+            return parseFloat(el.percentage_diff.toFixed(3)) >= parseFloat(parseFloat(diff_value).toFixed(3));
         }
         else if(action=='less_than'){
-            return parseFloat(el.percentage_diff.toFixed(2)) < parseFloat(parseFloat(diff_value).toFixed(2));
+            return parseFloat(el.percentage_diff.toFixed(3)) < parseFloat(parseFloat(diff_value).toFixed(3));
         }
         else if(action=='less_than_equal_to'){
-            return parseFloat(el.percentage_diff.toFixed(2)) <= parseFloat(parseFloat(diff_value).toFixed(2));
+            return parseFloat(el.percentage_diff.toFixed(3)) <= parseFloat(parseFloat(diff_value).toFixed(3));
         }
     })
 

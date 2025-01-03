@@ -45,8 +45,8 @@ const updateDBEntry = async (data) => {
             );
 
             // Insert new price only if it has changed
-            console.log(latestPrice.rows[0].price,price[0].price.toFixed(2));
-            if (latestPrice.rowCount === 0 || latestPrice.rows[0].price != price[0].price.toFixed(2)) {
+            console.log(latestPrice.rows[0].price,price[0].price.toFixed(3));
+            if (latestPrice.rowCount === 0 || latestPrice.rows[0].price != price[0].price.toFixed(3)) {
                 await pool.query(
                     `INSERT INTO price (product_id, date, price, website, price_per_unit)
                     VALUES ($1, current_date, $2, $3, $4)`,
