@@ -24,7 +24,7 @@ function calculatePriceFromText(text, og_price) {
         if (matchForXForY) {
             const quantity = parseInt(matchForXForY[1], 10);
             const price = parseFloat(matchForXForY[2]);
-            prices.push({text:offer,price:nzd_to_usd((price / quantity).toFixed(2))}); // Price per item
+            prices.push({text:offer,price:nzd_to_usd((price / quantity).toFixed(3))}); // Price per item
             return;
         }
 
@@ -34,7 +34,7 @@ function calculatePriceFromText(text, og_price) {
             const quantity = parseInt(matchBuyXSaveYPercent[1], 10);
             const discount = parseInt(matchBuyXSaveYPercent[2], 10) / 100;
             const effectivePrice = og_price * (1 - discount);
-            prices.push({text:offer,price:nzd_to_usd(effectivePrice.toFixed(2))}); // Apply the discount to the original price
+            prices.push({text:offer,price:nzd_to_usd(effectivePrice.toFixed(3))}); // Apply the discount to the original price
             return;
         }
     });
