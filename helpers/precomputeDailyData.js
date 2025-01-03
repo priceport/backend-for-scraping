@@ -6,6 +6,17 @@ const getBackStandardQty = (qty,unit)=>{
     else return qty*1;
 }
 
+function isToday(timestamp) {
+    const inputDate = new Date(timestamp);
+    const today = new Date();
+
+    return (
+        inputDate.getDate() === today.getDate() &&
+        inputDate.getMonth() === today.getMonth() &&
+        inputDate.getFullYear() === today.getFullYear()
+    );
+}
+
 const precomputeDailyData = async (source) => {
     try {
 
@@ -211,7 +222,17 @@ const precomputeDailyData = async (source) => {
         //     cp.id;  
         // `,[source]);
 
-        finalData = finalData?.filter(data=>data.products_data.length!==0);
+        finalData = finalData?.filter(data=>{
+
+            const el = data.products_data.find(d=>d.website == 'aelia_auckland');
+
+            if(el&&isToday(el.last_checked))
+            console.log(isToday(el.last_checked),el.last_checked);
+
+            if(!el||!isToday(el.last_checked)) return false;
+
+            return data.products_data.length!==0
+        });
 
         // Store the result in Redis
         await redisClient.set(
