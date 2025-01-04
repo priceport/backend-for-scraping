@@ -6,6 +6,28 @@ const getBackStandardQty = (qty,unit)=>{
     else return qty*1;
 }
 
+function isTodayOrYesterday(timestamp) {
+    const inputDate = new Date(timestamp);
+    const today = new Date();
+
+    // Check if the date is today
+    const isToday =
+        inputDate.getDate() === today.getDate() &&
+        inputDate.getMonth() === today.getMonth() &&
+        inputDate.getFullYear() === today.getFullYear();
+
+    // Check if the date is yesterday
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isYesterday =
+        inputDate.getDate() === yesterday.getDate() &&
+        inputDate.getMonth() === yesterday.getMonth() &&
+        inputDate.getFullYear() === yesterday.getFullYear();
+
+    return isToday || isYesterday; // Return true if it's either today or yesterday
+}
+
 const precomputeDailyData = async (source) => {
     try {
 
@@ -211,7 +233,14 @@ const precomputeDailyData = async (source) => {
         //     cp.id;  
         // `,[source]);
 
-        finalData = finalData?.filter(data=>data.products_data.length!==0);
+        finalData = finalData?.filter(data=>{
+
+            const el = data.products_data.find(d=>d.website == source);
+
+            if(!el||!isTodayOrYesterday(el.last_checked)) return false;
+
+            return data.products_data.length!==0
+        });
 
         // Store the result in Redis
         await redisClient.set(
