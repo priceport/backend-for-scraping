@@ -235,7 +235,7 @@ const precomputeDailyData = async (source) => {
 
         finalData = finalData?.filter(data=>{
 
-            const el = data.products_data.find(d=>d.website == 'aelia_auckland');
+            const el = data.products_data.find(d=>d.website == source);
 
             if(!el||!isTodayOrYesterday(el.last_checked)) return false;
 
