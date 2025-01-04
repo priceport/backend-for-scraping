@@ -650,7 +650,6 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             rankedWithTies.forEach(pd => {
                 pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
                 sum+=parseFloat(pd.latest_price);
-                if(pd.website==source) source_entry = pd;
             });
 
             // Find the updated source pricerank and price
@@ -660,7 +659,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             const sourceName = sourceProduct ? sourceProduct.title : null;
             const average = (sum/rankedWithTies?.length).toFixed(2);
             const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2):0;
-            const difference_percentage = ((difference/parseFloat(sourceProduct.latest_price)) * 100).toFixed(2);
+            const difference_percentage = sourceProduct ? ((difference/parseFloat(sourceProduct.latest_price)) * 100).toFixed(2): 0;
 
             return {
                 ...product,
