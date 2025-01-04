@@ -6,15 +6,26 @@ const getBackStandardQty = (qty,unit)=>{
     else return qty*1;
 }
 
-function isToday(timestamp) {
+function isTodayOrYesterday(timestamp) {
     const inputDate = new Date(timestamp);
     const today = new Date();
 
-    return (
+    // Check if the date is today
+    const isToday =
         inputDate.getDate() === today.getDate() &&
         inputDate.getMonth() === today.getMonth() &&
-        inputDate.getFullYear() === today.getFullYear()
-    );
+        inputDate.getFullYear() === today.getFullYear();
+
+    // Check if the date is yesterday
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isYesterday =
+        inputDate.getDate() === yesterday.getDate() &&
+        inputDate.getMonth() === yesterday.getMonth() &&
+        inputDate.getFullYear() === yesterday.getFullYear();
+
+    return isToday || isYesterday; // Return true if it's either today or yesterday
 }
 
 const precomputeDailyData = async (source) => {
@@ -226,10 +237,7 @@ const precomputeDailyData = async (source) => {
 
             const el = data.products_data.find(d=>d.website == 'aelia_auckland');
 
-            if(el&&isToday(el.last_checked))
-            console.log(isToday(el.last_checked),el.last_checked);
-
-            if(!el||!isToday(el.last_checked)) return false;
+            if(!el||!isTodayOrYesterday(el.last_checked)) return false;
 
             return data.products_data.length!==0
         });
