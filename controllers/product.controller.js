@@ -646,8 +646,11 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
 
             // Recalculate ranks with ties
             const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+            let sum = 0;
             rankedWithTies.forEach(pd => {
                 pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+                sum+=parseFloat(pd.latest_price);
+                if(pd.website==source) source_entry = pd;
             });
 
             // Find the updated source pricerank and price
@@ -655,13 +658,19 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
             const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
             const sourceName = sourceProduct ? sourceProduct.title : null;
+            const average = (sum/rankedWithTies?.length).toFixed(2);
+            const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2):0;
+            const difference_percentage = ((difference/parseFloat(sourceProduct.latest_price)) * 100).toFixed(2);
 
             return {
                 ...product,
                 products_data: rankedWithTies,
                 source_pricerank: sourcePriceRank,
                 source_price: sourcePrice,
-                source_name: sourceName
+                source_name: sourceName,
+                average,
+                difference,
+                difference_percentage
             };
         }).filter(product => product.products_data.length > 0);
 
@@ -690,6 +699,14 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         products = products.sort((a, b) => a.source_pricerank - b.source_pricerank);
     } else if (sort === 'pricerank_high_to_low') {
         products = products.sort((a, b) => b.source_pricerank - a.source_pricerank);
+    } else if(sort == 'difference_low_to_high'){
+        products = products.sort((a, b) => a.difference - b.difference);
+    } else if(sort == 'difference_high_to_low'){
+        products = products.sort((a, b) => b.difference - a.difference);
+    } else if(sort == 'difference_percentage_low_to_high'){
+        products = products.sort((a, b) => a.difference_percentage - b.difference_percentage);
+    } else if(sort == 'difference_percentage_high_to_low'){
+        products = products.sort((a, b) => b.difference_percentage - a.difference_percentage);
     }
 
     let paginatedProducts=products;
