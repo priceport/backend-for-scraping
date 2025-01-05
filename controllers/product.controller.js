@@ -639,13 +639,17 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
 
             // Calculate price per unit or fallback to flat price
-            const rankedProducts = filteredProductsData.map(pd => ({
+            let hasUnitAndQty = true;
+            const rankedProducts = filteredProductsData.map(pd => { 
+                if(!pd.unit||!pd.qty) hasUnitAndQty = false;
+                return ({
                 ...pd,
                 price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
-            }));
+                })
+            });
 
             // Recalculate ranks with ties
-            const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+            const rankedWithTies = calculateRanksWithTies(rankedProducts, hasUnitAndQty?'price_per_unit':'latest_price');
             let sum = 0;
             rankedWithTies.forEach(pd => {
                 pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
