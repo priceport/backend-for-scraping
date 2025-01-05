@@ -38,4 +38,7 @@ router.route("/date-range")
 router.route("/price-history/:canprod_id")
 .get(UserController.isLoggedIn,ProductController.getPriceHistory);
 
+router.route("/download/no-unit-or-qty")
+.get(UserController.isLoggedIn,ProductController.downloadQtyAndUnitLessProducts)
+
 module.exports = router;

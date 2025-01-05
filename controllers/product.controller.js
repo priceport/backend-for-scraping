@@ -998,3 +998,31 @@ exports.getPriceHistory = catchAsync(async (req,res,next)=>{
         data:outputData
     })
 })
+
+exports.downloadQtyAndUnitLessProducts = catchAsync(async (req,res,next)=>{
+     // Query to fetch products based on the specified conditions
+     const query = `
+     SELECT *
+     FROM product
+     WHERE canprod_id IS NOT NULL
+       AND qty IS NULL
+       AND unit IS NULL;
+   `;
+
+   const { rows } = await pool.query(query);
+
+   if (rows.length === 0) {
+     return res.status(404).json({ message: 'No products found matching criteria.' });
+   }
+
+   // Convert rows to CSV format
+   const csvHeaders = Object.keys(rows[0]).join(',');
+   const csvRows = rows.map(row => Object.values(row).join(','));
+   const csvContent = [csvHeaders, ...csvRows].join('\n');
+
+   // Set response headers for file download
+   res.setHeader('Content-Type', 'text/csv');
+   res.setHeader('Content-Disposition', 'attachment; filename="products.csv"');
+
+   res.send(csvContent);
+})
