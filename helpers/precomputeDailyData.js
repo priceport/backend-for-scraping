@@ -239,6 +239,8 @@ const precomputeDailyData = async (source) => {
 
             if(!el||!isTodayOrYesterday(el.last_checked)) return false;
 
+            data.products_data = data.products_data.filter(d=>isTodayOrYesterday(d.last_checked));
+
             return data.products_data.length!==0
         });
 
