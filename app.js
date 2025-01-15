@@ -151,7 +151,7 @@ precomputeDailyData('aelia_auckland');
 precomputeDailyDataFNB();
 
 // Schedule the task to run at 12 AM New Zealand Time
-cron.schedule('55 11 * * *', scrapingService, {
+cron.schedule('10 12 * * *', scrapingService, {
   scheduled: true,
   timezone: 'Pacific/Auckland', // New Zealand timezone
 });

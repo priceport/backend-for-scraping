@@ -14,4 +14,10 @@ router.route("/upload")
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllFnbProductsFor);
 
+router.route("/store")
+.get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllStores);
+
+router.route("/terminal")
+.get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllTerminal);
+
 module.exports = router;

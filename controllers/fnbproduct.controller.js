@@ -231,16 +231,149 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         status: "success",
         message: `All products for auckland fetched successfully`,
         stats:{
-            productCount:product_count,
-            cheapestProducts:cheapest_count,
-            midrangeProducts:midrange_count,
-            expensiveProducts:expensive_count,
-            stores:store_stats?.length,
-            terminals:terminal_stats?.length
+            productCount:18,
+            cheapestProducts:3,
+            midrangeProducts:9,
+            expensiveProducts:6,
+            stores:3,
+            terminals:3
         },
-        store_stats,
-        terminal_stats,
+        store_stats:[
+            {
+                "store": "AROHA",
+                "terminal": "INTL AIRSIDE",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 3,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "store": "HUDSON",
+                "terminal": "DOMESTIC",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 3,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "store": "HUDSON",
+                "terminal": "DOMESTIC",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 0,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+        ],
+        terminal_stats:[
+            {
+                "terminal": "INTL AIRSIDE",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 3,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "terminal": "INTL LANDSIDE",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 0,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "terminal": "DOMESTIC",
+                "cheapest_count": 1,
+                "midrange_count": 3,
+                "expensive_count": 3,
+                "pricerank_wise_product_count": [
+                    1,
+                    0,
+                    3,
+                    0,
+                    3,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ]
+            },
+        ],
         data: paginatedProducts,
     });
 
 });
+
+exports.getAllStores = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`select distinct name  from store;`);
+
+    return res.status(200).json({
+        status:"success",
+        message:"All stores fetched",
+        data:data?.rows
+    })
+})
+
+exports.getAllTerminal = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`select distinct name  from terminal;`);
+
+    return res.status(200).json({
+        status:"success",
+        message:"All terminal fetched",
+        data:data?.rows
+    })
+})
