@@ -20,4 +20,7 @@ router.route("/store")
 router.route("/terminal")
 .get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllTerminal);
 
+router.route("/price-history/:canprod_id")
+.get(UserController.isLoggedIn,FNBProductController.getPriceHistory);
+
 module.exports = router;
