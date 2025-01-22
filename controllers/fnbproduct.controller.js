@@ -265,3 +265,50 @@ exports.getAllTerminal = catchAsync(async (req,res,next)=>{
         data:data?.rows
     })
 })
+
+exports.getPriceHistory = catchAsync(async (req,res,next)=>{
+    const canprod_id = req?.params?.canprod_id;
+
+    if(!canprod_id){
+        return next(
+            new AppError(`canprod_id required!`,400)
+        )
+    }
+    const data = await pool.query(`
+        SELECT 
+        p.canprod_id,
+        p.name AS product_title,
+        ph.date AS price_date,
+        ph.price AS product_price,
+        s.name AS store
+    FROM 
+        product_fnb p
+    JOIN 
+        store s
+    ON 
+       p.store_id = s.id
+    JOIN 
+        price_fnb ph 
+    ON 
+        p.id = ph.product_id
+    WHERE 
+        p.canprod_id = $1
+    ORDER BY 
+        ph.date ASC;
+    `,[canprod_id]);
+
+    const outputData = {};
+
+    for(let i=0;i<data?.rows?.length;i++){
+        if(!outputData[data?.rows[i]?.store]) outputData[data?.rows[i]?.store] = {};
+
+        if(!outputData[data?.rows[i]?.store][data?.rows[i]?.product_title]) outputData[data?.rows[i]?.store][data?.rows[i]?.product_title] = [];
+        outputData[data?.rows[i]?.store][data?.rows[i]?.product_title].push(data?.rows[i]);
+    }
+
+    return res.status(200).json({
+        status:"success",
+        message:"Price history fetched succesfully!",
+        data:outputData
+    })
+})
