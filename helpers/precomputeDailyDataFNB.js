@@ -112,13 +112,14 @@ const precomputeDailyDataFNB = async (source) => {
         let newData = [];
         finalData?.forEach(data=>{
             data?.products_data?.forEach(product=>{
-                if(product?.store_id){
+                console.log(product?.terminal_name);
+                if(product?.terminal_name!="OTHERS"){
                     newData.push({...data,store_name:product?.store_name,store_price:product?.latest_price,product_name:product?.name,terminal_name:product?.terminal_name,store_pricerank:product?.pricerank,difference:(parseFloat(product?.latest_price)-parseFloat(data?.average)),difference_percentage:((parseFloat(product?.latest_price)-parseFloat(data?.average))/parseFloat(product?.latest_price))*100})
                 }
             })
         });
 
-        newData?.forEach(data=>console.log(data));
+        // newData?.forEach(data=>console.log(data));
         // Store the result in Redis
         await redisClient.set(
             'daily_product_data_fnb', // Key to store data
