@@ -93,13 +93,13 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     let products = JSON.parse(cachedData);
 
     if(terminal){
-        products=products?.filter(product=>terminal.includes(product?.terminal_name))
+        products=products?.filter(product=>terminal.includes(product?.terminal_name?.trim()))
     }
 
     if(store){
-        products=products?.filter(product=>store.includes(product?.store_name))
+        products=products?.filter(product=>store.includes(product?.store_name?.trim()))
     }
-
+    
     // Remove products where all products_data entries were filtered out
     products = products.filter(p => p.products_data.length > 1);
 
@@ -142,20 +142,19 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 sourcerank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
             }
         }
-
-        if(!store_stats[products[i]?.store_name]) 
-        store_stats[products[i]?.store_name] = { 
-            store: products[i]?.store_name,
-            terminal: products[i]?.terminal_name,
+        if(!store_stats[products[i]?.store_name?.trim()]) 
+        store_stats[products[i]?.store_name?.trim()] = { 
+            store: products[i]?.store_name?.trim(),
+            terminal: products[i]?.terminal_name?.trim(),
             cheapest_count: 0,
             midrange_count: 0,
             expensive_count: 0,
             pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
         }
 
-        if(!terminal_stats[products[i]?.terminal_name]) 
-        terminal_stats[products[i]?.terminal_name] = { 
-            terminal: products[i]?.terminal_name,
+        if(!terminal_stats[products[i]?.terminal_name?.trim()]) 
+        terminal_stats[products[i]?.terminal_name?.trim()] = { 
+            terminal: products[i]?.terminal_name?.trim(),
             cheapest_count: 0,
             midrange_count: 0,
             expensive_count: 0,
@@ -165,8 +164,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         if(sourcerank == 1) {
             if((!pricerange || pricerange=="cheapest")){
                 cheapest_count+=1;
-                store_stats[products[i]?.store_name].cheapest_count+=1;
-                terminal_stats[products[i]?.terminal_name].cheapest_count+=1;
+                store_stats[products[i]?.store_name?.trim()].cheapest_count+=1;
+                terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count+=1;
                 products[i].price_range = "cheapest";
                 isConsidered=true;
             }
@@ -174,8 +173,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         else if(sourcerank == maxrank){ 
             if(!pricerange || pricerange=="expensive"){
                 expensive_count +=1;
-                store_stats[products[i]?.store_name].expensive_count+=1;
-                terminal_stats[products[i]?.terminal_name].expensive_count+=1;
+                store_stats[products[i]?.store_name?.trim()].expensive_count+=1;
+                terminal_stats[products[i]?.terminal_name?.trim()].expensive_count+=1;
                 products[i].price_range = "expensive";
                 isConsidered=true;
             }
@@ -183,8 +182,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         else{
             if((!pricerange || pricerange=="midrange")){
                 midrange_count +=1;
-                store_stats[products[i]?.store_name].midrange_count+=1;
-                terminal_stats[products[i]?.terminal_name].midrange_count+=1;
+                store_stats[products[i]?.store_name?.trim()].midrange_count+=1;
+                terminal_stats[products[i]?.terminal_name?.trim()].midrange_count+=1;
                 products[i].price_range = "midrange";
                 isConsidered=true;
             }
@@ -192,11 +191,11 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
         if(isConsidered){
 
-            if(!store_stats[products[i]?.store_name].pricerank_wise_product_count[sourcerank]) store_stats[products[i]?.store_name].pricerank_wise_product_count[sourcerank]=1;
-            else  store_stats[products[i]?.store_name].pricerank_wise_product_count[sourcerank]+=1;
+            if(!store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]) store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            else  store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
 
-            if(!terminal_stats[products[i]?.terminal_name].pricerank_wise_product_count[sourcerank]) terminal_stats[products[i]?.terminal_name].pricerank_wise_product_count[sourcerank]=1;
-            else  terminal_stats[products[i]?.terminal_name].pricerank_wise_product_count[sourcerank]+=1;
+            if(!terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            else  terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
         }
     }
 
@@ -224,6 +223,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     terminal_stats = terminal_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
 
 
+    let totals = products.length;
     paginatedProducts = products.slice(offset, offset + limit);
 
     // Send response
@@ -231,129 +231,17 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         status: "success",
         message: `All products for auckland fetched successfully`,
         stats:{
-            productCount:18,
-            cheapestProducts:3,
-            midrangeProducts:9,
-            expensiveProducts:6,
-            stores:3,
-            terminals:3
+            productCount:paginatedProducts?.length,
+            cheapestProducts:cheapest_count,
+            midrangeProducts:midrange_count,
+            expensiveProducts:expensive_count,
+            stores:store_stats?.length,
+            terminals:terminal_stats?.length
         },
-        store_stats:[
-            {
-                "store": "AROHA",
-                "terminal": "INTL AIRSIDE",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 3,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-            {
-                "store": "HUDSON",
-                "terminal": "DOMESTIC",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 3,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-            {
-                "store": "HUDSON",
-                "terminal": "DOMESTIC",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 0,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-        ],
-        terminal_stats:[
-            {
-                "terminal": "INTL AIRSIDE",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 3,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-            {
-                "terminal": "INTL LANDSIDE",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 0,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-            {
-                "terminal": "DOMESTIC",
-                "cheapest_count": 1,
-                "midrange_count": 3,
-                "expensive_count": 3,
-                "pricerank_wise_product_count": [
-                    1,
-                    0,
-                    3,
-                    0,
-                    3,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0
-                ]
-            },
-        ],
+        store_stats:store_stats,
+        terminal_stats:terminal_stats,
         data: paginatedProducts,
+        totals
     });
 
 });
