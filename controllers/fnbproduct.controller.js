@@ -231,7 +231,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         status: "success",
         message: `All products for auckland fetched successfully`,
         stats:{
-            productCount:paginatedProducts?.length,
+            productCount:totals,
             cheapestProducts:cheapest_count,
             midrangeProducts:midrange_count,
             expensiveProducts:expensive_count,
