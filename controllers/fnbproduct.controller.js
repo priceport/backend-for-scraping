@@ -247,7 +247,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 });
 
 exports.getAllStores = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`select distinct name  from store;`);
+    const data = await pool.query(`select distinct name  from store where terminal_id != 8;`);
 
     return res.status(200).json({
         status:"success",
@@ -257,7 +257,7 @@ exports.getAllStores = catchAsync(async (req,res,next)=>{
 })
 
 exports.getAllTerminal = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`select distinct name  from terminal;`);
+    const data = await pool.query(`select distinct name  from terminal where id != 8;`);
 
     return res.status(200).json({
         status:"success",
