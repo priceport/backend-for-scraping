@@ -361,3 +361,89 @@ exports.getUserProfile = catchAsync(async (req,res,next)=>{
         data:req.user
     })
 })
+
+exports.getAllUsers = catchAsync(async (req,res,next)=>{
+    const users = await pool.query(`SELECT u.first_name, u.id, u.last_name, u.email, u.role, u.user_name, o.name AS organisation_name FROM users u JOIN organisation o ON u.organisation_id = o.id where role!='admin';`)
+    return res.status(200).json({
+        status:"success",
+        message:"All users fetched succesfully",
+        data: users.rows
+    });
+})
+
+exports.updateUser = catchAsync(async (req,res,next)=>{
+
+    const isComplete = isBodyComplete(req,["first_name","last_name","email","user_name","role","id","organisation_id"]);
+    if(!isComplete[0]){
+        return next(
+            new AppError(`${isComplete[1]} missing from request body!`,400)
+        );
+    }
+
+    const first_name = req.body.first_name;
+    const last_name = req.body.last_name;
+    const email = req.body.email;
+    const user_name = req.body.user_name;
+    let role = req.body.role;
+    const organisation_id = req.body.organisation_id;
+    const id = req.body.id;
+    let hashedPassword;
+
+    if(role=="admin") role = "employee";
+
+    if(req.body.password&&req.body.passwordConfirm){
+        //Check if password matches password confirm
+        if(req.body.password!==req.body.passwordConfirm){
+            return next(
+                new AppError(`Password should match PasswordConfirm!`,400)
+            );
+        }
+
+        hashedPassword = await bcrypt.hash(req.body.password, 12);
+        await pool.query(`UPDATE users
+        SET
+            password = $1
+        WHERE id = $2;
+        `,[hashedPassword,id]);
+    }
+
+    const user = await pool.query(`UPDATE users
+    SET 
+      first_name = $1,
+      last_name = $2,
+      email = $3,
+      role = $4,
+      user_name = $5,
+      organisation_id = $6
+    WHERE 
+      id = $7
+    RETURNING first_name,last_name,email,role,user_name,organisation_id,id;
+    `,[first_name,last_name,email,role,user_name,organisation_id,id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"User updated succesfully",
+        data:user.rows
+    })
+})
+
+exports.deleteUser = catchAsync(async (req,res,next)=>{
+    const id = req?.params?.id;
+
+    const user = await pool.query("SELECT * FROM users WHERE id = $1",[id]);
+
+    if(user?.role=="admin"){
+        return next(
+            new AppError("Cannot delete admin user",401)
+        )
+    }
+
+    await pool.query(`
+       DELETE FROM users WHERE id = $1;
+    `,[id]);
+
+    return res.status(204).json({
+        status:"success",
+        message:"User deleted succesfully"
+    })
+})
