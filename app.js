@@ -23,6 +23,7 @@ const analyticsRouter = require("./routes/analytics.routes.js");
 const reportsRouter = require("./routes/reports.routes.js");
 const fnbreportsRouter = require("./routes/fnbreports.routes.js");
 const fnbproductRouter = require("./routes/fnbproduct.routes.js");
+const organisationRouter = require("./routes/organisation.routes.js");
 
 
 const scrapingService = require("./helpers/scrapingService.js");
@@ -98,6 +99,7 @@ app.use("/api/v1/reports",reportsRouter);
 
 app.use("/api/v1/fnbproduct",fnbproductRouter);
 app.use("/api/v1/fnbreports",fnbreportsRouter);
+app.use("/api/v1/organisation",organisationRouter);
 
 
 //Throwing error if no matched route found
