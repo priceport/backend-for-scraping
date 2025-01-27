@@ -21,6 +21,7 @@ const pricechangeRouter = require("./routes/pricechange.routes.js");
 const watchlistRouter = require("./routes/watchlist.routes.js");
 const analyticsRouter = require("./routes/analytics.routes.js");
 const reportsRouter = require("./routes/reports.routes.js");
+const fnbreportsRouter = require("./routes/fnbreports.routes.js");
 const fnbproductRouter = require("./routes/fnbproduct.routes.js");
 
 
@@ -96,7 +97,7 @@ app.use("/api/v1/analytics",analyticsRouter);
 app.use("/api/v1/reports",reportsRouter);
 
 app.use("/api/v1/fnbproduct",fnbproductRouter);
-
+app.use("/api/v1/fnbreports",fnbreportsRouter);
 
 
 //Throwing error if no matched route found
