@@ -125,6 +125,14 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         products = products.sort((a, b) => parseInt(a.store_pricerank?.split("/")[0]) - parseInt(b.store_pricerank?.split("/")[0]));
     } else if (sort === 'pricerank_high_to_low') {
         products = products.sort((a, b) => parseInt(b.store_pricerank?.split("/")[0]) - parseInt(a.store_pricerank?.split("/")[0]));
+    } else if(sort == 'difference_low_to_high'){
+        products = products.sort((a, b) => a.difference - b.difference);
+    } else if(sort == 'difference_high_to_low'){
+        products = products.sort((a, b) => b.difference - a.difference);
+    } else if(sort == 'difference_percentage_low_to_high'){
+        products = products.sort((a, b) => a.difference_percentage - b.difference_percentage);
+    } else if(sort == 'difference_percentage_high_to_low'){
+        products = products.sort((a, b) => b.difference_percentage - a.difference_percentage);
     }
 
     let paginatedProducts=products;
