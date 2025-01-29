@@ -2,6 +2,7 @@ const pool = require("../configs/postgresql.config");
 const redisClient = require("../configs/redis.config");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const isBodyComplete = require("../utils/isBodyComplete");
 
 const source = {
     auckland:"AELIA_AUCKLAND",
@@ -1036,4 +1037,68 @@ exports.downloadQtyAndUnitLessProducts = catchAsync(async (req,res,next)=>{
     res.setHeader('Content-Disposition', 'attachment; filename="products.csv"');
 
     res.send(csvContent);
+})
+
+exports.editProduct = catchAsync(async (req,res,next)=>{
+    const isComplete = isBodyComplete(req, ["title", "unit", "qty", "brand"]);
+    if (!isComplete[0]) {
+        return next(
+            new AppError(`${isComplete[1]} missing from request body!`, 400)
+        );
+    }
+
+    const data = await pool.query(`update product
+    set
+        title = $1,
+        unit = $2,
+        qty = $3,
+        brand = $4
+    where
+        id = $5
+    returning *;
+    `,[req.body.title,req.body.unit,req.body.qty,req.body.brand,req.params.id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Product edited succesfully",
+        data:data.rows
+    });
+})
+
+exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
+    if(req.body.complaint===undefined){
+        return next(
+            new AppError(`complaint missing from request body!`, 400)
+        );
+    }
+
+    const data = await pool.query(`update product
+    set
+        compliant = $1
+    where
+        id = $2
+    returning *;
+    `,[req.body.complaint,req.params.id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Product complaince changed succesfully",
+        data:data.rows
+    });
+})
+
+exports.removeMapping = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`
+    update product 
+    set canprod_id = null
+    where 
+      id = $1
+    returning *;`,
+    [req.params.id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Mapping removed succesfully",
+        data:data.rows
+    })
 })
