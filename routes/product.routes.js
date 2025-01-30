@@ -8,6 +8,15 @@ const router = express.Router();
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
+router.route("/:id")
+.put(UserController.isLoggedIn,ProductController.editProduct);
+
+router.route("/complaince/:id")
+.put(UserController.isLoggedIn,ProductController.changeProductComplainceStatus);
+
+router.route("/mapping/:id")
+.delete(UserController.isLoggedIn,ProductController.removeMapping);
+
 router.route("/marginally-behind")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getMarginallyBehindProducts);
 
