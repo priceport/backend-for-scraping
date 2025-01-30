@@ -363,7 +363,7 @@ exports.getUserProfile = catchAsync(async (req,res,next)=>{
 })
 
 exports.getAllUsers = catchAsync(async (req,res,next)=>{
-    const users = await pool.query(`SELECT u.first_name, u.id, u.last_name, u.email, u.role, u.user_name, o.name AS organisation_name FROM users u JOIN organisation o ON u.organisation_id = o.id where role!='admin';`)
+    const users = await pool.query(`SELECT u.first_name, u.id, u.last_name, u.email, u.role, u.user_name, o.name AS organisation_name,o.id AS organisation_id FROM users u JOIN organisation o ON u.organisation_id = o.id where role!='admin';`)
     return res.status(200).json({
         status:"success",
         message:"All users fetched succesfully",
