@@ -38,7 +38,7 @@ const spirits = async (start,end,browser)=>{
             // Extracting data from each product element
             const productData = [];
             productElements.forEach(product => {
-                const obj = JSON.parse(product?.querySelector("a")?.dataset?.track);
+                const obj = JSON.parse(product?.querySelector("a script").innerText);
                 const title = obj?.name?.toLowerCase()|| null;
                 const brand = obj?.brand?.toLowerCase() || null;
                 const price = obj?.price?.toLowerCase() || null;
