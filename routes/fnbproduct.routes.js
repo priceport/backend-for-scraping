@@ -24,12 +24,12 @@ router.route("/price-history/:canprod_id")
 .get(UserController.isLoggedIn,FNBProductController.getPriceHistory);
 
 router.route("/:id")
-.put(UserController.isLoggedIn,FNBProductController.editProduct);
+.put(UserController.isLoggedIn,UserController.isAuthorized("admin"),FNBProductController.editProduct);
 
 router.route("/complaince/:id")
-.put(UserController.isLoggedIn,FNBProductController.changeProductComplainceStatus);
+.put(UserController.isLoggedIn,UserController.isAuthorized("admin"),FNBProductController.changeProductComplainceStatus);
 
 router.route("/mapping/:id")
-.delete(UserController.isLoggedIn,FNBProductController.removeMapping);
+.delete(UserController.isLoggedIn,UserController.isAuthorized("admin"),FNBProductController.removeMapping);
 
 module.exports = router;
