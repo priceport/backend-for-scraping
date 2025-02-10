@@ -4,6 +4,7 @@ const xlsx = require('xlsx');
 const fs = require('fs');
 const AppError = require("../utils/appError");
 const redisClient = require("../configs/redis.config");
+const isBodyComplete = require("../utils/isBodyComplete");
 
 function looseMatch(string, search) {
     // Convert both strings to lowercase for case-insensitive comparison
@@ -318,5 +319,82 @@ exports.getPriceHistory = catchAsync(async (req,res,next)=>{
         status:"success",
         message:"Price history fetched succesfully!",
         data:outputData
+    })
+})
+
+exports.editProduct = catchAsync(async (req,res,next)=>{
+    const isComplete = isBodyComplete(req, ["name", "store_id","terminal_id","price"]);
+    if (!isComplete[0]) {
+        return next(
+            new AppError(`${isComplete[1]} missing from request body!`, 400)
+        );
+    }
+
+    const data = await pool.query(`update product_fnb
+    set
+        name = $1,
+        store_id = $2,
+        terminal_id = $3
+    where
+        id = $4
+    returning *;
+    `,[req.body.name,req.body.store_id,req.body.terminal_id,req.params.id]);
+
+    const price = await pool.query(`update price_fnb
+    set
+        price = $1
+    where
+        product_id = $2
+    AND date = (
+        SELECT MAX(date) FROM price_fnb WHERE product_id = $2
+    )
+    returning *;
+    `,[req.body.price,req.params.id])
+
+    return res.status(200).json({
+        status:"success",
+        message:"Product edited succesfully",
+        data:{
+            product:data.rows[0],
+            price:price.rows[0]
+        }
+    });
+})
+
+exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
+    if(req.body.complaint===undefined){
+        return next(
+            new AppError(`complaint missing from request body!`, 400)
+        );
+    }
+
+    const data = await pool.query(`update product_fnb
+    set
+        compliant = $1
+    where
+        id = $2
+    returning *;
+    `,[req.body.complaint,req.params.id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Product complaince changed succesfully",
+        data:data.rows
+    });
+})
+
+exports.removeMapping = catchAsync(async (req,res,next)=>{
+    const data = await pool.query(`
+    update product_fnb 
+    set canprod_id = null
+    where 
+      id = $1
+    returning *;`,
+    [req.params.id]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Mapping removed succesfully",
+        data:data.rows
     })
 })

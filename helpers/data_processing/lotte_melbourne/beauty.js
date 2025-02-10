@@ -228,7 +228,7 @@ const processDataForBeauty = async (data)=>{
 
                     if(!isNaN(effective_price)){
                         return {
-                            price:aud_to_usd(effective_price,"lotte melbourne"),
+                            price:effective_price,
                             text:promotxt
                         }
                     }

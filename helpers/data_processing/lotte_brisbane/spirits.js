@@ -394,7 +394,7 @@ const processDataForSpirits = async (data)=>{
 
                     if(!isNaN(effective_price)){
                         return {
-                            price:aud_to_usd(effective_price,"lotte brisbane"),
+                            price:effective_price,
                             text:promotxt
                         }
                     }

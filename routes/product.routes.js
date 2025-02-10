@@ -9,13 +9,13 @@ router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
 router.route("/:id")
-.put(UserController.isLoggedIn,ProductController.editProduct);
+.put(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.editProduct);
 
 router.route("/complaince/:id")
-.put(UserController.isLoggedIn,ProductController.changeProductComplainceStatus);
+.put(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.changeProductComplainceStatus);
 
 router.route("/mapping/:id")
-.delete(UserController.isLoggedIn,ProductController.removeMapping);
+.delete(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.removeMapping);
 
 router.route("/marginally-behind")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getMarginallyBehindProducts);
