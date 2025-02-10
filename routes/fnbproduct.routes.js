@@ -23,4 +23,13 @@ router.route("/terminal")
 router.route("/price-history/:canprod_id")
 .get(UserController.isLoggedIn,FNBProductController.getPriceHistory);
 
+router.route("/:id")
+.put(UserController.isLoggedIn,FNBProductController.editProduct);
+
+router.route("/complaince/:id")
+.put(UserController.isLoggedIn,FNBProductController.changeProductComplainceStatus);
+
+router.route("/mapping/:id")
+.delete(UserController.isLoggedIn,FNBProductController.removeMapping);
+
 module.exports = router;
