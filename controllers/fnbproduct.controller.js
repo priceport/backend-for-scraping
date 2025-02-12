@@ -256,7 +256,11 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 });
 
 exports.getAllStores = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`select distinct name  from store where terminal_id != 8;`);
+    let data;
+    if(!req.query.admin)
+    data = await pool.query(`select distinct name  from store where terminal_id != 8;`);
+    else
+    data = await pool.query(`select distinct name  from store;`);
 
     return res.status(200).json({
         status:"success",
@@ -266,7 +270,12 @@ exports.getAllStores = catchAsync(async (req,res,next)=>{
 })
 
 exports.getAllTerminal = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`select distinct name  from terminal where id != 8;`);
+
+    let data;
+    if(!req.query.admin)
+    data = await pool.query(`select distinct name  from terminal where id != 8;`);
+    else
+    data = await pool.query(`select distinct name  from terminal;`);
 
     return res.status(200).json({
         status:"success",
