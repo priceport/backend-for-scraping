@@ -71,6 +71,17 @@ exports.addFnbProductsWithExcel = catchAsync(async (req,res,next)=>{
     res.status(200).send('File processed successfully.');
 });
 
+function uniqueCanprodObjects(arr) {
+    const seen = new Set();
+    return arr.filter(obj => {
+      if (!seen.has(obj.canprod_id)) {
+        seen.add(obj.canprod_id);
+        return true;
+      }
+      return false;
+    });
+  }
+
 exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
@@ -79,6 +90,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const sort = req.query.sort || 'price_low_to_high';
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
+    const admin = req.query.admin;
 
     if (limit > 1000) {
         return next(new AppError("Limit should be equal or less than 1000", 400));
@@ -214,6 +226,10 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         );
     }
 
+    if(admin){
+        products = uniqueCanprodObjects(products);
+    }
+    
     product_count = products?.length;
 
     store_stats = Object.keys(store_stats)?.map(key=>{
