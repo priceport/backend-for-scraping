@@ -14,6 +14,9 @@ router.route("/upload")
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllFnbProductsFor);
 
+router.route("/uncached")
+.get(UserController.isLoggedIn,UserController.isAuthorized("admin"),FNBProductController.getAllFnbProductsFor);
+
 router.route("/store")
 .get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllStores);
 

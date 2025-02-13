@@ -8,6 +8,9 @@ const router = express.Router();
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
+router.route("/uncached")
+.get(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.getAllProductsFor);
+
 router.route("/:id")
 .put(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.editProduct);
 
