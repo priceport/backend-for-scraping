@@ -27,12 +27,19 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     }
     
     let source_query = req?.query?.source;
+    let source_category = req?.query?.category ? req?.query?.category.split(",") : null;
 
     if(!source_query) return next(
         new AppError("Source value required",400)
     )
 
-    const products = await pool.query(`SELECT * FROM product WHERE canprod_id IS NULL AND website = $1`,[source_query]);
+    const products = await pool.query(`SELECT *
+    FROM product
+    WHERE canprod_id IS NULL
+      AND website = $1
+      AND ($2::text[] IS NULL OR category = ANY($2))
+    ORDER BY seen ASC;
+    `,[source_query,source_category]);
 
     return res.status(200).json({
         status:"successful",
@@ -48,6 +55,12 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
             new AppError(`Something missing from request query!`, 400)
         );
     }
+
+    await pool.query(`UPDATE product
+    SET seen = TRUE
+    WHERE title = $1
+      AND website = $2;
+    `,[req.query.title,req.query.source]);
 
     const { title, source } = req.query;
 
