@@ -2,6 +2,7 @@ const AppError = require("../utils/appError.js");
 const catchAsync = require("../utils/catchAsync.js");
 const isBodyComplete = require("../utils/isBodyComplete.js");
 const pool = require("../configs/postgresql.config");
+const { filterCandidates } = require("../helpers/filterCandidates.js");
 
 const source = {
     auckland:"PRODUCT_FROM_AELIA_AUCKLAND",
@@ -38,6 +39,7 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     WHERE canprod_id IS NULL
       AND website = $1
       AND ($2::text[] IS NULL OR category = ANY($2))
+      AND last_checked::date > current_date - 3
     ORDER BY seen ASC;
     `,[source_query,source_category]);
 
@@ -56,6 +58,7 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
         );
     }
 
+    console.log("making product seen");
     await pool.query(`UPDATE product
     SET seen = TRUE
     WHERE title = $1
@@ -66,7 +69,8 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
 
     let result, matches = {}, similarity = 1.0;
 
-    while (similarity > 0) {
+    console.log("fetching similar products");
+    while (similarity > 0.2) {
         // Query all other websites except the source
         result = await pool.query(
             `SELECT 
@@ -95,10 +99,16 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
         similarity = (parseFloat(similarity) - 0.1).toFixed(1);
     }
 
+    console.log("filtering similar products using openai from "+matches["0.3"]?.length+" products");
+    let newData = await filterCandidates({title:req.query.title},matches["0.3"]);
+    console.log(newData);
+    
     return res.status(200).json({
         status: "successful",
         data: {
-            matches,
+            matches:{
+                "0.9":newData
+            },
         },
     });
 });
