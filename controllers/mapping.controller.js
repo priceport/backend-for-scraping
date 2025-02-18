@@ -51,6 +51,24 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     })
 });
 
+const makeProductUnseen = catchAsync(async (req,res,next)=>{
+    if (!req.query.title || !req.query.source) {
+        return next(
+            new AppError(`Something missing from request query!`, 400)
+        );
+    }
+
+    await pool.query(`UPDATE product
+    SET seen = FALSE
+    WHERE title = $1
+      AND website = $2;
+    `,[req.query.title,req.query.source]);
+
+    return res.status(200).json({
+        status:"success",
+        message:"Product made unseen"
+    })
+});
 const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
     if (!req.query.title || !req.query.source) {
         return next(
@@ -224,5 +242,6 @@ module.exports = {
     getAllUnmappedProductsFromSource,
     getSimilarityByTitleFromSource,
     createMapping,
-    addProductToMapping
+    addProductToMapping,
+    makeProductUnseen
 }

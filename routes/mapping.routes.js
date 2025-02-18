@@ -6,8 +6,12 @@ router.route("/")
 .get(UserController.isLoggedIn,MappingController.getAllUnmappedProductsFromSource)
 .post(UserController.isLoggedIn,MappingController.createMapping);
 
+router.route("/unseen")
+.patch(UserController.isLoggedIn,MappingController.makeProductUnseen);
+
 router.route("/add-product")
-.patch(UserController.isLoggedIn,MappingController.addProductToMapping)
+.patch(UserController.isLoggedIn,MappingController.addProductToMapping);
+
 router.route("/similarity")
 .get(UserController.isLoggedIn,MappingController.getSimilarityByTitleFromSource);
 
