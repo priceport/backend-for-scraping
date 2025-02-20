@@ -1,92 +1,101 @@
 // filterCandidates.js
-require("dotenv").config(); // Load environment variables
+require("dotenv").config();
 const OpenAI = require("openai");
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // The API key is automatically picked up if set as OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
- * filterCandidates - Uses GPT to filter an array of candidate products,
- * returning only those that are likely the same as the main product.
+ * filterCandidates - Uses GPT-4o-mini to filter a batch of candidate products,
+ * reducing the number of API calls and avoiding rate limits.
  *
  * @param {Object} mainProduct      - Main product object
  * @param {Array} candidateProducts - Array of candidate product objects
  * @returns {Promise<Array>}        - Filtered array of candidate products
- *
- * Example mainProduct:
- * {
- *   title: "Logitech Wireless Mouse M510 - Grey",
- *   brand: "Logitech",
- *   description: "Wireless USB Mouse with 2-year battery life."
- * }
- *
- * Example candidate product:
- * {
- *   title: "Logitech M510 Mouse Wireless Grey",
- *   brand: "Logi",
- *   description: "Wireless mouse with USB receiver, 2-year battery."
- * }
  */
 async function filterCandidates(mainProduct, candidateProducts) {
-  const filteredCandidates = [];
+  if (candidateProducts.length === 0) return [];
 
-  for (const candidate of candidateProducts) {
-    console.log("Trying candidate:"+candidate?.title);
-    const prompt = buildPrompt(mainProduct, candidate);
+  console.log(candidateProducts);
 
-    try {
-      // Use the updated chat completions API call.
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo", // or "gpt-4" if you have access
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are an AI assistant that determines whether two product listings refer to the exact same physical product.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        max_tokens: 200,
-        temperature: 0.0,
-      });
+  const prompt = buildBatchPrompt(mainProduct, candidateProducts);
 
-      // In v4, the response format is: response.choices[0].message.content
-      const gptOutput = response.choices[0].message.content.trim();
+  try {
+    // Single API call for the entire batch
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an AI assistant that determines whether a list of product listings refer to the exact same physical product as the main product.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      max_tokens: Math.min(1000, 50 * candidateProducts.length), // Limit token usage
+      temperature: 0.0,
+    });
 
-      console.log(gptOutput);
-      // Check for an affirmative answer ("Yes" or "Likely").
-      if (
-        gptOutput.toLowerCase().includes("yes") ||
-        gptOutput.toLowerCase().includes("likely")
-      ) {
-        filteredCandidates.push(candidate);
-      }
-    } catch (error) {
-      console.error("Error calling OpenAI API:", error);
-    }
+    const gptOutput = response.choices[0].message.content.trim();
+
+    console.log("gptOutput",gptOutput);
+    
+    // Parse the response into an array
+    const results = parseBatchResponse(gptOutput, candidateProducts);
+
+    return results;
+  } catch (error) {
+    console.error("Error calling OpenAI API:", error);
+    return [];
   }
-
-  return filteredCandidates;
 }
 
 /**
- * buildPrompt - Constructs a prompt comparing the main product to a candidate.
+ * buildBatchPrompt - Constructs a single prompt for batch processing.
  */
-function buildPrompt(mainProduct, candidate) {
-  return `
+function buildBatchPrompt(mainProduct, candidates) {
+  let prompt = `
 Main product:
 Title: ${mainProduct.title}
 
-Candidate product:
-Title: ${candidate.title}
+Below is a list of candidate products. Identify which ones are the exact same product as the main product.
+For each candidate, answer "Yes" if it is the same, "Likely" if it is very similar, or "No" if it is different.
 
-Question: Are these two listings referring to the exact same product?
-Answer with "Yes" or "Likely" if they are the same, or "No" if they are not.
+Format your response as:
+1. Yes/No/Likely
+2. Yes/No/Likely
+...
   `;
+
+  candidates.forEach((candidate, index) => {
+    prompt += `\n${index + 1}. Title: ${candidate.title}`;
+  });
+
+  console.log("generated prompt:",prompt);
+  return prompt;
+}
+
+/**
+ * parseBatchResponse - Extracts structured results from the GPT response.
+ */
+function parseBatchResponse(responseText, candidateProducts) {
+  const filteredCandidates = [];
+
+  const lines = responseText.split("\n");
+  lines.forEach((line, index) => {
+    if (index < candidateProducts.length) {
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes("yes") || lowerLine.includes("likely")) {
+        filteredCandidates.push(candidateProducts[index]);
+      }
+    }
+  });
+
+  return filteredCandidates;
 }
 
 module.exports = { filterCandidates };
