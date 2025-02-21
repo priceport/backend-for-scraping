@@ -24,6 +24,8 @@ const reportsRouter = require("./routes/reports.routes.js");
 const fnbreportsRouter = require("./routes/fnbreports.routes.js");
 const fnbproductRouter = require("./routes/fnbproduct.routes.js");
 const organisationRouter = require("./routes/organisation.routes.js");
+const leadsRouter = require("./routes/leads.routes.js");
+
 
 
 const scrapingService = require("./helpers/scrapingService.js");
@@ -96,6 +98,8 @@ app.use("/api/v1/price-change",pricechangeRouter);
 app.use("/api/v1/watchlist",watchlistRouter);
 app.use("/api/v1/analytics",analyticsRouter);
 app.use("/api/v1/reports",reportsRouter);
+app.use("/api/v1/leads",leadsRouter);
+
 
 app.use("/api/v1/fnbproduct",fnbproductRouter);
 app.use("/api/v1/fnbreports",fnbreportsRouter);
