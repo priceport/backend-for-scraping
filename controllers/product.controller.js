@@ -642,10 +642,10 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
 
             if (compliant!==null) 
-            filteredProductsData = product.products_data.filter(pd => (pd.compliant+"")==compliant);
+            filteredProductsData = product.products_data.filter(pd => ((pd.compliant+"")==compliant||pd.website=='aelia_auckland'));
 
             if (ai_check!==null) 
-            filteredProductsData = product.products_data.filter(pd => pd.ai_check==ai_check);
+            filteredProductsData = product.products_data.filter(pd => ((pd.ai_check==ai_check)||(pd.website=='aelia_auckland')));
 
             // Calculate price per unit or fallback to flat price
             let hasUnitAndQty = true;
@@ -687,7 +687,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    if(!req.query.admin)
+    // if(!req.query.admin)
     products = products.filter(p => p.products_data.length > 1);
 
     // Apply pricerank filter
