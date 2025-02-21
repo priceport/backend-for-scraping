@@ -14,10 +14,15 @@ const openai = new OpenAI({
  * @param {Array} candidateProducts - Array of candidate product objects
  * @returns {Promise<Array>}        - Filtered array of candidate products
  */
-async function filterCandidates(mainProduct, candidateProducts) {
+async function getWrongMappings(mainProduct, candidateProducts) {
   if (candidateProducts.length === 0) return [];
 
   const prompt = buildBatchPrompt(mainProduct, candidateProducts);
+
+  if(prompt=="skip"){
+      console.log("skipping");
+     return candidateProducts;
+  }
 
   try {
     // Single API call for the entire batch
@@ -43,6 +48,7 @@ async function filterCandidates(mainProduct, candidateProducts) {
     // Parse the response into an array
     const results = parseBatchResponse(gptOutput, candidateProducts);
 
+    console.log(results);
     return results;
   } catch (error) {
     console.error("Error calling OpenAI API:", error);
@@ -54,12 +60,16 @@ async function filterCandidates(mainProduct, candidateProducts) {
  * buildBatchPrompt - Constructs a single prompt for batch processing.
  */
 function buildBatchPrompt(mainProduct, candidates) {
+  let toSend = false;
   let prompt = `
 Main product:
 Title: ${mainProduct.title}
+Quanity: ${mainProduct.qty}
+Unit: ${mainProduct.unit}
+Price: ${mainProduct.latest_price}
 
 Below is a list of candidate products. Identify which ones are the exact same product as the main product.
-For each candidate, answer "Yes" if it is the same, "Likely" if it is very similar, or "No" if it is different.
+For each candidate, answer "Yes" if it is the same and have same quanity (unit adjusted like 0.5l and 500ml should be considered same) and price difference is not huge (greater than 20%), "Likely" if it is very similar, or "No" if it is different.
 
 Format your response as:
 1. Yes/No/Likely
@@ -68,10 +78,16 @@ Format your response as:
   `;
 
   candidates.forEach((candidate, index) => {
-    prompt += `\n${index + 1}. Title: ${candidate.title}`;
+    if(candidate?.ai_check==""){
+      toSend = true;
+      prompt += `\n${index + 1}. Title: ${candidate.title} Quanity: ${candidate.qty} Unit: ${candidate.unit} Price: ${candidate.latest_price}`;
+    }
   });
 
+  if(toSend)
   return prompt;
+
+  else return "skip";
 }
 
 /**
@@ -84,13 +100,11 @@ function parseBatchResponse(responseText, candidateProducts) {
   lines.forEach((line, index) => {
     if (index < candidateProducts.length) {
       const lowerLine = line.toLowerCase();
-      if (lowerLine.includes("yes") || lowerLine.includes("likely")) {
-        filteredCandidates.push(candidateProducts[index]);
-      }
+      filteredCandidates.push({...candidateProducts[index],ai_check:lowerLine?.split(".")[1]?.trim()});
     }
   });
 
   return filteredCandidates;
 }
 
-module.exports = { filterCandidates };
+module.exports = { getWrongMappings };

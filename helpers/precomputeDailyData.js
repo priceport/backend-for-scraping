@@ -1,11 +1,68 @@
 const pool = require('../configs/postgresql.config'); // Import your database configuration
 const redisClient = require('../configs/redis.config'); // Import Redis configuration
+const { getWrongMappings } = require('./getWrongMappings');
 
 const getBackStandardQty = (qty,unit)=>{
     if(unit=='l'||unit=='kg') return qty*100;
     else return qty*1;
 }
 
+const bulkUpdateAICheck = async (updates) => {
+    if (!Array.isArray(updates) || updates.length === 0) {
+        return [];
+    }
+
+    const allowedValues = ['', 'no', 'likely', 'yes'];
+    
+    // Validate input data
+    for (const item of updates) {
+        if (!item.id || !allowedValues.includes(item.ai_check)) {
+            throw new Error('Invalid input data: Each object must have a valid id and ai_check value');
+        }
+    }
+
+    // Construct bulk update query
+    const query = `
+        UPDATE product AS p
+        SET ai_check = c.ai_check
+        FROM (VALUES ${updates.map((_, i) => `($${i * 2 + 1}, $${i * 2 + 2})`).join(', ')}) 
+        AS c(id, ai_check)
+        WHERE p.id = c.id::INTEGER
+        RETURNING p.*;
+    `;
+
+    // Flatten values for parameterized query
+    const values = updates.flatMap(({ id, ai_check }) => [id, ai_check]);
+
+    try {
+        const result = await pool.query(query, values);
+        return result.rows;
+    } catch (error) {
+        console.error('Error updating ai_check:', error);
+        throw error;
+    }
+};
+
+async function checkForWrongMappings (products){
+    try{
+        for(let i = 0;i<products?.length;i++){
+            console.log(i);
+            let main = products[i]?.products_data?.find(el=>el?.website=="aelia_auckland");
+            let candidateProducts = products[i]?.products_data?.filter(el=>el?.website!='aelia_auckland');
+
+            if(!main){
+                console.log("something went wrong for canprod_id="+products[i]?.canprod_id);
+                continue;
+            }
+
+            const wrongObjects = await getWrongMappings(main,candidateProducts);
+
+            await bulkUpdateAICheck(wrongObjects);
+        }
+    }catch(err){
+        console.log(err);
+    }
+}
 function isTodayOrYesterday(timestamp) {
     const inputDate = new Date(timestamp);
     const today = new Date();
@@ -244,12 +301,15 @@ const precomputeDailyData = async (source) => {
             return data.products_data.length!==0
         });
 
+        console.log("product length for today is:"+finalData?.length);
         // Store the result in Redis
         await redisClient.set(
             'daily_product_data', // Key to store data
             JSON.stringify(finalData), // Serialize data to JSON
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );
+
+        await checkForWrongMappings(finalData);
 
         console.log('Daily product data successfully precomputed and cached!');
     } catch (error) {
