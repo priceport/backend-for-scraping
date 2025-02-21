@@ -558,6 +558,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const sort = req.query.sort || 'price_low_to_high';
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
+    const compliant = req.query.compliant || null;
+    const ai_check = req.query.ai_check || null;
 
     // Validate input
     if (!source) {
@@ -639,6 +641,12 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             if (location) 
             filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
 
+            if (compliant!==null) 
+            filteredProductsData = product.products_data.filter(pd => (pd.compliant+"")==compliant);
+
+            if (ai_check!==null) 
+            filteredProductsData = product.products_data.filter(pd => pd.ai_check==ai_check);
+
             // Calculate price per unit or fallback to flat price
             let hasUnitAndQty = true;
             const rankedProducts = filteredProductsData.map(pd => { 
@@ -679,6 +687,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
+    if(!req.query.admin)
     products = products.filter(p => p.products_data.length > 1);
 
     // Apply pricerank filter
