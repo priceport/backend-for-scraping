@@ -75,14 +75,21 @@ function isTodayOrYesterday(timestamp) {
 
     // Check if the date is yesterday
     const yesterday = new Date();
+    const daybeforeyesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
+    daybeforeyesterday.setDate(today.getDate() - 2);
 
     const isYesterday =
         inputDate.getDate() === yesterday.getDate() &&
         inputDate.getMonth() === yesterday.getMonth() &&
         inputDate.getFullYear() === yesterday.getFullYear();
 
-    return isToday || isYesterday; // Return true if it's either today or yesterday
+    const isDayBeforeYesterday =
+        inputDate.getDate() === daybeforeyesterday.getDate() &&
+        inputDate.getMonth() === daybeforeyesterday.getMonth() &&
+        inputDate.getFullYear() === daybeforeyesterday.getFullYear();
+
+    return isDayBeforeYesterday || isYesterday; // Return true if it's either today or yesterday
 }
 
 const precomputeDailyData = async (source) => {
