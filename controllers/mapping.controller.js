@@ -39,7 +39,7 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
     WHERE canprod_id IS NULL
       AND website = $1
       AND ($2::text[] IS NULL OR category = ANY($2))
-      AND last_checked::date > current_date - 3
+      AND last_checked::date > current_date - 5
     ORDER BY seen ASC;
     `,[source_query,source_category]);
 
