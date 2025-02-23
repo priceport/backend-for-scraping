@@ -76,8 +76,8 @@ function isTodayOrYesterday(timestamp) {
     // Check if the date is yesterday
     const yesterday = new Date();
     const daybeforeyesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    daybeforeyesterday.setDate(today.getDate() - 2);
+    yesterday.setDate(today.getDate() - 2);
+    daybeforeyesterday.setDate(today.getDate() - 3);
 
     const isYesterday =
         inputDate.getDate() === yesterday.getDate() &&
