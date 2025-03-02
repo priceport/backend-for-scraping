@@ -5,6 +5,6 @@ const UserController = require('../controllers/user.controller.js');
 const router = express.Router();
 
 router.route("/")
-.post(UserController?.isLoggedIn,LeadsController?.createLead);
+.post(LeadsController?.createLead);
 
 module.exports = router;
