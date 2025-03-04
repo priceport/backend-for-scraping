@@ -3,6 +3,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
+const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 puppeteer.use(StealthPlugin());
 
@@ -139,6 +140,12 @@ const beauty = async (start, end,browser) => {
 
     }catch(err){
         logError(err);
+
+        try{
+            await insertScrapingError("Error in chemist_warehouse - beauty: "+err.message,"scraping_trycatch");
+        }catch(err){
+            console.log(err);
+        }
         await page.close();
         return allProducts;
     }

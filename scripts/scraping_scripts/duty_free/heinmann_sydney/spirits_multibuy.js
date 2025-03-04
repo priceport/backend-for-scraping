@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
+const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 
 const spiritsMultibuy = async (allProducts)=>{
@@ -42,6 +43,11 @@ const spiritsMultibuy = async (allProducts)=>{
     return allProducts;
     }catch(err){
         logError(err);
+        try{
+            await insertScrapingError("Error in heinemann_sydney - spirits_multibuy: "+err.message,"scraping_trycatch");
+          }catch(err){
+              console.log(err);
+          }
         await page.close();
         await browser.close();
         return allProducts;

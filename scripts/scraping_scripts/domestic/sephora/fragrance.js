@@ -2,6 +2,7 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 puppeteer.use(StealthPlugin());
 
@@ -36,9 +37,10 @@ const fragrance = async (start,end)=>{
         await waitForXTime(constants.timeout);
         await page.goto(url.replace("replace_me",pageNo), { waitUntil: 'networkidle2' });
       
-        const products = await page.evaluate(() => {
+        const [products,missing] = await page.evaluate(() => {
           const productElements = document.querySelectorAll('.products-grid-container > .products-card-container');
           const productList = [];
+          let missing = 0;
       
           productElements.forEach(product => {
             const titleElement = product.querySelector('.product-name');
@@ -55,6 +57,8 @@ const fragrance = async (start,end)=>{
             const url = urlElement ? urlElement.href.trim() : null;
             const img = imgElement ? imgElement.src.trim() : null;
       
+            if(!title||!brand||!price||!url||!img){missing+=1;}
+
             if(!title&&!brand&&!price&&!promo&&!url){}
             else
             productList.push({ 
@@ -74,8 +78,12 @@ const fragrance = async (start,end)=>{
             });
           });
       
-          return productList;
+          return [productList,missing];
         });
+
+        if(missing > 5) {
+          await insertScrapingError("More than 5 entries missing for sephora - fragrance: "+pageNo,"scraping_missing");
+        }
 
         allProducts.push(...products);
 
@@ -89,6 +97,11 @@ const fragrance = async (start,end)=>{
         }
       }catch(err){
         logError(err);
+        try{
+          await insertScrapingError("Error in sephora - fragrance: "+err.message,"scraping_trycatch");
+        }catch(err){
+            console.log(err);
+        }
         await page.close();
         await browser.close();
         return allProducts;

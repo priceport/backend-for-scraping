@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
+const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 
 const makeup = async (start,end,browser)=>{
@@ -31,8 +32,9 @@ const makeup = async (start,end,browser)=>{
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
 
         // Scrape the product details
-        const products = await page.evaluate(() => {
+        const [products,missing] = await page.evaluate(() => {
             const productElements = document.querySelectorAll('.c-product-card');
+            let missing = 0;
             
             // Extracting data from each product element
             const productData = [];
@@ -46,6 +48,8 @@ const makeup = async (start,end,browser)=>{
                 const promo = [];
                 const isMultibuy = product?.querySelector(".c-ribbon")?.innerText == "Multibuy";
                 //   const unit = product.querySelector('.amount')?.innerText.trim() || 'N/A';
+
+                if(!title||!brand||!price||!url||!img){missing+=1;}
 
                 if(!title&&!brand&&!price&&!promo&&!url){}
                 else productData.push({ 
@@ -66,8 +70,11 @@ const makeup = async (start,end,browser)=>{
                 });
             
             });
-            return productData;
+            return [productData,missing];
         });
+        if(missing > 5) {
+            await insertScrapingError("More than 5 entries missing for heinemann_sydney - makeup: "+pageNo,"scraping_missing");
+        }
         allProducts.push(...products);
 
         if(products?.length==0||pageNo==(end-1)){ 
@@ -79,6 +86,11 @@ const makeup = async (start,end,browser)=>{
     }
     }catch(err){
         logError(err);
+        try{
+            await insertScrapingError("Error in heinemann_sydney - makeup: "+err.message,"scraping_trycatch");
+          }catch(err){
+              console.log(err);
+          }
         await page.close();
         return allProducts;
     }

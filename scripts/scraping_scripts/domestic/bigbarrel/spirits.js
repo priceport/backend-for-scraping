@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
+const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 const spirits = async (start,end,browser)=>{
 
@@ -31,9 +32,10 @@ const spirits = async (start,end,browser)=>{
         await waitForXTime(constants.timeout);
         await page.goto(url.replace("replace_me",pageNo), {  timeout: 0});
 
-        const products = await page.evaluate(() => {
+        const [products,missing] = await page.evaluate(() => {
           const productElements = document.querySelectorAll(".item-box");
           const productList = [];
+          let missing = 0;
       
           productElements.forEach(product => {
             if(product.querySelector(".product-title > a")?.innerText) {
@@ -51,6 +53,8 @@ const spirits = async (start,end,browser)=>{
               const url = urlElement ? urlElement.href.trim() : null;
               const img = imgElement ? imgElement?.dataset?.lazyloadsrc.trim() : null;
         
+              if(!title||!brand||!price||!url||!img){missing+=1;}
+
               if(!title&&!brand&&!price&&!promo&&!url){}
               else
               productList.push({ 
@@ -70,11 +74,15 @@ const spirits = async (start,end,browser)=>{
               });
             }
           });
+          
       
-          return productList;
+          return [productList,missing];
           
         });
 
+        if(missing > 5) {
+          await insertScrapingError("More than 5 entries missing for big barrel - spririts: "+pageNo,"scraping_missing");
+        }
         allProducts.push(...products);
 
           if(products?.length==0||pageNo==end){ 
@@ -87,6 +95,13 @@ const spirits = async (start,end,browser)=>{
 
       }catch(err){
         logError(err);
+
+        try{
+          await insertScrapingError("Error in big barrel - spirits: "+err.message,"scraping_trycatch");
+        }catch(err){
+          console.log(err);
+        }
+
         await page.close();
         return allProducts;
       }
