@@ -32,7 +32,7 @@ const beauty = async (start,end,browser)=>{
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
 
         // Scrape the product details
-    const products = await page.evaluate(() => {
+    const [products,missing] = await page.evaluate(() => {
         const productElements = document.querySelectorAll('.sf__col-item');
           const productList = [];
           let missing = 0;
