@@ -1,5 +1,6 @@
 const pool = require("../configs/postgresql.config");
 const redisClient = require("../configs/redis.config");
+const precomputeDailyData = require("../helpers/precomputeDailyData");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const isBodyComplete = require("../utils/isBodyComplete");
@@ -642,7 +643,9 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
 
             if (compliant!==null) 
-            filteredProductsData = product.products_data.filter(pd => ((pd.compliant+"")==compliant||pd.website=='aelia_auckland'));
+            filteredProductsData = product.products_data.filter(pd =>{
+                return (((pd.compliant+"")==compliant)||pd.website=='aelia_auckland')
+            });
 
             if (ai_check!==null) 
             filteredProductsData = product.products_data.filter(pd => ((pd.ai_check==ai_check)||(pd.website=='aelia_auckland')));
@@ -1075,6 +1078,8 @@ exports.editProduct = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.title,req.body.unit,req.body.qty,req.body.brand,req.params.id]);
 
+    precomputeDailyData('aelia_auckland');
+
     return res.status(200).json({
         status:"success",
         message:"Product edited succesfully",
@@ -1097,6 +1102,8 @@ exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.complaint,req.params.id]);
 
+    precomputeDailyData('aelia_auckland');
+
     return res.status(200).json({
         status:"success",
         message:"Product complaince changed succesfully",
@@ -1112,6 +1119,8 @@ exports.removeMapping = catchAsync(async (req,res,next)=>{
       id = $1
     returning *;`,
     [req.params.id]);
+
+    precomputeDailyData('aelia_auckland');
 
     return res.status(200).json({
         status:"success",
