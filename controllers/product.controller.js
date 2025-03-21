@@ -1060,14 +1060,16 @@ exports.downloadQtyAndUnitLessProducts = catchAsync(async (req,res,next)=>{
 })
 
 exports.editProduct = catchAsync(async (req,res,next)=>{
-    const isComplete = isBodyComplete(req, ["title", "unit", "qty", "brand"]);
+    const isComplete = isBodyComplete(req, ["title", "brand"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
         );
     }
 
-    const data = await pool.query(`update product
+    let data;
+    if(req.body.qty&&req.body.unit)
+    data = await pool.query(`update product
     set
         title = $1,
         unit = $2,
@@ -1077,8 +1079,28 @@ exports.editProduct = catchAsync(async (req,res,next)=>{
         id = $5
     returning *;
     `,[req.body.title,req.body.unit,req.body.qty,req.body.brand,req.params.id]);
+    else if(req.body.qty&&!req.body.unit)
+    data = await pool.query(`update product
+    set
+        title = $1,
+        qty = $2,
+        brand = $3
+    where
+        id = $4
+    returning *;
+    `,[req.body.title,req.body.qty,req.body.brand,req.params.id]);
+    else if(!req.body.qty&&req.body.unit)
+    data = await pool.query(`update product
+    set
+        title = $1,
+        unit = $2,
+        brand = $3
+    where
+        id = $4
+    returning *;
+    `,[req.body.title,req.body.unit,req.body.brand,req.params.id]);
 
-    await precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland');
 
     return res.status(200).json({
         status:"success",
@@ -1102,7 +1124,7 @@ exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.complaint,req.params.id]);
 
-    await precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland');
 
     return res.status(200).json({
         status:"success",
@@ -1120,7 +1142,7 @@ exports.removeMapping = catchAsync(async (req,res,next)=>{
     returning *;`,
     [req.params.id]);
 
-    await precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland');
 
     return res.status(200).json({
         status:"success",
