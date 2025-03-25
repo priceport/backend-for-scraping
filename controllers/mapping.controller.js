@@ -36,8 +36,7 @@ const getAllUnmappedProductsFromSource = catchAsync(async (req,res,next)=>{
 
     const products = await pool.query(`SELECT *
     FROM product
-    WHERE canprod_id IS NULL
-      AND website = $1
+    WHERE website = $1
       AND ($2::text[] IS NULL OR category = ANY($2))
       AND last_checked::date > current_date - 5
     ORDER BY seen ASC;
