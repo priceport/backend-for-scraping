@@ -32,7 +32,7 @@ const hair = async (start,end,browser)=>{
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
       
         const [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelectorAll('.css-17b0w3j > .css-yy6ajo');
+          const productElements = document.querySelectorAll('.css-17b0w3j > .css-9py13e');
           const productList = [];
           let missing = 0;
       
