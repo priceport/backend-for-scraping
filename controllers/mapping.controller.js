@@ -223,6 +223,10 @@ const addProductToMapping = catchAsync(async (req, res, next) => {
         [canprod_id, id, source]
     );
 
+    const price = await pool.query(
+        `SELECT * FROM price WHERE product_id = ${updatedProduct[0]?.id} ORDER BY date DESC LIMIT 1;`
+    )
+
     // Check if the update was successful
     if (!updatedProduct.rows[0]) {
         return next(
@@ -236,7 +240,7 @@ const addProductToMapping = catchAsync(async (req, res, next) => {
     return res.status(200).json({
         status: "successful",
         data: {
-            change: updatedProduct.rows[0]
+            change: {...updatedProduct.rows[0],latest_price:price[0]?.price}
         }
     });
 });
