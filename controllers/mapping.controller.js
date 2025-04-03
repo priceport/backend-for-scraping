@@ -3,6 +3,7 @@ const catchAsync = require("../utils/catchAsync.js");
 const isBodyComplete = require("../utils/isBodyComplete.js");
 const pool = require("../configs/postgresql.config");
 const { filterCandidates } = require("../helpers/filterCandidates.js");
+const precomputeDailyData = require("../helpers/precomputeDailyData.js");
 
 const source = {
     auckland:"PRODUCT_FROM_AELIA_AUCKLAND",
@@ -181,6 +182,8 @@ const createMapping = catchAsync(async (req, res, next) => {
         );
     }
 
+    precomputeDailyData('aelia_auckland');
+
     // Respond with the created canonical product and updated mappings
     return res.status(200).json({
         status: "successful",
@@ -226,6 +229,8 @@ const addProductToMapping = catchAsync(async (req, res, next) => {
             new AppError("Failed to update product mapping!", 500)
         );
     }
+
+    precomputeDailyData('aelia_auckland');
 
     // Respond with the updated product
     return res.status(200).json({
