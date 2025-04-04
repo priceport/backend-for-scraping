@@ -711,7 +711,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             });
         }
         
-        products = [...products, ...unmappedProductNew];
+        products = unmappedProductNew;
     }
 
     // Apply pricerank filter
