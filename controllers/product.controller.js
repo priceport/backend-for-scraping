@@ -690,8 +690,28 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    // if(!req.query.admin)
+    if(!req.query.admin)
     products = products.filter(p => p.products_data.length > 1);
+    else{
+        let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
+
+        let unmappedProductNew = [];
+        for(let i=0;i<unmappedProducts?.rows?.length;i++){
+            let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;',[unmappedProducts?.rows[i]?.id]);
+            
+            if(price?.rows?.length==0) continue;
+
+            // console.log(price?.rows[0]);
+            unmappedProductNew.push({
+                canprod_id:null,
+                source_name:unmappedProducts?.rows[i]?.title,
+                source_price:price.rows[0]?.price,
+                products_data:[unmappedProducts?.rows[i]]
+            });
+        }
+        
+        products = [...products, ...unmappedProductNew];
+    }
 
     // Apply pricerank filter
     if (pricerank) {
