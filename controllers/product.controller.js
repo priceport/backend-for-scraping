@@ -561,6 +561,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const pricerange = req.query.pricerange || null;
     const compliant = req.query.compliant || null;
     const ai_check = req.query.ai_check || null;
+    const show_unmapped = req.query.show_unmapped || false;
 
     // Validate input
     if (!source) {
@@ -690,7 +691,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    if(!req.query.admin)
+    if(!req.query.admin||!show_unmapped)
     products = products.filter(p => p.products_data.length > 1);
     else{
         let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
