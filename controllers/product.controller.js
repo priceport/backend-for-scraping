@@ -691,7 +691,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    if(!req.query.admin||!show_unmapped)
+    if(show_unmapped!=="true")
     products = products.filter(p => p.products_data.length > 1);
     else{
         let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
