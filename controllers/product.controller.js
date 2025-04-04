@@ -691,12 +691,12 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
+    let unmappedProductNew = [];
     if(show_unmapped!=="true")
     products = products.filter(p => p.products_data.length > 1);
     else{
         let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
 
-        let unmappedProductNew = [];
         for(let i=0;i<unmappedProducts?.rows?.length;i++){
             let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;',[unmappedProducts?.rows[i]?.id]);
             
@@ -710,8 +710,6 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
                 products_data:[unmappedProducts?.rows[i]]
             });
         }
-        
-        products = unmappedProductNew;
     }
 
     // Apply pricerank filter
@@ -860,7 +858,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         },
         category_stats,
         brand_stats,
-        data: paginatedProducts,
+        data: show_unmapped!=="true"?paginatedProducts:unmappedProductNew,
         totals
     });
 
