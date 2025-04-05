@@ -710,7 +710,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    if(show_unmapped!=="true")
+    if(show_unmapped!=="true"||req?.query?.admin!=="true")
     products = products.filter(p => p.products_data.length > 1);
 
     // Apply pricerank filter
