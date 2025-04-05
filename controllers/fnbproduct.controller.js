@@ -6,6 +6,7 @@ const AppError = require("../utils/appError");
 const redisClient = require("../configs/redis.config");
 const isBodyComplete = require("../utils/isBodyComplete");
 const precomputeDailyDataFNB = require("../helpers/precomputeDailyDataFNB");
+const { v4: uuidv4 } = require('uuid');
 
 function looseMatch(string, search) {
     // Convert both strings to lowercase for case-insensitive comparison
@@ -445,3 +446,51 @@ exports.removeMapping = catchAsync(async (req,res,next)=>{
         data:data.rows
     })
 })
+
+exports.addProduct = catchAsync(async (req, res, next) => {
+    const {
+      name,
+      store_id,
+      note,
+      type,
+      description,
+      terminal_id,
+      canprod_id,
+      price,
+    } = req.body;
+  
+    // Default values
+    const newCanprodId = canprod_id || uuidv4();
+    const compliant = req.body.compliant ?? false;
+  
+    // Insert product
+    const productResult = await pool.query(
+      `INSERT INTO product_fnb 
+        (name, store_id, note, type, description, terminal_id, canprod_id, compliant, created_at, last_checked)
+       VALUES 
+        ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+       RETURNING *;`,
+      [name, store_id, note, type, description, terminal_id, newCanprodId, compliant]
+    );
+  
+    const product = productResult.rows[0];
+  
+    // Insert price with current timestamp as date
+    const priceResult = await pool.query(
+      `INSERT INTO price_fnb 
+        (date, product_id, price)
+       VALUES 
+        (NOW(), $1, $2)
+       RETURNING *;`,
+      [product.id, price]
+    );
+  
+    return res.status(201).json({
+      status: "success",
+      message: "Product and price added successfully",
+      data: {
+        product: product,
+        price: priceResult.rows[0]
+      }
+    });
+  });
