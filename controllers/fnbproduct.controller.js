@@ -5,6 +5,7 @@ const fs = require('fs');
 const AppError = require("../utils/appError");
 const redisClient = require("../configs/redis.config");
 const isBodyComplete = require("../utils/isBodyComplete");
+const precomputeDailyDataFNB = require("../helpers/precomputeDailyDataFNB");
 
 function looseMatch(string, search) {
     // Convert both strings to lowercase for case-insensitive comparison
@@ -66,6 +67,7 @@ exports.addFnbProductsWithExcel = catchAsync(async (req,res,next)=>{
 
         await pool.query(`INSERT INTO price_fnb (product_id, date, price) VALUES ($1, CURRENT_DATE, $2);`, [productData?.rows[0]?.id, price]);
     }
+    precomputeDailyDataFNB('aelia_auckland');
 
     fs.unlinkSync(req.file.path); // Clean up uploaded file
     res.status(200).send('File processed successfully.');
@@ -390,6 +392,8 @@ exports.editProduct = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.price,req.params.id])
 
+    precomputeDailyDataFNB('aelia_auckland');
+
     return res.status(200).json({
         status:"success",
         message:"Product edited succesfully",
@@ -415,6 +419,8 @@ exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.complaint,req.params.id]);
 
+    precomputeDailyDataFNB('aelia_auckland');
+
     return res.status(200).json({
         status:"success",
         message:"Product complaince changed succesfully",
@@ -430,6 +436,8 @@ exports.removeMapping = catchAsync(async (req,res,next)=>{
       id = $1
     returning *;`,
     [req.params.id]);
+
+    precomputeDailyDataFNB('aelia_auckland');
 
     return res.status(200).json({
         status:"success",
