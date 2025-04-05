@@ -580,6 +580,24 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     // Parse cached data
     let products = JSON.parse(cachedData);
 
+
+    if(show_unmapped==="true"){
+        let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
+        let unmappedProductNew = [];
+        for(let i=0;i<unmappedProducts?.rows?.length;i++){
+                let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;',[unmappedProducts?.rows[i]?.id]);
+                
+                if(price?.rows?.length==0) continue;
+
+                // console.log(price?.rows[0]);
+                unmappedProductNew.push({
+                    canprod_id:null,
+                    products_data:[{...unmappedProducts?.rows[i],latest_price:price?.rows[0]?.price}]
+                });
+        }
+        products = unmappedProductNew;
+    }
+
     // Apply filters on products_data
     products = products.map(p => {
         let filteredProductsData = p.products_data;
@@ -636,20 +654,21 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             products_data: filteredProductsData,
         };
     });
+    //will work 
 
     // Filter by location and recalculate price rank
         products = products.map(product => {
             let filteredProductsData = product.products_data;
-            if (location) 
+            if (location&&show_unmapped!=="true") 
             filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
 
             if (compliant!==null) 
             filteredProductsData = product.products_data.filter(pd =>{
-                return (((pd.compliant+"")==compliant)||pd.website=='aelia_auckland')
+                return (((pd.compliant+"")==compliant)||pd.website==source)
             });
 
             if (ai_check!==null) 
-            filteredProductsData = product.products_data.filter(pd => ((pd.ai_check==ai_check)||(pd.website=='aelia_auckland')));
+            filteredProductsData = product.products_data.filter(pd => ((pd.ai_check==ai_check)||(pd.website==source)));
 
             // Calculate price per unit or fallback to flat price
             let hasUnitAndQty = true;
@@ -691,29 +710,11 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         }).filter(product => product.products_data.length > 0);
 
     // Remove products where all products_data entries were filtered out
-    let unmappedProductNew = [];
     if(show_unmapped!=="true")
     products = products.filter(p => p.products_data.length > 1);
-    else{
-        let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
-
-        for(let i=0;i<unmappedProducts?.rows?.length;i++){
-            let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;',[unmappedProducts?.rows[i]?.id]);
-            
-            if(price?.rows?.length==0) continue;
-
-            // console.log(price?.rows[0]);
-            unmappedProductNew.push({
-                canprod_id:null,
-                source_name:unmappedProducts?.rows[i]?.title,
-                source_price:price.rows[0]?.price,
-                products_data:[unmappedProducts?.rows[i]]
-            });
-        }
-    }
 
     // Apply pricerank filter
-    if (pricerank) {
+    if (pricerank&&show_unmapped!=="true") {
         products = products.filter(p =>
             pricerank.includes(p.source_pricerank)
         );
@@ -858,7 +859,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         },
         category_stats,
         brand_stats,
-        data: show_unmapped!=="true"?paginatedProducts:unmappedProductNew,
+        data: paginatedProducts,
         totals
     });
 
