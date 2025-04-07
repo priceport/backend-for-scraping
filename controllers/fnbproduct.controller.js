@@ -491,6 +491,8 @@ exports.addProduct = catchAsync(async (req, res, next) => {
        RETURNING *;`,
       [product.id, price]
     );
+
+    precomputeDailyDataFNB('aelia_auckland');
   
     return res.status(201).json({
       status: "success",
