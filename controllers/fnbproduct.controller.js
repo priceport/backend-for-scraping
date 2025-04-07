@@ -117,7 +117,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     }
     
     // Remove products where all products_data entries were filtered out
-    products = products.filter(p => p.products_data.length > 1);
+    // products = products.filter(p => p.products_data.length > 1);
 
     // Apply pricerank filter
     // if (pricerank) {
