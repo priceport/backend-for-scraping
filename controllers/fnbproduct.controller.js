@@ -459,9 +459,16 @@ exports.addProduct = catchAsync(async (req, res, next) => {
       price,
     } = req.body;
   
-    // Default values
-    const newCanprodId = canprod_id || uuidv4();
     const compliant = req.body.compliant ?? false;
+    let finalCanprodId = canprod_id;
+  
+    // If no canprod_id is provided, get the max and increment
+    if (!finalCanprodId) {
+      const maxResult = await pool.query(
+        `SELECT MAX(canprod_id) as max_id FROM product_fnb;`
+      );
+      finalCanprodId = (maxResult.rows[0].max_id || 0) + 1;
+    }
   
     // Insert product
     const productResult = await pool.query(
@@ -470,12 +477,12 @@ exports.addProduct = catchAsync(async (req, res, next) => {
        VALUES 
         ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
        RETURNING *;`,
-      [name, store_id, note, type, description, terminal_id, newCanprodId, compliant]
+      [name, store_id, note, type, description, terminal_id, finalCanprodId, compliant]
     );
   
     const product = productResult.rows[0];
   
-    // Insert price with current timestamp as date
+    // Insert price
     const priceResult = await pool.query(
       `INSERT INTO price_fnb 
         (date, product_id, price)
