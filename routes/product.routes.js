@@ -9,7 +9,10 @@ router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
 router.route("/uncached")
-.get(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.getAllProductsFor);
+.get(UserController.isLoggedIn,UserController.isAuthorized("admin"),(req,res,next)=>{
+    req.system = 'admin';
+    next();
+},ProductController.getAllProductsFor);
 
 router.route("/:id")
 .put(UserController.isLoggedIn,UserController.isAuthorized("admin"),ProductController.editProduct);
