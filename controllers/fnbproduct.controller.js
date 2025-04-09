@@ -69,6 +69,8 @@ exports.addFnbProductsWithExcel = catchAsync(async (req,res,next)=>{
         await pool.query(`INSERT INTO price_fnb (product_id, date, price) VALUES ($1, CURRENT_DATE, $2);`, [productData?.rows[0]?.id, price]);
     }
     precomputeDailyDataFNB('aelia_auckland');
+    redisClient.del("/api/v1/fnbproduct/terminal?admin=true");
+    redisClient.del("/api/v1/fnbproduct/store?admin=true");
 
     fs.unlinkSync(req.file.path); // Clean up uploaded file
     res.status(200).send('File processed successfully.');
@@ -108,14 +110,35 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     // Parse cached data
     let products = JSON.parse(cachedData);
 
-    if(terminal){
-        products=products?.filter(product=>terminal.includes(product?.terminal_name?.trim()))
-    }
+    products = products?.map(p=>{
+        let products_data = p.products_data;
 
-    if(store){
-        products=products?.filter(product=>store.includes(product?.store_name?.trim()))
-    }
+        let newStore = store?.map(s => decodeURIComponent(s?.trim()));
+        let newTerminal = terminal?.map(t => t?.trim());
+
+        if(newTerminal)
+        products_data = products_data?.filter(p=>newTerminal?.includes(p?.terminal_name?.trim()));
+
+        if(newStore)
+        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()));
+
+        return {...p,products_data};
+    })
+    products?.forEach(p=>console.log(p?.products_data));
+
     
+    // if(terminal){
+    //     products=products?.filter(product=>terminal.includes(product?.terminal_name?.trim()))
+    // }
+
+    // if(store){
+    //     let newStore = store?.map(s => decodeURIComponent(s));
+
+    //     products=products?.filter(product=>{
+    //         return newStore.includes(product?.store_name?.trim())
+    //     })
+    // }
+
     // Remove products where all products_data entries were filtered out
     // products = products.filter(p => p.products_data.length > 1);
 
@@ -131,6 +154,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
             looseMatch(p.product_name,search)
         );
     }
+
 
     // Sort data
     if (sort === 'price_low_to_high') {
@@ -233,6 +257,9 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         products = uniqueCanprodObjects(products);
     }
     
+    if(products){
+        products = products?.filter(p=>p?.products_data?.length> 0)
+    }
     product_count = products?.length;
 
     store_stats = Object.keys(store_stats)?.map(key=>{
@@ -365,7 +392,7 @@ exports.getPriceHistory = catchAsync(async (req,res,next)=>{
 })
 
 exports.editProduct = catchAsync(async (req,res,next)=>{
-    const isComplete = isBodyComplete(req, ["name", "store_id","terminal_id","price"]);
+    const isComplete = isBodyComplete(req, ["name", "store_id","terminal_id","price","note","description","type"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
@@ -376,11 +403,14 @@ exports.editProduct = catchAsync(async (req,res,next)=>{
     set
         name = $1,
         store_id = $2,
-        terminal_id = $3
+        terminal_id = $3,
+        note = $4,
+        description = $5,
+        type = $6
     where
-        id = $4
+        id = $7
     returning *;
-    `,[req.body.name,req.body.store_id,req.body.terminal_id,req.params.id]);
+    `,[req.body.name,req.body.store_id,req.body.terminal_id,req.body.note,req.body.description,req.body.type,req.params.id]);
 
     const price = await pool.query(`update price_fnb
     set
