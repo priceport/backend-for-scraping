@@ -35,6 +35,12 @@ const updateDBEntry = async (data) => {
                     WHERE id = $1`,
                     [product?.rows[0]?.id]
                 );
+                await pool.query(
+                    `UPDATE product 
+                    SET sub_category = $2 
+                    WHERE id = $1`,
+                    [product?.rows[0]?.id,sub_category]
+                );
             }
 
             // console.log("price");
