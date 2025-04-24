@@ -5,9 +5,9 @@ const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 
-const cleansers_and_toners = async (start,end,browser)=>{
+const port_and_sherry = async (start,end,browser)=>{
     let pageNo = start;
-    const url = "https://www.lottedutyfree.com.au/collections/cleansers-toners?page=";
+    const url = "https://melbourne.lottedutyfree.com.au/collections/port-and-sherry?page=";
     const page = await browser.newPage();
     const allProducts = [];
     
@@ -65,13 +65,13 @@ const cleansers_and_toners = async (start,end,browser)=>{
               price,
               promo, 
               url, 
-              category:'beauty',
-              source:{website_base:"https://lottedutyfree.com.au/",location:"brisbane",tag:"duty-free"}, 
+              category:'liquor',
+              source:{website_base:"https://melbourne.lottedutyfree.com.au/",location:"melbourne",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
               unit:undefined,
-              subcategory:'cleansers_and_toners',
+              subcategory:'port_and_sherry',
               img,
               promo2
             });
@@ -80,7 +80,7 @@ const cleansers_and_toners = async (start,end,browser)=>{
     });
 
     if(missing > 5) {
-      await insertScrapingError("More than 5 entries missing for lotte_brisbane - cleansers_and_toners: "+pageNo,"scraping_missing");
+      await insertScrapingError("More than 5 entries missing for lotte_melbourne - port_and_sherry: "+pageNo,"scraping_missing");
     }
 
     allProducts.push(...products);
@@ -95,7 +95,7 @@ const cleansers_and_toners = async (start,end,browser)=>{
   }catch(err){
     logError(err);
     try{
-      await insertScrapingError("Error in lotte_brisbane - cleansers_and_toners: "+err.message,"scraping_trycatch");
+      await insertScrapingError("Error in lotte_melbourne - port_and_sherry: "+err.message,"scraping_trycatch");
     }catch(err){
         console.log(err);
     }
@@ -104,4 +104,4 @@ const cleansers_and_toners = async (start,end,browser)=>{
   }
 }
 
-module.exports = cleansers_and_toners;
+module.exports = port_and_sherry;

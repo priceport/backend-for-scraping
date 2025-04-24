@@ -1,5 +1,5 @@
 //scraping script imports
-const champagne = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/champagne");
+const champagne = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/champagne");
 const baijiu = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/baijiu");
 const bath_shower = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/bath_shower");
 const beauty = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/beauty");

@@ -5,9 +5,9 @@ const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 
-const cleansers_and_toners = async (start,end,browser)=>{
+const eyes = async (start,end,browser)=>{
     let pageNo = start;
-    const url = "https://www.lottedutyfree.com.au/collections/cleansers-toners?page=";
+    const url = "https://melbourne.lottedutyfree.com.au/collections/eyes?page=";
     const page = await browser.newPage();
     const allProducts = [];
     
@@ -71,7 +71,7 @@ const cleansers_and_toners = async (start,end,browser)=>{
               last_check:Date.now(),
               mapping_ref:null,
               unit:undefined,
-              subcategory:'cleansers_and_toners',
+              subcategory:'eyes',
               img,
               promo2
             });
@@ -80,7 +80,7 @@ const cleansers_and_toners = async (start,end,browser)=>{
     });
 
     if(missing > 5) {
-      await insertScrapingError("More than 5 entries missing for lotte_brisbane - cleansers_and_toners: "+pageNo,"scraping_missing");
+      await insertScrapingError("More than 5 entries missing for lotte_brisbane - eyes: "+pageNo,"scraping_missing");
     }
 
     allProducts.push(...products);
@@ -95,7 +95,7 @@ const cleansers_and_toners = async (start,end,browser)=>{
   }catch(err){
     logError(err);
     try{
-      await insertScrapingError("Error in lotte_brisbane - cleansers_and_toners: "+err.message,"scraping_trycatch");
+      await insertScrapingError("Error in lotte_brisbane - eyes: "+err.message,"scraping_trycatch");
     }catch(err){
         console.log(err);
     }
@@ -104,4 +104,4 @@ const cleansers_and_toners = async (start,end,browser)=>{
   }
 }
 
-module.exports = cleansers_and_toners;
+module.exports = eyes;
