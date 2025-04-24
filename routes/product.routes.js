@@ -8,6 +8,9 @@ const router = express.Router();
 router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,ProductController.getAllProductsFor);
 
+router.route("/sub_category")
+.get(UserController.isLoggedIn,ProductController.getAllSubcategoryBySource);
+
 router.route("/uncached")
 .get(UserController.isLoggedIn,UserController.isAuthorized("admin"),(req,res,next)=>{
     req.system = 'admin';

@@ -54,6 +54,17 @@ const calculateRanksWithTies = (items, valueKey) => {
     return sortedItems;
 };
 
+exports.getAllSubcategoryBySource = catchAsync(async (req, res, next) => {
+    const source = req.query.source;
+
+    const sub_category = await pool.query(`select distinct sub_category from product where website = $1 and last_checked::date > current_date - 2 group by sub_category;`,[source]);
+    
+    return res.status(200).json({
+        status: "success",
+        message: "Sub category fetched succesfully",
+        data: sub_category?.rows,
+    });
+})
 exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
         const source = req.query.source;
         const locations = req.query.location?.split(",") || null;
