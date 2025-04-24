@@ -20,9 +20,9 @@ const updateDBEntry = async (data) => {
             if (product.rowCount === 0) {
                 // If no product exists, create one
                 product = await pool.query(
-                    `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, website, tag)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
-                    [title, brand, "No desc", url, img, quantity, unit, category, "lotte_brisbane", "duty-free"]
+                    `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, website, tag, sub_category)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
+                    [title, brand, "No desc", url, img, quantity, unit, category, "lotte_brisbane", "duty-free",sub_category]
                 );
             } else {
                 // Update last_checked timestamp
@@ -31,6 +31,13 @@ const updateDBEntry = async (data) => {
                     SET last_checked = current_timestamp 
                     WHERE id = $1`,
                     [product?.rows[0]?.id]
+                );
+
+                await pool.query(
+                    `UPDATE product 
+                    SET sub_category = $2 
+                    WHERE id = $1`,
+                    [product?.rows[0]?.id,sub_category]
                 );
             }
 
