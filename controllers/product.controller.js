@@ -564,6 +564,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
     const category = req.query.category?.split(",") || null;
+    const sub_category = req.query.sub_category?.split(",") || null;
     const brand = req.query.brand?.split(",") || null;
     const location = req.query.location?.split(",") || null;
     const pricerank = req.query.pricerank?.split(",").map(Number) || null;
@@ -723,6 +724,8 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     // Remove products where all products_data entries were filtered out
     if(show_unmapped!=="true"||req?.query?.admin!=="true")
     products = products.filter(p => p.products_data.length > 1);
+
+    products = products.filter(p => sub_category?.includes(p?.source_subcategory));
 
     // Apply pricerank filter
     if (pricerank&&show_unmapped!=="true") {

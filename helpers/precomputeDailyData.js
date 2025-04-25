@@ -165,7 +165,7 @@ const precomputeDailyData = async (source) => {
         if(ppuPossible)finalData[i].products_data.sort((a, b) => a.price_per_unit - b.price_per_unit);
         else finalData[i].products_data.sort((a, b) => a.latest_price - b.latest_price);
         
-        let prank = 1, plength = 0, lastprice=0,source_pricerank;
+        let prank = 1, plength = 0, lastprice=0,source_pricerank,source_subcategory;
 
         for(let j=0;j<finalData[i]?.products_data?.length;j++){
         if(j==0){
@@ -200,10 +200,14 @@ const precomputeDailyData = async (source) => {
             }
         }
 
-        if(finalData[i].products_data[j].website==source) source_pricerank = parseInt(finalData[i].products_data[j].pricerank?.split("/")[0]);
+        if(finalData[i].products_data[j].website==source) {
+            source_pricerank = parseInt(finalData[i].products_data[j].pricerank?.split("/")[0]);
+            source_subcategory = (finalData[i].products_data[j].sub_category?.split("/")[0]);
+        }
         }
 
         finalData[i].source_pricerank = source_pricerank;
+        finalData[i].source_subcategory = source_subcategory;
     }
         // Query to fetch all product data without filters
         // const data = await pool.query(`
