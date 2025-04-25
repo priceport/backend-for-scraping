@@ -725,6 +725,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     if(show_unmapped!=="true"||req?.query?.admin!=="true")
     products = products.filter(p => p.products_data.length > 1);
 
+    if(sub_category)
     products = products.filter(p => sub_category?.includes(p?.source_subcategory));
 
     // Apply pricerank filter
