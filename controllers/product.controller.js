@@ -765,7 +765,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     let product_count , cheapest_count = 0, midrange_count = 0, expensive_count = 0,brand_stats={}, category_stats = {};
    
     for(let i=0;i<products?.length;i++){
-        let maxrank = 0, sourcerank = 0, source_brand = "", source_category = "", isConsidered=false;
+        let maxrank = 0, sourcerank = 0, source_brand = "", source_category = "", isConsidered=false, price =0;
 
         for(let j=0;j<products[i]?.products_data?.length;j++){
 
@@ -775,6 +775,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
                 sourcerank = products[i]?.products_data[j]?.rank;
                 source_brand = products[i]?.products_data[j]?.brand;
                 source_category = products[i]?.products_data[j]?.category;
+                price = parseFloat(products[i]?.products_data[j]?.latest_price);
             }
         }
 
@@ -784,6 +785,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             cheapest_count: 0,
             midrange_count: 0,
             expensive_count: 0,
+            total_price:0,
             pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
         }
 
@@ -793,8 +795,12 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             cheapest_count: 0,
             midrange_count: 0,
             expensive_count: 0,
+            total_price:0,
             pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
         }
+
+        brand_stats[source_brand].total_price += price;
+        category_stats[source_category].total_price += price;
 
         if(sourcerank == 1) {
             if((!pricerange || pricerange=="cheapest")){
