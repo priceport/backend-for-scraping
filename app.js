@@ -25,6 +25,8 @@ const fnbreportsRouter = require("./routes/fnbreports.routes.js");
 const fnbproductRouter = require("./routes/fnbproduct.routes.js");
 const organisationRouter = require("./routes/organisation.routes.js");
 const leadsRouter = require("./routes/leads.routes.js");
+const aiRouter = require("./routes/ai.routes.js");
+
 
 
 
@@ -39,6 +41,7 @@ const precomputeDailyData = require("./helpers/precomputeDailyData.js");
 const redisClient = require("./configs/redis.config.js");
 const pool = require("./configs/postgresql.config.js");
 const precomputeDailyDataFNB = require("./helpers/precomputeDailyDataFNB.js");
+const precomputeDailyDataAdmin = require("./helpers/precomputeDailyDataAdmin.js");
 
 const app = express();
 
@@ -99,6 +102,7 @@ app.use("/api/v1/watchlist",watchlistRouter);
 app.use("/api/v1/analytics",analyticsRouter);
 app.use("/api/v1/reports",reportsRouter);
 app.use("/api/v1/leads",leadsRouter);
+app.use("/api/v1/ai",aiRouter);
 
 
 app.use("/api/v1/fnbproduct",fnbproductRouter);
