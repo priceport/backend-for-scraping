@@ -41,7 +41,7 @@ const precomputeDailyData = require("./helpers/precomputeDailyData.js");
 const redisClient = require("./configs/redis.config.js");
 const pool = require("./configs/postgresql.config.js");
 const precomputeDailyDataFNB = require("./helpers/precomputeDailyDataFNB.js");
-const precomputeDailyDataAdmin = require("./helpers/precomputeDailyDataAdmin.js");
+// const precomputeDailyDataAdmin = require("./helpers/precomputeDailyDataAdmin.js");
 
 const app = express();
 
