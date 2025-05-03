@@ -20,11 +20,11 @@ function calculatePriceFromText(text, og_price) {
         offer = offer.trim(); // Clean up extra spaces
         
         // Case 1: Handle "2 for $79" type texts
-        const matchForXForY = offer.match(/(\d+)\s*for\s*\$(\d+)/i);
+        const matchForXForY = offer.match(/(\d+)\s*(?:for|tor)\s*\$(\d+)/i);
         if (matchForXForY) {
             const quantity = parseInt(matchForXForY[1], 10);
             const price = parseFloat(matchForXForY[2]);
-            prices.push({text:offer,price:nzd_to_usd((price / quantity).toFixed(3))}); // Price per item
+            prices.push({ text: offer, price: nzd_to_usd((price / quantity).toFixed(3)) }); // Price per item
             return;
         }
 
