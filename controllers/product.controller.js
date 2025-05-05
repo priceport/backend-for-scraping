@@ -979,19 +979,33 @@ exports.getPriceRankFor = catchAsync(async (req,res,next)=>{
 
 })
 
-exports.getAllBrands = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`SELECT DISTINCT brand 
-    FROM product 
-    WHERE canprod_id IS NOT NULL 
-      AND brand IS NOT NULL 
-    ORDER BY brand ASC`);
+exports.getAllBrands = catchAsync(async (req, res, next) => {
+    const { source } = req.query;
+
+    let query = `
+        SELECT DISTINCT brand 
+        FROM product 
+        WHERE canprod_id IS NOT NULL 
+          AND brand IS NOT NULL
+    `;
+    const values = [];
+
+    if (source) {
+        query += ` AND website = $1`;
+        values.push(source);
+    }
+
+    query += ` ORDER BY brand ASC`;
+
+    const data = await pool.query(query, values);
 
     return res.status(200).json({
-        status:"success",
-        message:"All brands fetched",
-        data:data?.rows
-    })
-})
+        status: "success",
+        message: "All brands fetched",
+        data: data?.rows
+    });
+});
+
 
 exports.getAllLocations = catchAsync(async (req,res,next)=>{
     const data = await pool.query(`SELECT DISTINCT website 
