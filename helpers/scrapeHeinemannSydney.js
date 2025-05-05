@@ -1389,6 +1389,12 @@ const scrapeHeinemannSydney = async (start,end,state,browser) =>{
     // spiritsData = [...spiritsData,...wineData,...fragranceData,...makeupData,...skincareData];
     accessoriesData = [...accessoriesData,...american_whiskyData,...australian_whiskyData,...bath_and_showerData,...bitter_aperitifData,...blended_whiskyData,...blusherData,...body_careData,...bodycare_careData,...canadian_whiskyData,...careData,...champagneData,...cleansingData,...cognac_brandyData,...concealerData,...eye_careData,...eye_shadowData,...eyebrowsData,...eyelinerData,...foot_careData,...fortified_wineData,...foundationData,...ginData,...hair_careData,...hand_careData,...home_fragrance_candleData,...irish_whiskyData,...japanese_whiskyData,...lipstick_and_liplinerData,...liqueurData,...makeup_setsData,...mascaraData,...masksData,...men_bath_and_showerData,...men_fragrance_setData,...men_fragranceData,...men_skincareData,...powdersData,...red_wineData,...rose_wineData,...rumData,...scotch_whiskyData,...serumData,...sherry_portData,...single_malt_whiskyData,...skin_care_setsData,...sparkling_wineData,...sun_careData,...tequilaData,...toiletriesData,...vodkaData,...white_wineData,...women_fragrance_setData,...women_fragranceData];
 
+    try{
+        accessoriesData = await spiritsMultibuy(accessoriesData);
+    }catch(err){
+        logError(err);
+    }
+
     //process data
     try{
         accessoriesData = await processDataForSpirits(accessoriesData);

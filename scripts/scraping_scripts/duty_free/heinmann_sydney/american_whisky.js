@@ -79,7 +79,6 @@ const american_whisky = async (start,end,browser)=>{
 
         if(products?.length==0||pageNo==(end-1)){ 
             await page.close();
-            console.log(allProducts);
             return allProducts;
         }
             
