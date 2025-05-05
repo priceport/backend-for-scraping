@@ -697,6 +697,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             let sum = 0;
             rankedWithTies.forEach(pd => {
                 pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+                if(pd.website!=source)
                 sum+=parseFloat(pd.latest_price);
             });
 
@@ -705,7 +706,7 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
             const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
             const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
             const sourceName = sourceProduct ? sourceProduct.title : null;
-            const average = (sum/rankedWithTies?.length).toFixed(2);
+            const average = rankedWithTies?.length != 1?(sum/(rankedWithTies?.length - 1)).toFixed(2):0;
             const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2):0;
             const difference_percentage = sourceProduct ? ((difference/parseFloat(sourceProduct.latest_price)) * 100).toFixed(2): 0;
 
