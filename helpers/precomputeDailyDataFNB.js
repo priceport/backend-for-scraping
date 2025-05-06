@@ -83,27 +83,27 @@ const precomputeDailyDataFNB = async (source) => {
 
         for(let j=0;j<finalData[i]?.products_data?.length;j++){
         if(j==0){
-            finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-            lastprice = finalData[i].products_data[j].latest_price;
+            // finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
+            // lastprice = finalData[i].products_data[j].latest_price;
             total_price+= parseFloat(finalData[i].products_data[j].latest_price);
         }
         else{
-            if(lastprice==finalData[i].products_data[j].latest_price){
-                finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-                plength+=1;
-            }
-            else{
-                prank+=(1+plength);
-                finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-                plength=0;
-                lastprice=finalData[i].products_data[j].latest_price;
-            }
+            // if(lastprice==finalData[i].products_data[j].latest_price){
+            //     finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
+            //     plength+=1;
+            // }
+            // else{
+            //     prank+=(1+plength);
+            //     finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
+            //     plength=0;
+            //     lastprice=finalData[i].products_data[j].latest_price;
+            // }
             total_price+= parseFloat(finalData[i].products_data[j].latest_price);
         }
 
         // if(finalData[i].products_data[j].website==source) source_pricerank = parseInt(finalData[i].products_data[j].pricerank?.split("/")[0]);
         }
-        finalData[i].average = total_price / finalData[i]?.products_data?.length;
+        finalData[i].total_price = total_price;
         // finalData[i].source_pricerank = source_pricerank;
     }
 
@@ -114,7 +114,8 @@ const precomputeDailyDataFNB = async (source) => {
             data?.products_data?.forEach(product=>{
                 console.log(product?.terminal_name);
                 if(product?.terminal_name!="OTHERS"){
-                    newData.push({...data,store_name:product?.store_name,store_price:product?.latest_price,product_name:product?.name,terminal_name:product?.terminal_name,store_pricerank:product?.pricerank,difference:(parseFloat(product?.latest_price)-parseFloat(data?.average)),difference_percentage:((parseFloat(product?.latest_price)-parseFloat(data?.average))/parseFloat(product?.latest_price))*100})
+                    let avg = ((data?.total_price-product?.latest_price)/(data?.products_data?.length - 1));
+                    newData.push({...data,average:avg,store_name:product?.store_name,store_price:product?.latest_price,product_name:product?.name,terminal_name:product?.terminal_name,store_pricerank:product?.pricerank,difference:(parseFloat(product?.latest_price)-parseFloat(avg)),difference_percentage:((parseFloat(product?.latest_price)-parseFloat(avg))/parseFloat(product?.latest_price))*100})
                 }
             })
         });

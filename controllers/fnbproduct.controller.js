@@ -117,14 +117,16 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         let newTerminal = terminal?.map(t => t?.trim());
 
         if(newTerminal)
-        products_data = products_data?.filter(p=>newTerminal?.includes(p?.terminal_name?.trim()));
+        products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
 
         if(newStore)
-        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()));
+        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim())||p?.terminal_name=="OTHERS");
 
         return {...p,products_data};
     })
-    products?.forEach(p=>console.log(p?.products_data));
+
+    products = products?.filter(p=>store?.map(s => decodeURIComponent(s?.trim()))?.includes(p?.store_name?.trim()));
+    // products?.forEach(p=>console.log(p?.products_data));
 
     
     // if(terminal){
@@ -155,6 +157,35 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         );
     }
 
+    for(let i = 0;i<products?.length;i++){
+        products[i].products_data.sort((a, b) => a.latest_price - b.latest_price);
+
+        let prank = 1, plength = 0, lastprice=0,source_pricerank,total_price=0,source_price;
+
+        for(let j=0;j<products[i]?.products_data?.length;j++){
+            if(j==0){
+                products[i].products_data[j].pricerank = `${prank}/${products[i]?.products_data?.length}`;
+                lastprice = products[i].products_data[j].latest_price;
+                if(products[i]?.products_data[j]?.store_name!==products[i]?.store_name) total_price+= parseFloat(products[i].products_data[j].latest_price);
+            }
+            else{
+                if(lastprice==products[i].products_data[j].latest_price){
+                    products[i].products_data[j].pricerank = `${prank}/${products[i]?.products_data?.length}`;
+                    plength+=1;
+                }
+                else{
+                    prank+=(1+plength);
+                    products[i].products_data[j].pricerank = `${prank}/${products[i]?.products_data?.length}`;
+                    plength=0;
+                    lastprice=products[i].products_data[j].latest_price;
+                }
+                if(products[i]?.products_data[j]?.store_name!==products[i]?.store_name) total_price+= parseFloat(products[i].products_data[j].latest_price);
+            }
+        }
+
+        products[i].average = total_price / (products[i]?.products_data?.length - 1)
+        console.log(total_price / (products[i]?.products_data?.length - 1),products[i].average);
+    }
 
     // Sort data
     if (sort === 'price_low_to_high') {
