@@ -559,7 +559,7 @@ function looseMatch(string, search) {
     return lowerString.includes(lowerSearch);
 }
 
-exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
+exports.getAllProductsFor = catchAsync(async (req, res, next) => {
     const source = req.query.source;
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
@@ -575,7 +575,6 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
     const ai_check = req.query.ai_check || null;
     const show_unmapped = req.query.show_unmapped || false;
 
-    // Validate input
     if (!source) {
         return next(new AppError("Source param required", 400));
     }
@@ -583,308 +582,317 @@ exports.getAllProductsFor = catchAsync(async (req,res,next)=>{
         return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
-    // Fetch precomputed data from Redis
     const cachedData = await redisClient.get('daily_product_data');
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
 
-    // Parse cached data
     let products = JSON.parse(cachedData);
 
-
-    if(show_unmapped==="true"){
-        let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`,[source]);
+    if (show_unmapped === "true") {
+        let unmappedProducts = await pool.query(`select * from product where canprod_id is null and website = $1`, [source]);
         let unmappedProductNew = [];
-        for(let i=0;i<unmappedProducts?.rows?.length;i++){
-                let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;',[unmappedProducts?.rows[i]?.id]);
-                
-                if(price?.rows?.length==0) continue;
-
-                // console.log(price?.rows[0]);
-                unmappedProductNew.push({
-                    canprod_id:null,
-                    products_data:[{...unmappedProducts?.rows[i],latest_price:price?.rows[0]?.price}]
-                });
+        for (let i = 0; i < unmappedProducts?.rows?.length; i++) {
+            let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;', [unmappedProducts?.rows[i]?.id]);
+            if (price?.rows?.length == 0) continue;
+            unmappedProductNew.push({
+                canprod_id: null,
+                products_data: [{ ...unmappedProducts?.rows[i], latest_price: price?.rows[0]?.price }]
+            });
         }
         products = unmappedProductNew;
     }
 
-    // Apply filters on products_data
-    products = products.map(p => {
+    // Stats holders
+    let product_count = 0, cheapest_count = 0, midrange_count = 0, expensive_count = 0;
+    let brand_stats = {}, category_stats = {};
+    let filteredProducts = [];
+
+    for (let p of products) {
         let filteredProductsData = p.products_data;
+        const sourceIndex = filteredProductsData?.findIndex(el => el.website == source);
+        if (sourceIndex === -1) continue;
 
-        const sourceIndex = p.products_data?.findIndex(el=>el.website == source);
+        // Category filter
+        if (category && !category.includes(filteredProductsData[sourceIndex]?.category)) continue;
+        // Brand filter
+        if (brand && !brand.includes(filteredProductsData[sourceIndex]?.brand)) continue;
+        // Subcategory filter (applied later)
 
-        if(sourceIndex==-1) return {...p,products_data:[]};
-
-        // Apply category filter
-        if (category&&!category.includes(filteredProductsData[sourceIndex]?.category)) {
-            return {...p,products_data:[]};
+        // Location, compliant, ai_check filters
+        if (show_unmapped !== "true") {
+            if (location) filteredProductsData = filteredProductsData.filter(pd => location.includes(pd.website));
+            if (compliant !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.compliant + "") == compliant) || pd.website == source);
+            if (ai_check !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.ai_check == ai_check) || pd.website == source));
         }
 
-        // Apply brand filter
-        if (brand&&!brand.includes(filteredProductsData[sourceIndex]?.brand)) {
-            return {...p,products_data:[]};
-        }
-
-        // Apply location filter
-        // if (location) {
-        //     filteredProductsData = filteredProductsData.filter(prod => location.includes(prod.website));
-
-        //     if (filteredProductsData.length > 0) {
-        //         // Recalculate pricerank based on filtered data
-        //         const sortedRanks = [...filteredProductsData]
-        //             .sort((a, b) => parseInt(a.pricerank.split('/')[0], 10) - parseInt(b.pricerank.split('/')[0], 10));
-
-        //         const rankAdjustMap = new Map();
-        //         let currentRank = 1;
-        //         sortedRanks.forEach((prod, idx, arr) => {
-        //             // Assign rank while maintaining ties
-        //             if (idx > 0 && parseInt(prod.pricerank.split('/')[0], 10) > parseInt(arr[idx - 1].pricerank.split('/')[0], 10)) {
-        //                 currentRank++;
-        //             }
-        //             rankAdjustMap.set(prod.website, currentRank);
-        //         });
-
-        //         // Update priceranks in filtered products
-        //         const totalPeers = rankAdjustMap.size;
-        //         filteredProductsData.forEach(prod => {
-        //             const newRank = rankAdjustMap.get(prod.website);
-        //             prod.pricerank = `${newRank}/${totalPeers}`;
-        //         });
-
-        //         // Update source_pricerank and source_price
-        //         const sourceProduct = filteredProductsData.find(prod => prod.website === source);
-        //         p.source_pricerank = sourceProduct ? rankAdjustMap.get(source) : null;
-        //         p.source_price = sourceProduct ? sourceProduct.latest_price : null;
-        //     }
-        // }
-
-        return {
-            ...p,
-            products_data: filteredProductsData,
-        };
-    });
-    //will work 
-
-    // Filter by location and recalculate price rank
-        products = products.map(product => {
-            let filteredProductsData = product.products_data;
-            if (location&&show_unmapped!=="true") 
-            filteredProductsData = product.products_data.filter(pd => location.includes(pd.website));
-
-            if (compliant!==null) 
-            filteredProductsData = product.products_data.filter(pd =>{
-                return (((pd.compliant+"")==compliant)||pd.website==source)
-            });
-
-            if (ai_check!==null) 
-            filteredProductsData = product.products_data.filter(pd => ((pd.ai_check==ai_check)||(pd.website==source)));
-
-            // Calculate price per unit or fallback to flat price
-            let hasUnitAndQty = true;
-            const rankedProducts = filteredProductsData.map(pd => { 
-                if(!pd.unit||!pd.qty) hasUnitAndQty = false;
-                return ({
+        // Calculate price per unit or fallback to flat price
+        let hasUnitAndQty = true;
+        const rankedProducts = filteredProductsData.map(pd => {
+            if (!pd.unit || !pd.qty) hasUnitAndQty = false;
+            return ({
                 ...pd,
                 price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
-                })
             });
+        });
+        // Recalculate ranks with ties
+        const rankedWithTies = calculateRanksWithTies(rankedProducts, hasUnitAndQty ? 'price_per_unit' : 'latest_price');
+        let sum = 0;
+        rankedWithTies.forEach(pd => {
+            pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+            if (pd.website != source) sum += parseFloat(pd.latest_price);
+        });
+        // Find the updated source pricerank and price
+        const sourceProduct = rankedWithTies.find(pd => pd.website === source);
+        if (!sourceProduct) continue;
+        const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
+        const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
+        const sourceName = sourceProduct ? sourceProduct.title : null;
+        const average = rankedWithTies?.length != 1 ? (sum / (rankedWithTies?.length - 1)).toFixed(2) : 0;
+        const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2) : 0;
+        const difference_percentage = sourceProduct ? ((difference / parseFloat(sourceProduct.latest_price)) * 100).toFixed(2) : 0;
 
-            // Recalculate ranks with ties
-            const rankedWithTies = calculateRanksWithTies(rankedProducts, hasUnitAndQty?'price_per_unit':'latest_price');
-            let sum = 0;
-            rankedWithTies.forEach(pd => {
-                pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
-                if(pd.website!=source)
-                sum+=parseFloat(pd.latest_price);
-            });
+        // Remove products where all products_data entries were filtered out
+        if (rankedWithTies.length === 0) continue;
+        if ((show_unmapped !== "true" || req?.query?.admin !== "true") && rankedWithTies.length <= 1) continue;
+        // Subcategory filter
+        if (sub_category && !sub_category.includes(p?.source_subcategory)) continue;
+        // Pricerank filter
+        if (pricerank && show_unmapped !== "true" && !pricerank.includes(sourcePriceRank)) continue;
+        // Search filter
+        if (search && !looseMatch(sourceName, search)) continue;
 
-            // Find the updated source pricerank and price
-            const sourceProduct = rankedWithTies.find(pd => pd.website === source);
-            const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
-            const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
-            const sourceName = sourceProduct ? sourceProduct.title : null;
-            const average = rankedWithTies?.length != 1?(sum/(rankedWithTies?.length - 1)).toFixed(2):0;
-            const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2):0;
-            const difference_percentage = sourceProduct ? ((difference/parseFloat(sourceProduct.latest_price)) * 100).toFixed(2): 0;
-
-            return {
-                ...product,
-                products_data: rankedWithTies,
-                source_pricerank: sourcePriceRank,
-                source_price: sourcePrice,
-                source_name: sourceName,
-                average,
-                difference,
-                difference_percentage
+        // Stats calculation
+        let maxrank = 0, sourcerank = 0, source_brand = "", source_category = "", isConsidered = false, price = 0;
+        for (let pd of rankedWithTies) {
+            if (pd.rank > maxrank) maxrank = pd.rank;
+            if (pd.website == source) {
+                sourcerank = pd.rank;
+                source_brand = pd.brand;
+                source_category = pd.category;
+                price = parseFloat(pd.latest_price);
+            }
+        }
+        if (!brand_stats[source_brand])
+            brand_stats[source_brand] = {
+                brand: source_brand,
+                cheapest_count: 0,
+                midrange_count: 0,
+                expensive_count: 0,
+                total_price: 0,
+                pricerank_wise_product_count: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 }
             };
-        }).filter(product => product.products_data.length > 0);
-
-    // Remove products where all products_data entries were filtered out
-    if(show_unmapped!=="true"||req?.query?.admin!=="true")
-    products = products.filter(p => p.products_data.length > 1);
-
-    if(sub_category)
-    products = products.filter(p => sub_category?.includes(p?.source_subcategory));
-
-    // Apply pricerank filter
-    if (pricerank&&show_unmapped!=="true") {
-        products = products.filter(p =>
-            pricerank.includes(p.source_pricerank)
-        );
-    }
-
-    if(search){
-        products = products.filter(p=>
-            looseMatch(p.source_name,search)
-        );
+        if (!category_stats[source_category])
+            category_stats[source_category] = {
+                category: source_category,
+                cheapest_count: 0,
+                midrange_count: 0,
+                expensive_count: 0,
+                total_price: 0,
+                pricerank_wise_product_count: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 }
+            };
+        brand_stats[source_brand].total_price += price;
+        category_stats[source_category].total_price += price;
+        if (sourcerank == 1) {
+            if ((!pricerange || pricerange == "cheapest")) {
+                cheapest_count += 1;
+                brand_stats[source_brand].cheapest_count += 1;
+                category_stats[source_category].cheapest_count += 1;
+                isConsidered = true;
+            }
+        } else if (sourcerank == maxrank) {
+            if (!pricerange || pricerange == "expensive") {
+                expensive_count += 1;
+                brand_stats[source_brand].expensive_count += 1;
+                category_stats[source_category].expensive_count += 1;
+                isConsidered = true;
+            }
+        } else {
+            if ((!pricerange || pricerange == "midrange")) {
+                midrange_count += 1;
+                brand_stats[source_brand].midrange_count += 1;
+                category_stats[source_category].midrange_count += 1;
+                isConsidered = true;
+            }
+        }
+        if (isConsidered) {
+            brand_stats[source_brand].pricerank_wise_product_count[sourcerank] = (brand_stats[source_brand].pricerank_wise_product_count[sourcerank] || 0) + 1;
+            category_stats[source_category].pricerank_wise_product_count[sourcerank] = (category_stats[source_category].pricerank_wise_product_count[sourcerank] || 0) + 1;
+        }
+        // Attach price_range for pricerange filter
+        let productObj = {
+            ...p,
+            products_data: rankedWithTies,
+            source_pricerank: sourcePriceRank,
+            source_price: sourcePrice,
+            source_name: sourceName,
+            average,
+            difference,
+            difference_percentage
+        };
+        if (isConsidered) productObj.price_range = sourcerank == 1 ? "cheapest" : (sourcerank == maxrank ? "expensive" : "midrange");
+        filteredProducts.push(productObj);
     }
 
     // Sort data
     if (sort === 'price_low_to_high') {
-        products = products.sort((a, b) => a.source_price - b.source_price);
+        filteredProducts = filteredProducts.sort((a, b) => a.source_price - b.source_price);
     } else if (sort === 'price_high_to_low') {
-        products = products.sort((a, b) => b.source_price - a.source_price);
+        filteredProducts = filteredProducts.sort((a, b) => b.source_price - a.source_price);
     } else if (sort === 'pricerank_low_to_high') {
-        products = products.sort((a, b) => a.source_pricerank - b.source_pricerank);
+        filteredProducts = filteredProducts.sort((a, b) => a.source_pricerank - b.source_pricerank);
     } else if (sort === 'pricerank_high_to_low') {
-        products = products.sort((a, b) => b.source_pricerank - a.source_pricerank);
-    } else if(sort == 'difference_low_to_high'){
-        products = products.sort((a, b) => a.difference - b.difference);
-    } else if(sort == 'difference_high_to_low'){
-        products = products.sort((a, b) => b.difference - a.difference);
-    } else if(sort == 'difference_percentage_low_to_high'){
-        products = products.sort((a, b) => a.difference_percentage - b.difference_percentage);
-    } else if(sort == 'difference_percentage_high_to_low'){
-        products = products.sort((a, b) => b.difference_percentage - a.difference_percentage);
+        filteredProducts = filteredProducts.sort((a, b) => b.source_pricerank - a.source_pricerank);
+    } else if (sort == 'difference_low_to_high') {
+        filteredProducts = filteredProducts.sort((a, b) => a.difference - b.difference);
+    } else if (sort == 'difference_high_to_low') {
+        filteredProducts = filteredProducts.sort((a, b) => b.difference - a.difference);
+    } else if (sort == 'difference_percentage_low_to_high') {
+        filteredProducts = filteredProducts.sort((a, b) => a.difference_percentage - b.difference_percentage);
+    } else if (sort == 'difference_percentage_high_to_low') {
+        filteredProducts = filteredProducts.sort((a, b) => b.difference_percentage - a.difference_percentage);
     }
 
-    let paginatedProducts=products;
-
-    let product_count , cheapest_count = 0, midrange_count = 0, expensive_count = 0,brand_stats={}, category_stats = {};
-   
-    for(let i=0;i<products?.length;i++){
-        let maxrank = 0, sourcerank = 0, source_brand = "", source_category = "", isConsidered=false, price =0;
-
-        for(let j=0;j<products[i]?.products_data?.length;j++){
-
-            if(products[i]?.products_data[j]?.rank > maxrank) maxrank =  products[i]?.products_data[j]?.rank;
-
-            if(products[i]?.products_data[j]?.website == source) {
-                sourcerank = products[i]?.products_data[j]?.rank;
-                source_brand = products[i]?.products_data[j]?.brand;
-                source_category = products[i]?.products_data[j]?.category;
-                price = parseFloat(products[i]?.products_data[j]?.latest_price);
-            }
-        }
-
-        if(!brand_stats[source_brand]) 
-        brand_stats[source_brand] = { 
-            brand: source_brand,
-            cheapest_count: 0,
-            midrange_count: 0,
-            expensive_count: 0,
-            total_price:0,
-            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
-        }
-
-        if(!category_stats[source_category]) 
-        category_stats[source_category] = { 
-            category: source_category,
-            cheapest_count: 0,
-            midrange_count: 0,
-            expensive_count: 0,
-            total_price:0,
-            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
-        }
-
-        brand_stats[source_brand].total_price += price;
-        category_stats[source_category].total_price += price;
-
-        if(sourcerank == 1) {
-            if((!pricerange || pricerange=="cheapest")){
-                cheapest_count+=1;
-                brand_stats[source_brand].cheapest_count+=1;
-                category_stats[source_category].cheapest_count+=1;
-                products[i].price_range = "cheapest";
-                isConsidered=true;
-            }
-        }
-        else if(sourcerank == maxrank){ 
-            if(!pricerange || pricerange=="expensive"){
-                expensive_count +=1;
-                brand_stats[source_brand].expensive_count+=1;
-                category_stats[source_category].expensive_count+=1;
-                products[i].price_range = "expensive";
-                isConsidered=true;
-            }
-        }
-        else{
-            if((!pricerange || pricerange=="midrange")){
-                midrange_count +=1;
-                brand_stats[source_brand].midrange_count+=1;
-                category_stats[source_category].midrange_count+=1;
-                products[i].price_range = "midrange";
-                isConsidered=true;
-            }
-        }
-
-        if(isConsidered){
-            if(!brand_stats[source_brand].pricerank_wise_product_count[sourcerank]) brand_stats[source_brand].pricerank_wise_product_count[sourcerank]=1;
-            else  brand_stats[source_brand].pricerank_wise_product_count[sourcerank]+=1;
-
-            if(!category_stats[source_category].pricerank_wise_product_count[sourcerank]) category_stats[source_category].pricerank_wise_product_count[sourcerank]=1;
-            else  category_stats[source_category].pricerank_wise_product_count[sourcerank]+=1;
-        }
-    }
-
-    if(pricerange){
-        products = products.filter(p=>
-            p.price_range==pricerange
-        );
-    }
-
-    product_count = products?.length;
-
-    brand_stats = Object.keys(brand_stats)?.map(key=>{
+    // Format stats
+    brand_stats = Object.keys(brand_stats).map(key => {
         let data = brand_stats[key];
-        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el=>data.pricerank_wise_product_count[el]);
+        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el => data.pricerank_wise_product_count[el]);
         return data;
-    })
-
-    category_stats = Object.keys(category_stats)?.map(key=>{
+    }).filter(el => (el?.cheapest_count + el?.midrange_count + el?.expensive_count) !== 0);
+    category_stats = Object.keys(category_stats).map(key => {
         let data = category_stats[key];
-        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el=>data.pricerank_wise_product_count[el]);
+        data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el => data.pricerank_wise_product_count[el]);
         return data;
-    })
+    }).filter(el => (el?.cheapest_count + el?.midrange_count + el?.expensive_count) !== 0);
 
-    brand_stats = brand_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
-    category_stats = category_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
+    // Calculate AI insights data
+    const ai = {
+        price_rank_differences: {},
+        category_price_differences: {},
+        subcategory_price_differences: {},
+        new_arrivals: []
+    };
 
-    const totals = products?.length;
+    // Calculate overall price rank differences between locations
+    const locationStats = {};
+    filteredProducts.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (!sourceProduct) return;
 
-    paginatedProducts = products.slice(offset, offset + limit);
+        product.products_data.forEach(pd => {
+            if (pd.website === source) return;
+            
+            if (!locationStats[pd.website]) {
+                locationStats[pd.website] = {
+                    total_difference: 0,
+                    count: 0,
+                    categories: {},
+                    subcategories: {}
+                };
+            }
 
-    // Send response
+            const priceDiff = ((parseFloat(pd.latest_price) - parseFloat(sourceProduct.latest_price)) / parseFloat(sourceProduct.latest_price)) * 100;
+            locationStats[pd.website].total_difference += priceDiff;
+            locationStats[pd.website].count++;
+
+            // Category-wise differences
+            if (!locationStats[pd.website].categories[sourceProduct.category]) {
+                locationStats[pd.website].categories[sourceProduct.category] = {
+                    total_difference: 0,
+                    count: 0
+                };
+            }
+            locationStats[pd.website].categories[sourceProduct.category].total_difference += priceDiff;
+            locationStats[pd.website].categories[sourceProduct.category].count++;
+
+            // Subcategory-wise differences
+            if (sourceProduct.sub_category) {
+                if (!locationStats[pd.website].subcategories[sourceProduct.sub_category]) {
+                    locationStats[pd.website].subcategories[sourceProduct.sub_category] = {
+                        total_difference: 0,
+                        count: 0,
+                        category: sourceProduct.category // Include parent category for context
+                    };
+                }
+                locationStats[pd.website].subcategories[sourceProduct.sub_category].total_difference += priceDiff;
+                locationStats[pd.website].subcategories[sourceProduct.sub_category].count++;
+            }
+        });
+    });
+
+    // Calculate averages and format the data
+    Object.keys(locationStats).forEach(loc => {
+        const stats = locationStats[loc];
+        ai.price_rank_differences[loc] = {
+            average_difference: (stats.total_difference / stats.count).toFixed(2),
+            total_products: stats.count
+        };
+
+        // Category-wise differences
+        ai.category_price_differences[loc] = {};
+        Object.keys(stats.categories).forEach(cat => {
+            const catStats = stats.categories[cat];
+            ai.category_price_differences[loc][cat] = {
+                average_difference: (catStats.total_difference / catStats.count).toFixed(2),
+                total_products: catStats.count
+            };
+        });
+
+        // Subcategory-wise differences
+        ai.subcategory_price_differences[loc] = {};
+        Object.keys(stats.subcategories).forEach(subcat => {
+            const subcatStats = stats.subcategories[subcat];
+            ai.subcategory_price_differences[loc][subcat] = {
+                average_difference: (subcatStats.total_difference / subcatStats.count).toFixed(2),
+                total_products: subcatStats.count,
+                category: subcatStats.category // Include parent category for context
+            };
+        });
+    });
+
+    // Get new arrivals (products created today)
+    const today = new Date().toISOString().split('T')[0];
+    const newArrivals = await pool.query(`
+        SELECT p.*, pr.price as latest_price
+        FROM product p
+        LEFT JOIN LATERAL (
+            SELECT price 
+            FROM price 
+            WHERE product_id = p.id 
+            ORDER BY date DESC 
+            LIMIT 1
+        ) pr ON true
+        WHERE p.website = $1 
+        AND DATE(p.created_at) = $2
+    `, [source, today]);
+
+    ai.new_arrivals = newArrivals.rows.map(product => ({
+        title: product.title,
+        category: product.category,
+        sub_category: product.sub_category,
+        price: product.latest_price
+    }));
+
+    const totals = filteredProducts.length;
+    const paginatedProducts = filteredProducts.slice(offset, offset + limit);
+
     return res.status(200).json({
         status: "success",
         message: `All products for ${source} fetched successfully`,
-        stats:{
-            productCount:product_count,
-            cheapestProducts:cheapest_count,
-            midrangeProducts:midrange_count,
-            expensiveProducts:expensive_count,
-            brands:brand_stats?.length,
-            categories:category_stats?.length
+        stats: {
+            productCount: totals,
+            cheapestProducts: cheapest_count,
+            midrangeProducts: midrange_count,
+            expensiveProducts: expensive_count,
+            brands: brand_stats?.length,
+            categories: category_stats?.length
         },
         category_stats,
         brand_stats,
+        ai,
         data: paginatedProducts,
         totals
     });
-
 });
 
 exports.getPriceRankFor = catchAsync(async (req,res,next)=>{
