@@ -32,7 +32,8 @@ exports.chat = catchAsync(async (req,res,next)=>{
 })
 
 exports.analyze = catchAsync(async (req,res,next)=>{
-    const jsonData = req.body;
+    const jsonData = req.body.data;
+    const notes = req.body.notes;
 
     if (!jsonData || typeof jsonData !== 'object') {
         return res.status(400).json({ error: 'Invalid JSON data provided.' });
@@ -40,6 +41,9 @@ exports.analyze = catchAsync(async (req,res,next)=>{
 
     const prompt = `
     You are a data analyst. Analyze the following JSON data and provide clear, point-wise insights in numbered format. Keep each point concise and meaningful.
+
+    additional notes:
+    ${notes?notes:"NA"}
 
     JSON Data:
     ${JSON.stringify(jsonData, null, 2)}
