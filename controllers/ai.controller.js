@@ -40,7 +40,7 @@ exports.analyze = catchAsync(async (req,res,next)=>{
     }
 
     const prompt = `
-    You are a data analyst. Analyze the following JSON data and provide clear, point-wise insights in numbered format. Keep each point concise and meaningful.
+    You are a data analyst. Analyze the following JSON data and provide clear, point-wise insights in numbered format. Keep each point concise and meaningful. It should not feel like your just reading the given data and displaying all the data is not mandatory show what you feel is important but be analytical
 
     additional notes:
     ${notes?notes:"NA"}
