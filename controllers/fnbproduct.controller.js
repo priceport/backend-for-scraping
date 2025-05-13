@@ -208,8 +208,6 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
     let paginatedProducts=products;
 
-    // Create a map to track unique products and their price ranges
-    const uniqueProducts = new Map();
     let product_count = 0, cheapest_count = 0, midrange_count = 0, expensive_count = 0;
     let store_stats = {}, terminal_stats = {};
    
@@ -230,9 +228,9 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         }
 
         // Initialize store and terminal stats if not exists
-        if(!store_stats[products[i]?.store_name.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()]) 
-            store_stats[products[i]?.store_name.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
-                store: products[i]?.store_name.toLowerCase()?.trim(),
+        if(!store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()]) 
+            store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
+                store: products[i]?.store_name?.toLowerCase()?.trim(),
                 terminal: products[i]?.terminal_name?.trim(),
                 cheapest_count: 0,
                 midrange_count: 0,
@@ -249,59 +247,36 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
             };
 
-        // Determine price range for this product
-        let priceRange = null;
+        // Count this product variant
+        product_count++;
+
+        // Determine price range for this product variant
         if(sourcerank == 1) {
             if((!pricerange || pricerange=="cheapest")){
-                priceRange = "cheapest";
-                isConsidered = true;
-                // Update store and terminal stats for cheapest
+                cheapest_count++;
                 store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count++;
+                products[i].price_range = "cheapest";
+                isConsidered = true;
             }
         }
         else if(sourcerank == maxrank){ 
             if(!pricerange || pricerange=="expensive"){
-                priceRange = "expensive";
-                isConsidered = true;
-                // Update store and terminal stats for expensive
+                expensive_count++;
                 store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].expensive_count++;
+                products[i].price_range = "expensive";
+                isConsidered = true;
             }
         }
         else{
             if((!pricerange || pricerange=="midrange")){
-                priceRange = "midrange";
-                isConsidered = true;
-                // Update store and terminal stats for midrange
+                midrange_count++;
                 store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].midrange_count++;
+                products[i].price_range = "midrange";
+                isConsidered = true;
             }
-        }
-
-        // Update product's price range
-        products[i].price_range = priceRange;
-
-        // Only process if this is a new unique product or if it has a better price range
-        if (!uniqueProducts.has(canprod_id) || 
-            (priceRange === "cheapest" && uniqueProducts.get(canprod_id) !== "cheapest") ||
-            (priceRange === "midrange" && uniqueProducts.get(canprod_id) === "expensive")) {
-            
-            // Remove previous price range count if exists
-            const previousRange = uniqueProducts.get(canprod_id);
-            if (previousRange) {
-                if (previousRange === "cheapest") cheapest_count--;
-                else if (previousRange === "midrange") midrange_count--;
-                else if (previousRange === "expensive") expensive_count--;
-            }
-
-            // Add new price range count
-            if (priceRange === "cheapest") cheapest_count++;
-            else if (priceRange === "midrange") midrange_count++;
-            else if (priceRange === "expensive") expensive_count++;
-
-            // Update unique products map
-            uniqueProducts.set(canprod_id, priceRange);
         }
 
         // Update store and terminal stats for price rank distribution
@@ -317,9 +292,6 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
         }
     }
-
-    // Set product count to number of unique products
-    product_count = uniqueProducts.size;
 
     if(pricerange){
         products = products.filter(p=>
