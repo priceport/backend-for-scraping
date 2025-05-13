@@ -113,14 +113,14 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     products = products?.map(p=>{
         let products_data = p.products_data;
 
-        let newStore = store?.map(s => decodeURIComponent(s?.trim()));
+        let newStore = store?.map(s => decodeURIComponent(s?.trim()?.toLowerCase()));
         let newTerminal = terminal?.map(t => t?.trim());
 
         if(newTerminal)
         products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
 
         if(newStore)
-        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim())||p?.terminal_name=="OTHERS");
+        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()?.toLowerCase())||p?.terminal_name=="OTHERS");
 
         return {...p,products_data};
     })
@@ -165,7 +165,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
             if(j==0){
                 products[i].products_data[j].pricerank = `${prank}/${products[i]?.products_data?.length}`;
                 lastprice = products[i].products_data[j].latest_price;
-                if(products[i]?.products_data[j]?.store_name!==products[i]?.store_name) total_price+= parseFloat(products[i].products_data[j].latest_price);
+                if(products[i]?.products_data[j]?.store_name?.toLowerCase()!==products[i]?.store_name?.toLowerCase()) total_price+= parseFloat(products[i].products_data[j].latest_price);
             }
             else{
                 if(lastprice==products[i].products_data[j].latest_price){
@@ -178,7 +178,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                     plength=0;
                     lastprice=products[i].products_data[j].latest_price;
                 }
-                if(products[i]?.products_data[j]?.store_name!==products[i]?.store_name) total_price+= parseFloat(products[i].products_data[j].latest_price);
+                if(products[i]?.products_data[j]?.store_name?.toLowerCase()!==products[i]?.store_name?.toLowerCase()) total_price+= parseFloat(products[i].products_data[j].latest_price);
             }
         }
 
@@ -223,15 +223,15 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
             if(parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]) > maxrank) 
                 maxrank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
 
-            if(products[i]?.products_data[j]?.store_name == products[i]?.store_name) {
+            if(products[i]?.products_data[j]?.store_name?.toLowerCase() == products[i]?.store_name?.toLowerCase()) {
                 sourcerank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
             }
         }
 
         // Initialize store and terminal stats if not exists
-        if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()]) 
-            store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
-                store: products[i]?.store_name?.trim(),
+        if(!store_stats[products[i]?.store_name.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()]) 
+            store_stats[products[i]?.store_name.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
+                store: products[i]?.store_name.toLowerCase()?.trim(),
                 terminal: products[i]?.terminal_name?.trim(),
                 cheapest_count: 0,
                 midrange_count: 0,
@@ -255,7 +255,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 priceRange = "cheapest";
                 isConsidered = true;
                 // Update store and terminal stats for cheapest
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count++;
+                store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count++;
             }
         }
@@ -264,7 +264,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 priceRange = "expensive";
                 isConsidered = true;
                 // Update store and terminal stats for expensive
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count++;
+                store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].expensive_count++;
             }
         }
@@ -273,7 +273,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 priceRange = "midrange";
                 isConsidered = true;
                 // Update store and terminal stats for midrange
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count++;
+                store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count++;
                 terminal_stats[products[i]?.terminal_name?.trim()].midrange_count++;
             }
         }
@@ -305,10 +305,10 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
         // Update store and terminal stats for price rank distribution
         if(isConsidered){
-            if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) 
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            if(!store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) 
+                store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
             else  
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
+                store_stats[products[i]?.store_name?.toLowerCase()?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
 
             if(!terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) 
                 terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
