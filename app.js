@@ -109,6 +109,11 @@ app.use("/api/v1/fnbproduct",fnbproductRouter);
 app.use("/api/v1/fnbreports",fnbreportsRouter);
 app.use("/api/v1/organisation",organisationRouter);
 
+app.use("/precompute",(req,res)=>{
+  precomputeDailyData('aelia_auckland',true);
+precomputeDailyDataFNB();
+})
+
 
 //Throwing error if no matched route found
 app.all('*', (req, res, next) => {
