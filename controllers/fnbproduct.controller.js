@@ -116,8 +116,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         let newStore = store?.map(s => decodeURIComponent(s?.trim()?.toLowerCase()));
         let newTerminal = terminal?.map(t => t?.trim());
 
-        if(newTerminal)
-        products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
+        // if(newTerminal)
+        // products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
 
         if(newStore)
         products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()?.toLowerCase())||p?.terminal_name=="OTHERS");
