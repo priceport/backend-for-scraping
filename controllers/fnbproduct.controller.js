@@ -207,75 +207,118 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
     let paginatedProducts=products;
 
-    let product_count , cheapest_count = 0, midrange_count = 0, expensive_count = 0,store_stats={},terminal_stats={};
+    // Create a map to track unique products and their price ranges
+    const uniqueProducts = new Map();
+    let product_count = 0, cheapest_count = 0, midrange_count = 0, expensive_count = 0;
+    let store_stats = {}, terminal_stats = {};
    
     for(let i=0;i<products?.length;i++){
         let maxrank = 0, sourcerank = 0, isConsidered=false;
+        const canprod_id = products[i]?.canprod_id;
+
+        // Skip if no canprod_id (unmapped product)
+        if (!canprod_id) continue;
 
         for(let j=0;j<products[i]?.products_data?.length;j++){
-
-            if(parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]) > maxrank) maxrank =  parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
+            if(parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]) > maxrank) 
+                maxrank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
 
             if(products[i]?.products_data[j]?.store_name == products[i]?.store_name) {
                 sourcerank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
             }
         }
+
+        // Initialize store and terminal stats if not exists
         if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()]) 
-        store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
-            store: products[i]?.store_name?.trim(),
-            terminal: products[i]?.terminal_name?.trim(),
-            cheapest_count: 0,
-            midrange_count: 0,
-            expensive_count: 0,
-            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
-        }
+            store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
+                store: products[i]?.store_name?.trim(),
+                terminal: products[i]?.terminal_name?.trim(),
+                cheapest_count: 0,
+                midrange_count: 0,
+                expensive_count: 0,
+                pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
+            };
 
         if(!terminal_stats[products[i]?.terminal_name?.trim()]) 
-        terminal_stats[products[i]?.terminal_name?.trim()] = { 
-            terminal: products[i]?.terminal_name?.trim(),
-            cheapest_count: 0,
-            midrange_count: 0,
-            expensive_count: 0,
-            pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
-        }
+            terminal_stats[products[i]?.terminal_name?.trim()] = { 
+                terminal: products[i]?.terminal_name?.trim(),
+                cheapest_count: 0,
+                midrange_count: 0,
+                expensive_count: 0,
+                pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
+            };
 
+        // Determine price range for this product
+        let priceRange = null;
         if(sourcerank == 1) {
             if((!pricerange || pricerange=="cheapest")){
-                cheapest_count+=1;
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count+=1;
-                terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count+=1;
-                products[i].price_range = "cheapest";
-                isConsidered=true;
+                priceRange = "cheapest";
+                isConsidered = true;
+                // Update store and terminal stats for cheapest
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count++;
+                terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count++;
             }
         }
         else if(sourcerank == maxrank){ 
             if(!pricerange || pricerange=="expensive"){
-                expensive_count +=1;
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count+=1;
-                terminal_stats[products[i]?.terminal_name?.trim()].expensive_count+=1;
-                products[i].price_range = "expensive";
-                isConsidered=true;
+                priceRange = "expensive";
+                isConsidered = true;
+                // Update store and terminal stats for expensive
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count++;
+                terminal_stats[products[i]?.terminal_name?.trim()].expensive_count++;
             }
         }
         else{
             if((!pricerange || pricerange=="midrange")){
-                midrange_count +=1;
-                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count+=1;
-                terminal_stats[products[i]?.terminal_name?.trim()].midrange_count+=1;
-                products[i].price_range = "midrange";
-                isConsidered=true;
+                priceRange = "midrange";
+                isConsidered = true;
+                // Update store and terminal stats for midrange
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count++;
+                terminal_stats[products[i]?.terminal_name?.trim()].midrange_count++;
             }
         }
 
+        // Update product's price range
+        products[i].price_range = priceRange;
+
+        // Only process if this is a new unique product or if it has a better price range
+        if (!uniqueProducts.has(canprod_id) || 
+            (priceRange === "cheapest" && uniqueProducts.get(canprod_id) !== "cheapest") ||
+            (priceRange === "midrange" && uniqueProducts.get(canprod_id) === "expensive")) {
+            
+            // Remove previous price range count if exists
+            const previousRange = uniqueProducts.get(canprod_id);
+            if (previousRange) {
+                if (previousRange === "cheapest") cheapest_count--;
+                else if (previousRange === "midrange") midrange_count--;
+                else if (previousRange === "expensive") expensive_count--;
+            }
+
+            // Add new price range count
+            if (priceRange === "cheapest") cheapest_count++;
+            else if (priceRange === "midrange") midrange_count++;
+            else if (priceRange === "expensive") expensive_count++;
+
+            // Update unique products map
+            uniqueProducts.set(canprod_id, priceRange);
+        }
+
+        // Update store and terminal stats for price rank distribution
         if(isConsidered){
+            if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) 
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            else  
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
 
-            if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
-            else  store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
-
-            if(!terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
-            else  terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
+            if(!terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) 
+                terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            else  
+                terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
         }
     }
+
+    // Set product count to number of unique products
+    product_count = uniqueProducts.size;
 
     if(pricerange){
         products = products.filter(p=>
@@ -290,7 +333,6 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     if(products){
         products = products?.filter(p=>p?.products_data?.length> 0)
     }
-    product_count = products?.length;
 
     store_stats = Object.keys(store_stats)?.map(key=>{
         let data = store_stats[key];
@@ -307,7 +349,6 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     store_stats = store_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
     terminal_stats = terminal_stats.filter(el=>(el?.cheapest_count+el?.midrange_count+el?.expensive_count)!==0);
 
-
     let totals = products.length;
     paginatedProducts = products.slice(offset, offset + limit);
 
@@ -316,15 +357,15 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         status: "success",
         message: `All products for auckland fetched successfully`,
         stats:{
-            productCount:totals,
-            cheapestProducts:cheapest_count,
-            midrangeProducts:midrange_count,
-            expensiveProducts:expensive_count,
-            stores:store_stats?.length,
-            terminals:terminal_stats?.length
+            productCount: product_count,
+            cheapestProducts: cheapest_count,
+            midrangeProducts: midrange_count,
+            expensiveProducts: expensive_count,
+            stores: store_stats?.length,
+            terminals: terminal_stats?.length
         },
-        store_stats:store_stats,
-        terminal_stats:terminal_stats,
+        store_stats: store_stats,
+        terminal_stats: terminal_stats,
         data: paginatedProducts,
         totals
     });
