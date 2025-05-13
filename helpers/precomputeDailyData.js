@@ -85,7 +85,7 @@ function isTodayOrYesterday(timestamp) {
     // Check if the date is 8th or 9th May
     const isMay8or9 = (inputDate.getDate() === 8 || inputDate.getDate() === 9) && inputDate.getMonth() === 4;
 
-    return isToday || isYesterday || isMay8or9;
+    return isToday || isYesterday;
 }
 
 const precomputeDailyData = async (source,checkMappings) => {
