@@ -158,7 +158,7 @@ app.use(globalErrorHandler);
 // }
 //pricerank, id->product_id, latest_price, latest_promotions, price_per_unit
 // temp();
-precomputeDailyData('aelia_auckland');
+precomputeDailyData('aelia_auckland',true);
 precomputeDailyDataFNB();
 
 // Schedule the task to run at 12 AM New Zealand Time

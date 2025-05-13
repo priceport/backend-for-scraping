@@ -434,7 +434,7 @@ const scrapingService =async ()=>{
    await extract_unit_and_quantity();
    await updateProductPriceRank();
    await updateDailyPriceStats('aelia_auckland');
-   await precomputeDailyData('aelia_auckland');
+   await precomputeDailyData('aelia_auckland',true);
    await precomputeDailyDataFNB();
 }
 

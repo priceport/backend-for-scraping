@@ -88,7 +88,7 @@ function isTodayOrYesterday(timestamp) {
     return isToday || isYesterday || isMay8or9;
 }
 
-const precomputeDailyData = async (source) => {
+const precomputeDailyData = async (source,checkMappings) => {
     try {
 
     const canprod_ids = await pool.query(`select * from cannonical_product;`);
@@ -316,6 +316,7 @@ const precomputeDailyData = async (source) => {
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );
 
+        if(checkMappings)
         await checkForWrongMappings(finalData);
 
         console.log('Daily product data successfully precomputed and cached!');

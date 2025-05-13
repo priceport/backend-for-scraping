@@ -1164,7 +1164,7 @@ exports.editProduct = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.title,req.body.unit,req.body.brand,req.params.id]);
 
-    precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland',false);
 
     return res.status(200).json({
         status:"success",
@@ -1188,7 +1188,7 @@ exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
     returning *;
     `,[req.body.complaint,req.params.id]);
 
-    precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland',false);
 
     return res.status(200).json({
         status:"success",
@@ -1206,7 +1206,7 @@ exports.removeMapping = catchAsync(async (req,res,next)=>{
     returning *;`,
     [req.params.id]);
 
-    precomputeDailyData('aelia_auckland');
+    precomputeDailyData('aelia_auckland',false);
 
     return res.status(200).json({
         status:"success",
