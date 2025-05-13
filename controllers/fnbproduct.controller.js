@@ -125,9 +125,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         return {...p,products_data};
     })
 
-    products = products?.filter(p=>store?.map(s => decodeURIComponent(s?.trim()))?.includes(p?.store_name?.trim()));
+    products = products?.filter(p=>store?.map(s => decodeURIComponent(s?.trim().toLowerCase()))?.includes(p?.store_name?.trim().toLowerCase()));
     // products?.forEach(p=>console.log(p?.products_data));
-
     
     // if(terminal){
     //     products=products?.filter(product=>terminal.includes(product?.terminal_name?.trim()))
@@ -184,7 +183,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         }
 
         products[i].average = total_price / (products[i]?.products_data?.length - 1)
-        console.log(total_price / (products[i]?.products_data?.length - 1),products[i].average);
+        // console.log(total_price / (products[i]?.products_data?.length - 1),products[i].average);
     }
 
     // Sort data
@@ -221,8 +220,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 sourcerank = parseInt(products[i]?.products_data[j]?.pricerank?.split("/")[0]);
             }
         }
-        if(!store_stats[products[i]?.store_name?.trim()]) 
-        store_stats[products[i]?.store_name?.trim()] = { 
+        if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()]) 
+        store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()] = { 
             store: products[i]?.store_name?.trim(),
             terminal: products[i]?.terminal_name?.trim(),
             cheapest_count: 0,
@@ -243,7 +242,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         if(sourcerank == 1) {
             if((!pricerange || pricerange=="cheapest")){
                 cheapest_count+=1;
-                store_stats[products[i]?.store_name?.trim()].cheapest_count+=1;
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].cheapest_count+=1;
                 terminal_stats[products[i]?.terminal_name?.trim()].cheapest_count+=1;
                 products[i].price_range = "cheapest";
                 isConsidered=true;
@@ -252,7 +251,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         else if(sourcerank == maxrank){ 
             if(!pricerange || pricerange=="expensive"){
                 expensive_count +=1;
-                store_stats[products[i]?.store_name?.trim()].expensive_count+=1;
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].expensive_count+=1;
                 terminal_stats[products[i]?.terminal_name?.trim()].expensive_count+=1;
                 products[i].price_range = "expensive";
                 isConsidered=true;
@@ -261,7 +260,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         else{
             if((!pricerange || pricerange=="midrange")){
                 midrange_count +=1;
-                store_stats[products[i]?.store_name?.trim()].midrange_count+=1;
+                store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].midrange_count+=1;
                 terminal_stats[products[i]?.terminal_name?.trim()].midrange_count+=1;
                 products[i].price_range = "midrange";
                 isConsidered=true;
@@ -270,8 +269,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
         if(isConsidered){
 
-            if(!store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]) store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
-            else  store_stats[products[i]?.store_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
+            if(!store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
+            else  store_stats[products[i]?.store_name?.trim()+":"+products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
 
             if(!terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]=1;
             else  terminal_stats[products[i]?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]+=1;
