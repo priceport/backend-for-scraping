@@ -125,6 +125,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         return {...p,products_data};
     })
 
+    products = products?.filter(p=>terminal?.map(t=> t?.trim()?.toLowerCase())?.includes(p?.terminal_name?.trim()?.toLowerCase()));
     products = products?.filter(p=>store?.map(s => decodeURIComponent(s?.trim().toLowerCase()))?.includes(p?.store_name?.trim().toLowerCase()));
     // products?.forEach(p=>console.log(p?.products_data));
     
