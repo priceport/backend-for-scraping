@@ -307,6 +307,41 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         products = products?.filter(p=>p?.products_data?.length> 0)
     }
 
+    // Reset terminal stats and recalculate based on filtered products
+    terminal_stats = {};
+    products.forEach(product => {
+        if(!terminal_stats[product?.terminal_name?.trim()]) {
+            terminal_stats[product?.terminal_name?.trim()] = { 
+                terminal: product?.terminal_name?.trim(),
+                cheapest_count: 0,
+                midrange_count: 0,
+                expensive_count: 0,
+                pricerank_wise_product_count:{1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,10:0}
+            };
+        }
+
+        if(product.price_range === "cheapest") {
+            terminal_stats[product?.terminal_name?.trim()].cheapest_count++;
+        } else if(product.price_range === "expensive") {
+            terminal_stats[product?.terminal_name?.trim()].expensive_count++;
+        } else if(product.price_range === "midrange") {
+            terminal_stats[product?.terminal_name?.trim()].midrange_count++;
+        }
+
+        // Update price rank distribution
+        const sourcerank = parseInt(product.products_data.find(pd => 
+            pd.store_name?.toLowerCase() === product.store_name?.toLowerCase()
+        )?.pricerank?.split("/")[0]);
+
+        if(sourcerank) {
+            if(!terminal_stats[product?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]) {
+                terminal_stats[product?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank] = 1;
+            } else {
+                terminal_stats[product?.terminal_name?.trim()].pricerank_wise_product_count[sourcerank]++;
+            }
+        }
+    });
+
     store_stats = Object.keys(store_stats)?.map(key=>{
         let data = store_stats[key];
         data.pricerank_wise_product_count = Object.keys(data.pricerank_wise_product_count).map(el=>data.pricerank_wise_product_count[el]);
