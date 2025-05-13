@@ -166,5 +166,5 @@ cron.schedule('10 12 * * *', scrapingService, {
   scheduled: true,
   timezone: 'Pacific/Auckland', // New Zealand timezone
 });
-
+ 
 module.exports = app;
