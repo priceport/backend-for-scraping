@@ -399,7 +399,7 @@ exports.getAllTerminal = catchAsync(async (req,res,next)=>{
     if(!req.query.admin)
     data = await pool.query(`SELECT DISTINCT name, id  
     FROM terminal 
-    WHERE id != 8 
+    WHERE id != 11 
     ORDER BY name ASC;
     `);
     else
