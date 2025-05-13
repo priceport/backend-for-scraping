@@ -119,8 +119,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         // if(newTerminal)
         // products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
 
-        if(newStore)
-        products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()?.toLowerCase())||p?.terminal_name=="OTHERS");
+        // if(newStore)
+        // products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()?.toLowerCase())||p?.terminal_name=="OTHERS");
 
         return {...p,products_data};
     })
