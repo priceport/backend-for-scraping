@@ -66,26 +66,11 @@ async function checkForWrongMappings (products){
 function isTodayOrYesterday(timestamp) {
     const inputDate = new Date(timestamp);
     const today = new Date();
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(today.getDate() - 15);
 
-    // Check if the date is today
-    const isToday =
-        inputDate.getDate() === today.getDate() &&
-        inputDate.getMonth() === today.getMonth() &&
-        inputDate.getFullYear() === today.getFullYear();
-
-    // Check if the date is yesterday
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    const isYesterday =
-        inputDate.getDate() === yesterday.getDate() &&
-        inputDate.getMonth() === yesterday.getMonth() &&
-        inputDate.getFullYear() === yesterday.getFullYear();
-
-    // Check if the date is 8th or 9th May
-    const isMay8or9 = (inputDate.getDate() === 8 || inputDate.getDate() === 9) && inputDate.getMonth() === 4;
-
-    return isToday || isYesterday;
+    // Return true if the input date is between today and 10 days ago
+    return inputDate >= tenDaysAgo && inputDate <= today;
 }
 
 const precomputeDailyData = async (source,checkMappings) => {
@@ -316,8 +301,8 @@ const precomputeDailyData = async (source,checkMappings) => {
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );
 
-        if(checkMappings)
-        await checkForWrongMappings(finalData);
+        // if(checFokMappings)
+        // await checkrWrongMappings(finalData);
 
         console.log('Daily product data successfully precomputed and cached!');
     } catch (error) {
