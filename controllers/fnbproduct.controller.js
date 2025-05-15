@@ -361,6 +361,7 @@ exports.getAllStores = catchAsync(async (req,res,next)=>{
     data = await pool.query(`SELECT DISTINCT s.name, s.id, t.name as terminal_name
     FROM store s
     JOIN terminal t ON s.terminal_id = t.id
+    WHERE s.terminal_id != 8 
     ORDER BY s.name ASC;
     `);
 
