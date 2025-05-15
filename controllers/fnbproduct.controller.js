@@ -113,43 +113,46 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     products = products?.map(p=>{
         let products_data = p.products_data;
 
-        let newStore = store?.map(s => decodeURIComponent(s?.trim()?.toLowerCase()));
+        // Parse store names to extract store and terminal
+        let newStore = store?.map(s => {
+            const decoded = decodeURIComponent(s?.trim()?.toLowerCase());
+            // Extract store name and terminal from format "store (TERMINAL)"
+            const match = decoded.match(/^(.*?)\s*\((.*?)\)$/);
+            if (match) {
+                return {
+                    store: match[1].trim(),
+                    terminal: match[2].trim()
+                };
+            }
+            return { store: decoded, terminal: null };
+        });
+
         let newTerminal = terminal?.map(t => t?.trim());
 
-        // if(newTerminal)
-        // products_data = products_data?.filter(p=>[...newTerminal,"OTHERS"]?.includes(p?.terminal_name?.trim()));
+        return {...p, products_data};
+    });
 
-        // if(newStore)
-        // products_data = products_data?.filter(p=>newStore?.includes(p?.store_name?.trim()?.toLowerCase())||p?.terminal_name=="OTHERS");
+    // Filter products based on store and terminal
+    if (store) {
+        products = products?.filter(p => {
+            const storeMatch = store.some(s => {
+                const decoded = decodeURIComponent(s?.trim()?.toLowerCase());
+                const match = decoded.match(/^(.*?)\s*\((.*?)\)$/);
+                if (match) {
+                    const storeName = match[1].trim();
+                    const terminalName = match[2].trim();
+                    return p?.store_name?.trim()?.toLowerCase() === storeName &&
+                           p?.terminal_name?.trim()?.toLowerCase() === terminalName;
+                }
+                return p?.store_name?.trim()?.toLowerCase() === decoded;
+            });
+            return storeMatch;
+        });
+    }
 
-        return {...p,products_data};
-    })
-
-    products = products?.filter(p=>terminal?.map(t=> t?.trim()?.toLowerCase())?.includes(p?.terminal_name?.trim()?.toLowerCase()));
-    products = products?.filter(p=>store?.map(s => decodeURIComponent(s?.trim().toLowerCase()))?.includes(p?.store_name?.trim().toLowerCase()));
-    // products?.forEach(p=>console.log(p?.products_data));
-    
-    // if(terminal){
-    //     products=products?.filter(product=>terminal.includes(product?.terminal_name?.trim()))
-    // }
-
-    // if(store){
-    //     let newStore = store?.map(s => decodeURIComponent(s));
-
-    //     products=products?.filter(product=>{
-    //         return newStore.includes(product?.store_name?.trim())
-    //     })
-    // }
-
-    // Remove products where all products_data entries were filtered out
-    // products = products.filter(p => p.products_data.length > 1);
-
-    // Apply pricerank filter
-    // if (pricerank) {
-    //     products = products.filter(p =>
-    //         pricerank.includes(p.source_pricerank)
-    //     );
-    // }
+    if (terminal) {
+        products = products?.filter(p => terminal?.map(t => t?.trim()?.toLowerCase())?.includes(p?.terminal_name?.trim()?.toLowerCase()));
+    }
 
     if(search){
         products = products.filter(p=>
