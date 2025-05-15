@@ -348,21 +348,29 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 exports.getAllStores = catchAsync(async (req,res,next)=>{
     let data;
     if(!req.query.admin)
-    data = await pool.query(`SELECT DISTINCT name, id  
-    FROM store 
-    WHERE terminal_id != 8 
-    ORDER BY name ASC;
+    data = await pool.query(`SELECT DISTINCT s.name, s.id, t.name as terminal_name
+    FROM store s
+    JOIN terminal t ON s.terminal_id = t.id
+    WHERE s.terminal_id != 8 
+    ORDER BY s.name ASC;
     `);
     else
-    data = await pool.query(`SELECT DISTINCT name, id  
-    FROM store 
-    ORDER BY name ASC;
+    data = await pool.query(`SELECT DISTINCT s.name, s.id, t.name as terminal_name
+    FROM store s
+    JOIN terminal t ON s.terminal_id = t.id
+    ORDER BY s.name ASC;
     `);
+
+    // Format the response to include terminal name in the store name
+    const formattedData = data.rows.map(row => ({
+        name: `${row.name} (${row.terminal_name})`,
+        id: row.id
+    }));
 
     return res.status(200).json({
         status:"success",
         message:"All stores fetched",
-        data:data?.rows
+        data: formattedData
     })
 })
 
