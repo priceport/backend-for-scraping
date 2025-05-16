@@ -92,6 +92,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const offset = parseInt(req.query.offset, 10) || 0;
     const terminal = req.query.terminal?.split(",") || null;
     const store = req.query.store?.split(",") || null;
+    const breakup = req.query.breakup?.split(",") || null;
     const sort = req.query.sort || 'price_low_to_high';
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
@@ -110,41 +111,63 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     // Parse cached data
     let products = JSON.parse(cachedData);
 
-    products = products?.map(p=>{
+    // Helper function to parse store and terminal from format "store (TERMINAL)"
+    const parseStoreTerminal = (input) => {
+        const decoded = decodeURIComponent(input?.trim()?.toLowerCase());
+        const match = decoded.match(/^(.*?)\s*\((.*?)\)$/);
+        if (match) {
+            return {
+                store: match[1].trim(),
+                terminal: match[2].trim()
+            };
+        }
+        return { store: decoded, terminal: null };
+    };
+
+    // If breakup is provided, first filter the products array to only include matching stores/terminals
+    if (breakup) {
+        const breakupStores = breakup.map(b => parseStoreTerminal(b));
+        products = products.filter(p => {
+            return breakupStores.some(bs => 
+                p.store_name?.trim()?.toLowerCase() === bs.store &&
+                p.terminal_name?.trim()?.toLowerCase() === bs.terminal
+            );
+        });
+    }
+
+    products = products?.map(p => {
         let products_data = p.products_data;
 
-        // Parse store names to extract store and terminal
-        let newStore = store?.map(s => {
-            const decoded = decodeURIComponent(s?.trim()?.toLowerCase());
-            // Extract store name and terminal from format "store (TERMINAL)"
-            const match = decoded.match(/^(.*?)\s*\((.*?)\)$/);
-            if (match) {
-                return {
-                    store: match[1].trim(),
-                    terminal: match[2].trim()
-                };
-            }
-            return { store: decoded, terminal: null };
-        });
+        // Filter products_data based on breakup parameter
+        if (breakup) {
+            products_data = products_data.filter(pd => {
+                return breakup.some(b => {
+                    const parsed = parseStoreTerminal(b);
+                    if (parsed.terminal) {
+                        return pd.store_name?.trim()?.toLowerCase() === parsed.store &&
+                               pd.terminal_name?.trim()?.toLowerCase() === parsed.terminal;
+                    }
+                    return pd.store_name?.trim()?.toLowerCase() === parsed.store;
+                });
+            });
+        }
 
-        let newTerminal = terminal?.map(t => t?.trim());
-
-        return {...p, products_data};
+        return { ...p, products_data };
     });
+
+    // Remove products where products_data has 1 or fewer entries
+    products = products.filter(p => p.products_data.length > 1);
 
     // Filter products based on store and terminal
     if (store) {
         products = products?.filter(p => {
             const storeMatch = store.some(s => {
-                const decoded = decodeURIComponent(s?.trim()?.toLowerCase());
-                const match = decoded.match(/^(.*?)\s*\((.*?)\)$/);
-                if (match) {
-                    const storeName = match[1].trim();
-                    const terminalName = match[2].trim();
-                    return p?.store_name?.trim()?.toLowerCase() === storeName &&
-                           p?.terminal_name?.trim()?.toLowerCase() === terminalName;
+                const parsed = parseStoreTerminal(s);
+                if (parsed.terminal) {
+                    return p?.store_name?.trim()?.toLowerCase() === parsed.store &&
+                           p?.terminal_name?.trim()?.toLowerCase() === parsed.terminal;
                 }
-                return p?.store_name?.trim()?.toLowerCase() === decoded;
+                return p?.store_name?.trim()?.toLowerCase() === parsed.store;
             });
             return storeMatch;
         });
