@@ -1,24 +1,26 @@
 const pool = require("../configs/postgresql.config");
 const catchAsync = require("../utils/catchAsync");
 const isBodyComplete = require("../utils/isBodyComplete");
+const AppError = require("../utils/appError");
 
 exports.createReport = catchAsync(async (req,res,next)=>{
 
-    const isComplete = isBodyComplete(req, ["name", "terminal", "store"]);
+    const isComplete = isBodyComplete(req, ["name", "terminal", "store", "breakup"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
         );
     }
 
-    const data = await pool.query(`INSERT INTO reports_fnb (user_id, name, terminal, store)
+    const data = await pool.query(`INSERT INTO reports_fnb (user_id, name, terminal, store, breakup)
     VALUES (
         $1,
         $2,
         $3,
-        $4
+        $4,
+        $5
     ) RETURNING *;
-    `,[req?.user?.id,req?.body?.name,req?.body?.terminal,req?.body?.store]);
+    `,[req?.user?.id, req?.body?.name, req?.body?.terminal, req?.body?.store, req?.body?.breakup]);
 
     return res.status(200).json({
         status:"success",
@@ -40,7 +42,7 @@ exports.getAllReports = catchAsync(async (req,res,next)=>{
 exports.editReport = catchAsync(async (req,res,next)=>{
     const id = req?.params?.reportId;
 
-    const isComplete = isBodyComplete(req, ["name", "terminal", "store"]);
+    const isComplete = isBodyComplete(req, ["name", "terminal", "store", "breakup"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
@@ -51,12 +53,13 @@ exports.editReport = catchAsync(async (req,res,next)=>{
     SET 
         name = $2,
         terminal = $3,
-        store = $4
+        store = $4,
+        breakup = $5
     WHERE 
-        id = $5                                     -- Report ID to update
+        id = $6                                     -- Report ID to update
         AND user_id = $1
     RETURNING *;                           -- Ensure it belongs to the current user
-    `,[req?.user?.id, req?.body?.name,req?.body?.terminal,req?.body?.store,id]);
+    `,[req?.user?.id, req?.body?.name, req?.body?.terminal, req?.body?.store, req?.body?.breakup, id]);
 
     return res.status(200).json({
         status:"success",
