@@ -693,32 +693,40 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
             };
         brand_stats[source_brand].total_price += price;
         category_stats[source_category].total_price += price;
-        if (sourcerank == 1) {
-            if ((!pricerange || pricerange == "cheapest")) {
+
+        // Determine price range based on source pricerank
+        let price_range = null;
+        if (sourcerank === 1) {
+            price_range = "cheapest";
+            if (!pricerange || pricerange === "cheapest") {
                 cheapest_count += 1;
                 brand_stats[source_brand].cheapest_count += 1;
                 category_stats[source_category].cheapest_count += 1;
                 isConsidered = true;
             }
-        } else if (sourcerank == maxrank) {
-            if (!pricerange || pricerange == "expensive") {
+        } else if (sourcerank === maxrank) {
+            price_range = "expensive";
+            if (!pricerange || pricerange === "expensive") {
                 expensive_count += 1;
                 brand_stats[source_brand].expensive_count += 1;
                 category_stats[source_category].expensive_count += 1;
                 isConsidered = true;
             }
         } else {
-            if ((!pricerange || pricerange == "midrange")) {
+            price_range = "midrange";
+            if (!pricerange || pricerange === "midrange") {
                 midrange_count += 1;
                 brand_stats[source_brand].midrange_count += 1;
                 category_stats[source_category].midrange_count += 1;
                 isConsidered = true;
             }
         }
+
         if (isConsidered) {
             brand_stats[source_brand].pricerank_wise_product_count[sourcerank] = (brand_stats[source_brand].pricerank_wise_product_count[sourcerank] || 0) + 1;
             category_stats[source_category].pricerank_wise_product_count[sourcerank] = (category_stats[source_category].pricerank_wise_product_count[sourcerank] || 0) + 1;
         }
+
         // Attach price_range for pricerange filter
         let productObj = {
             ...p,
@@ -728,10 +736,14 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
             source_name: sourceName,
             average,
             difference,
-            difference_percentage
+            difference_percentage,
+            price_range
         };
-        if (isConsidered) productObj.price_range = sourcerank == 1 ? "cheapest" : (sourcerank == maxrank ? "expensive" : "midrange");
-        filteredProducts.push(productObj);
+
+        // Only add to filteredProducts if it matches the pricerange filter
+        if (!pricerange || productObj.price_range === pricerange) {
+            filteredProducts.push(productObj);
+        }
     }
 
     // Sort data
