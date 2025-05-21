@@ -90,9 +90,9 @@ function uniqueCanprodObjects(arr) {
 exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
-    const terminal = req.query.terminal?.split(",") || null;
-    const store = req.query.store?.split(",") || null;
-    const breakup = req.query.breakup?.split(",") || null;
+    const terminal = req.query.terminal?.split("|") || null;
+    const store = req.query.store?.split("|") || null;
+    const breakup = req.query.breakup?.split("|") || null;
     const sort = req.query.sort || 'price_low_to_high';
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
