@@ -782,7 +782,8 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         price_rank_differences: {},
         category_price_differences: {},
         subcategory_price_differences: {},
-        new_arrivals: []
+        new_arrivals: [],
+        expensive_products: []
     };
 
     // Calculate overall price rank differences between locations
@@ -884,6 +885,23 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         sub_category: product.sub_category,
         price: product.latest_price
     }));
+
+    // Get top 5 most expensive products at source location
+    const expensiveProducts = filteredProducts
+        .filter(product => product.difference_percentage > 0) // Only consider products where source is more expensive
+        .sort((a, b) => parseFloat(b.difference_percentage) - parseFloat(a.difference_percentage)) // Sort by difference_percentage in descending order
+        .slice(0, 5) // Take top 5
+        .map(product => ({
+            title: product.source_name,
+            category: product.products_data.find(pd => pd.website === source)?.category,
+            sub_category: product.products_data.find(pd => pd.website === source)?.sub_category,
+            source_price: product.source_price,
+            average_price: product.average,
+            difference_percentage: product.difference_percentage,
+            difference: product.difference
+        }));
+
+    ai.expensive_products = expensiveProducts;
 
     const totals = filteredProducts.length;
     const paginatedProducts = filteredProducts.slice(offset, offset + limit);
