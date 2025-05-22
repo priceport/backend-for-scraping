@@ -351,6 +351,155 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     let totals = products.length;
     paginatedProducts = products.slice(offset, offset + limit);
 
+    // Calculate AI insights data
+    const ai = {
+        price_rank_differences: {},
+        store_price_differences: {},
+        terminal_price_differences: {},
+        type_price_differences: {},
+        new_arrivals: [],
+        expensive_products: []
+    };
+
+    // Calculate price differences between stores and terminals
+    const storeStats = {};
+    const terminalStats = {};
+    const typeStats = {};
+
+    products.forEach(product => {
+        const sourceStore = product.store_name?.toLowerCase();
+        const sourceTerminal = product.terminal_name;
+        const sourceType = product.type;
+
+        if (!sourceStore || !sourceTerminal) return;
+
+        product.products_data.forEach(pd => {
+            const storeKey = pd.store_name?.toLowerCase();
+            const terminalKey = pd.terminal_name;
+            const typeKey = pd.type;
+
+            if (storeKey === sourceStore) return; // Skip if same store
+
+            // Calculate percentage difference
+            const priceDiff = ((parseFloat(pd.latest_price) - parseFloat(product.store_price)) / parseFloat(product.store_price)) * 100;
+
+            // Store differences
+            if (!storeStats[storeKey]) {
+                storeStats[storeKey] = {
+                    total_difference: 0,
+                    count: 0,
+                    types: {}
+                };
+            }
+            storeStats[storeKey].total_difference += priceDiff;
+            storeStats[storeKey].count++;
+
+            // Terminal differences
+            if (!terminalStats[terminalKey]) {
+                terminalStats[terminalKey] = {
+                    total_difference: 0,
+                    count: 0,
+                    types: {}
+                };
+            }
+            terminalStats[terminalKey].total_difference += priceDiff;
+            terminalStats[terminalKey].count++;
+
+            // Type differences
+            if (!typeStats[typeKey]) {
+                typeStats[typeKey] = {
+                    total_difference: 0,
+                    count: 0
+                };
+            }
+            typeStats[typeKey].total_difference += priceDiff;
+            typeStats[typeKey].count++;
+
+            // Store type differences
+            if (!storeStats[storeKey].types[typeKey]) {
+                storeStats[storeKey].types[typeKey] = {
+                    total_difference: 0,
+                    count: 0
+                };
+            }
+            storeStats[storeKey].types[typeKey].total_difference += priceDiff;
+            storeStats[storeKey].types[typeKey].count++;
+
+            // Terminal type differences
+            if (!terminalStats[terminalKey].types[typeKey]) {
+                terminalStats[terminalKey].types[typeKey] = {
+                    total_difference: 0,
+                    count: 0
+                };
+            }
+            terminalStats[terminalKey].types[typeKey].total_difference += priceDiff;
+            terminalStats[terminalKey].types[typeKey].count++;
+        });
+    });
+
+    // Calculate averages and format the data
+    Object.keys(storeStats).forEach(store => {
+        const stats = storeStats[store];
+        ai.store_price_differences[store] = {
+            average_difference: (stats.total_difference / stats.count).toFixed(2),
+            total_products: stats.count,
+            types: {}
+        };
+
+        // Add type-wise differences for stores
+        Object.keys(stats.types).forEach(type => {
+            const typeStats = stats.types[type];
+            ai.store_price_differences[store].types[type] = {
+                average_difference: (typeStats.total_difference / typeStats.count).toFixed(2),
+                total_products: typeStats.count
+            };
+        });
+    });
+
+    Object.keys(terminalStats).forEach(terminal => {
+        const stats = terminalStats[terminal];
+        ai.terminal_price_differences[terminal] = {
+            average_difference: (stats.total_difference / stats.count).toFixed(2),
+            total_products: stats.count,
+            types: {}
+        };
+
+        // Add type-wise differences for terminals
+        Object.keys(stats.types).forEach(type => {
+            const typeStats = stats.types[type];
+            ai.terminal_price_differences[terminal].types[type] = {
+                average_difference: (typeStats.total_difference / typeStats.count).toFixed(2),
+                total_products: typeStats.count
+            };
+        });
+    });
+
+    Object.keys(typeStats).forEach(type => {
+        const stats = typeStats[type];
+        ai.type_price_differences[type] = {
+            average_difference: (stats.total_difference / stats.count).toFixed(2),
+            total_products: stats.count
+        };
+    });
+
+    // Get top 5 most expensive products at source location
+    const expensiveProducts = products
+        .filter(product => product.difference_percentage > 0) // Only consider products where source is more expensive
+        .sort((a, b) => parseFloat(b.difference_percentage) - parseFloat(a.difference_percentage)) // Sort by difference_percentage in descending order
+        .slice(0, 5) // Take top 5
+        .map(product => ({
+            name: product.product_name,
+            type: product.type,
+            store: product.store_name,
+            terminal: product.terminal_name,
+            source_price: product.store_price,
+            average_price: product.average,
+            difference_percentage: product.difference_percentage,
+            difference: product.difference
+        }));
+
+    ai.expensive_products = expensiveProducts;
+
     // Send response
     return res.status(200).json({
         status: "success",
@@ -365,6 +514,7 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
         },
         store_stats: store_stats,
         terminal_stats: terminal_stats,
+        ai,
         data: paginatedProducts,
         totals
     });
