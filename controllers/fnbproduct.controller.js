@@ -353,152 +353,105 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
 
     // Calculate AI insights data
     const ai = {
-        price_rank_differences: {},
-        store_price_differences: {},
-        terminal_price_differences: {},
-        type_price_differences: {},
-        new_arrivals: [],
-        expensive_products: []
+        terminal_comparisons: {},
+        top_stores_by_terminal: {},
+        top_products_by_terminal: {}
     };
 
-    // Calculate price differences between stores and terminals
-    const storeStats = {};
-    const terminalStats = {};
-    const typeStats = {};
-
+    // Group products by terminal
+    const terminalProducts = {};
     products.forEach(product => {
-        const sourceStore = product.store_name?.toLowerCase();
-        const sourceTerminal = product.terminal_name;
-        const sourceType = product.type;
-
-        if (!sourceStore || !sourceTerminal) return;
-
-        product.products_data.forEach(pd => {
-            const storeKey = pd.store_name?.toLowerCase();
-            const terminalKey = pd.terminal_name;
-            const typeKey = pd.type;
-
-            if (storeKey === sourceStore) return; // Skip if same store
-
-            // Calculate percentage difference
-            const priceDiff = ((parseFloat(pd.latest_price) - parseFloat(product.store_price)) / parseFloat(product.store_price)) * 100;
-
-            // Store differences
-            if (!storeStats[storeKey]) {
-                storeStats[storeKey] = {
-                    total_difference: 0,
-                    count: 0,
-                    types: {}
-                };
-            }
-            storeStats[storeKey].total_difference += priceDiff;
-            storeStats[storeKey].count++;
-
-            // Terminal differences
-            if (!terminalStats[terminalKey]) {
-                terminalStats[terminalKey] = {
-                    total_difference: 0,
-                    count: 0,
-                    types: {}
-                };
-            }
-            terminalStats[terminalKey].total_difference += priceDiff;
-            terminalStats[terminalKey].count++;
-
-            // Type differences
-            if (!typeStats[typeKey]) {
-                typeStats[typeKey] = {
-                    total_difference: 0,
-                    count: 0
-                };
-            }
-            typeStats[typeKey].total_difference += priceDiff;
-            typeStats[typeKey].count++;
-
-            // Store type differences
-            if (!storeStats[storeKey].types[typeKey]) {
-                storeStats[storeKey].types[typeKey] = {
-                    total_difference: 0,
-                    count: 0
-                };
-            }
-            storeStats[storeKey].types[typeKey].total_difference += priceDiff;
-            storeStats[storeKey].types[typeKey].count++;
-
-            // Terminal type differences
-            if (!terminalStats[terminalKey].types[typeKey]) {
-                terminalStats[terminalKey].types[typeKey] = {
-                    total_difference: 0,
-                    count: 0
-                };
-            }
-            terminalStats[terminalKey].types[typeKey].total_difference += priceDiff;
-            terminalStats[terminalKey].types[typeKey].count++;
-        });
+        const terminal = product.terminal_name;
+        if (!terminalProducts[terminal]) {
+            terminalProducts[terminal] = [];
+        }
+        terminalProducts[terminal].push(product);
     });
 
-    // Calculate averages and format the data
-    Object.keys(storeStats).forEach(store => {
-        const stats = storeStats[store];
-        ai.store_price_differences[store] = {
-            average_difference: (stats.total_difference / stats.count).toFixed(2),
-            total_products: stats.count,
-            types: {}
-        };
+    // Calculate terminal comparisons and find top stores/products
+    Object.keys(terminalProducts).forEach(terminal => {
+        const terminalData = terminalProducts[terminal];
 
-        // Add type-wise differences for stores
-        Object.keys(stats.types).forEach(type => {
-            const typeStats = stats.types[type];
-            ai.store_price_differences[store].types[type] = {
-                average_difference: (typeStats.total_difference / typeStats.count).toFixed(2),
-                total_products: typeStats.count
+        // Calculate terminal price differences
+        let totalDiff = 0;
+        let validComparisons = 0;
+        const storeStats = {};
+        const productStats = {};
+
+        terminalData.forEach(product => {
+            // Skip if no products_data
+            if (!product.products_data || product.products_data.length === 0) return;
+
+            // Calculate average price of other stores
+            const otherStoresPrices = product.products_data
+                .filter(pd => pd.store_name !== product.store_name)
+                .map(pd => parseFloat(pd.latest_price));
+
+            if (otherStoresPrices.length === 0) return;
+
+            const averageOtherPrice = otherStoresPrices.reduce((a, b) => a + b, 0) / otherStoresPrices.length;
+            const currentPrice = parseFloat(product.store_price);
+            
+            // Calculate price difference percentage
+            const priceDiff = ((currentPrice - averageOtherPrice) / averageOtherPrice) * 100;
+            
+            totalDiff += priceDiff;
+            validComparisons++;
+
+            // Track store statistics
+            const store = product.store_name;
+            if (!storeStats[store]) {
+                storeStats[store] = {
+                    totalDiff: 0,
+                    count: 0
+                };
+            }
+            storeStats[store].totalDiff += priceDiff;
+            storeStats[store].count++;
+
+            // Track product statistics
+            productStats[product.product_name] = {
+                priceDiff,
+                store: product.store_name,
+                price: product.store_price,
+                average_others_price: averageOtherPrice.toFixed(2),
+                difference: (currentPrice - averageOtherPrice).toFixed(2)
             };
         });
-    });
 
-    Object.keys(terminalStats).forEach(terminal => {
-        const stats = terminalStats[terminal];
-        ai.terminal_price_differences[terminal] = {
-            average_difference: (stats.total_difference / stats.count).toFixed(2),
-            total_products: stats.count,
-            types: {}
+        // Calculate terminal average difference
+        ai.terminal_comparisons[terminal] = {
+            average_difference: validComparisons > 0 ? (totalDiff / validComparisons).toFixed(2) : 0,
+            total_products: validComparisons
         };
 
-        // Add type-wise differences for terminals
-        Object.keys(stats.types).forEach(type => {
-            const typeStats = stats.types[type];
-            ai.terminal_price_differences[terminal].types[type] = {
-                average_difference: (typeStats.total_difference / typeStats.count).toFixed(2),
-                total_products: typeStats.count
-            };
-        });
+        // Find top 5 stores
+        const storeRankings = Object.entries(storeStats)
+            .map(([store, stats]) => ({
+                store,
+                average_difference: (stats.totalDiff / stats.count).toFixed(2),
+                total_products: stats.count
+            }))
+            .sort((a, b) => parseFloat(b.average_difference) - parseFloat(a.average_difference))
+            .slice(0, 5);
+
+        ai.top_stores_by_terminal[terminal] = storeRankings;
+
+        // Find top 5 products
+        const productRankings = Object.entries(productStats)
+            .map(([name, stats]) => ({
+                name,
+                store: stats.store,
+                price: stats.price,
+                average_others_price: stats.average_others_price,
+                difference_percentage: stats.priceDiff.toFixed(2),
+                difference: stats.difference
+            }))
+            .sort((a, b) => parseFloat(b.difference_percentage) - parseFloat(a.difference_percentage))
+            .slice(0, 5);
+
+        ai.top_products_by_terminal[terminal] = productRankings;
     });
-
-    Object.keys(typeStats).forEach(type => {
-        const stats = typeStats[type];
-        ai.type_price_differences[type] = {
-            average_difference: (stats.total_difference / stats.count).toFixed(2),
-            total_products: stats.count
-        };
-    });
-
-    // Get top 5 most expensive products at source location
-    const expensiveProducts = products
-        .filter(product => product.difference_percentage > 0) // Only consider products where source is more expensive
-        .sort((a, b) => parseFloat(b.difference_percentage) - parseFloat(a.difference_percentage)) // Sort by difference_percentage in descending order
-        .slice(0, 5) // Take top 5
-        .map(product => ({
-            name: product.product_name,
-            type: product.type,
-            store: product.store_name,
-            terminal: product.terminal_name,
-            source_price: product.store_price,
-            average_price: product.average,
-            difference_percentage: product.difference_percentage,
-            difference: product.difference
-        }));
-
-    ai.expensive_products = expensiveProducts;
 
     // Send response
     return res.status(200).json({
