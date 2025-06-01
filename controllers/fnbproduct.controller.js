@@ -156,7 +156,9 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     });
 
     // Remove products where products_data has 1 or fewer entries
-    products = products.filter(p => p.products_data.length > 1);
+    if(!admin){
+        products = products.filter(p => p.products_data.length > 1);
+    }
 
     // Filter products based on store and terminal
     if (store) {
