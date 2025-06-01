@@ -595,10 +595,10 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         for (let i = 0; i < unmappedProducts?.rows?.length; i++) {
             let price = await pool.query('select * from price where product_id = $1  order by date desc limit 1;', [unmappedProducts?.rows[i]?.id]);
             if (price?.rows?.length == 0) continue;
-            unmappedProductNew.push({
+                unmappedProductNew.push({
                 canprod_id: null,
                 products_data: [{ ...unmappedProducts?.rows[i], latest_price: price?.rows[0]?.price }]
-            });
+                });
         }
         products = unmappedProductNew;
     }
@@ -626,28 +626,28 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
             if (ai_check !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.ai_check == ai_check) || pd.website == source));
         }
 
-        // Calculate price per unit or fallback to flat price
-        let hasUnitAndQty = true;
-        const rankedProducts = filteredProductsData.map(pd => {
+            // Calculate price per unit or fallback to flat price
+            let hasUnitAndQty = true;
+            const rankedProducts = filteredProductsData.map(pd => { 
             if (!pd.unit || !pd.qty) hasUnitAndQty = false;
-            return ({
+                return ({
                 ...pd,
                 price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
             });
         });
-        // Recalculate ranks with ties
+            // Recalculate ranks with ties
         const rankedWithTies = calculateRanksWithTies(rankedProducts, hasUnitAndQty ? 'price_per_unit' : 'latest_price');
-        let sum = 0;
-        rankedWithTies.forEach(pd => {
-            pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+            let sum = 0;
+            rankedWithTies.forEach(pd => {
+                pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
             if (pd.website != source) sum += parseFloat(pd.latest_price);
-        });
-        // Find the updated source pricerank and price
-        const sourceProduct = rankedWithTies.find(pd => pd.website === source);
+            });
+            // Find the updated source pricerank and price
+            const sourceProduct = rankedWithTies.find(pd => pd.website === source);
         if (!sourceProduct) continue;
-        const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
-        const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
-        const sourceName = sourceProduct ? sourceProduct.title : null;
+            const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
+            const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
+            const sourceName = sourceProduct ? sourceProduct.title : null;
         const average = rankedWithTies?.length != 1 ? (sum / (rankedWithTies?.length - 1)).toFixed(2) : 0;
         const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2) : 0;
         const difference_percentage = sourceProduct ? ((difference / parseFloat(sourceProduct.latest_price)) * 100).toFixed(2) : 0;
@@ -730,12 +730,12 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         // Attach price_range for pricerange filter
         let productObj = {
             ...p,
-            products_data: rankedWithTies,
-            source_pricerank: sourcePriceRank,
-            source_price: sourcePrice,
-            source_name: sourceName,
-            average,
-            difference,
+                products_data: rankedWithTies,
+                source_pricerank: sourcePriceRank,
+                source_price: sourcePrice,
+                source_name: sourceName,
+                average,
+                difference,
             difference_percentage,
             price_range
         };
@@ -779,129 +779,111 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
 
     // Calculate AI insights data
     const ai = {
-        price_rank_differences: {},
-        category_price_differences: {},
-        subcategory_price_differences: {},
-        new_arrivals: [],
-        expensive_products: []
+        duty_free_comparison: {
+            average_difference: 0,
+            total_products: 0
+        },
+        domestic_comparison: {
+            average_difference: 0,
+            total_products: 0
+        },
+        website_comparisons: {},
+        top_expensive_products: []
     };
 
-    // Calculate overall price rank differences between locations
-    const locationStats = {};
+    // Calculate duty-free and domestic comparisons
+    let dutyFreeTotalDiff = 0;
+    let dutyFreeCount = 0;
+    let domesticTotalDiff = 0;
+    let domesticCount = 0;
+    const websiteStats = {};
+
+    // Debug: Log unique tags found in the data
+    const uniqueTags = new Set();
+    filteredProducts.forEach(product => {
+        product.products_data.forEach(pd => {
+            if (pd.tag) uniqueTags.add(pd.tag);
+        });
+    });
+    console.log('Unique tags found:', Array.from(uniqueTags));
+
     filteredProducts.forEach(product => {
         const sourceProduct = product.products_data.find(pd => pd.website === source);
         if (!sourceProduct) return;
 
+        // Calculate website comparisons
         product.products_data.forEach(pd => {
             if (pd.website === source) return;
-            
-            if (!locationStats[pd.website]) {
-                locationStats[pd.website] = {
-                    total_difference: 0,
-                    count: 0,
-                    categories: {},
-                    subcategories: {}
-                };
-            }
 
-            const priceDiff = ((parseFloat(pd.latest_price) - parseFloat(sourceProduct.latest_price)) / parseFloat(sourceProduct.latest_price)) * 100;
-            locationStats[pd.website].total_difference += priceDiff;
-            locationStats[pd.website].count++;
-
-            // Category-wise differences
-            if (!locationStats[pd.website].categories[sourceProduct.category]) {
-                locationStats[pd.website].categories[sourceProduct.category] = {
+            if (!websiteStats[pd.website]) {
+                websiteStats[pd.website] = {
                     total_difference: 0,
                     count: 0
                 };
             }
-            locationStats[pd.website].categories[sourceProduct.category].total_difference += priceDiff;
-            locationStats[pd.website].categories[sourceProduct.category].count++;
 
-            // Subcategory-wise differences
-            if (sourceProduct.sub_category) {
-                if (!locationStats[pd.website].subcategories[sourceProduct.sub_category]) {
-                    locationStats[pd.website].subcategories[sourceProduct.sub_category] = {
-                        total_difference: 0,
-                        count: 0,
-                        category: sourceProduct.category // Include parent category for context
-                    };
-                }
-                locationStats[pd.website].subcategories[sourceProduct.sub_category].total_difference += priceDiff;
-                locationStats[pd.website].subcategories[sourceProduct.sub_category].count++;
+            const priceDiff = ((parseFloat(pd.latest_price) - parseFloat(sourceProduct.latest_price)) / parseFloat(sourceProduct.latest_price)) * 100;
+            websiteStats[pd.website].total_difference += priceDiff;
+            websiteStats[pd.website].count++;
+
+            // Calculate duty-free vs domestic comparisons
+            if (pd.tag === 'duty-free') {  // Changed from 'duty_free' to 'duty-free'
+                dutyFreeTotalDiff += priceDiff;
+                dutyFreeCount++;
+            } else if (pd.tag === 'domestic') {
+                domesticTotalDiff += priceDiff;
+                domesticCount++;
             }
         });
     });
 
-    // Calculate averages and format the data
-    Object.keys(locationStats).forEach(loc => {
-        const stats = locationStats[loc];
-        ai.price_rank_differences[loc] = {
+    console.log('Comparison stats:', {
+        dutyFree: {
+            totalDiff: dutyFreeTotalDiff,
+            count: dutyFreeCount,
+            average: dutyFreeCount > 0 ? (dutyFreeTotalDiff / dutyFreeCount).toFixed(2) : 0
+        },
+        domestic: {
+            totalDiff: domesticTotalDiff,
+            count: domesticCount,
+            average: domesticCount > 0 ? (domesticTotalDiff / domesticCount).toFixed(2) : 0
+        }
+    });
+
+    // Calculate averages for duty-free and domestic comparisons
+    ai.duty_free_comparison = {
+        average_difference: dutyFreeCount > 0 ? (dutyFreeTotalDiff / dutyFreeCount).toFixed(2) : 0,
+        total_products: dutyFreeCount
+    };
+
+    ai.domestic_comparison = {
+        average_difference: domesticCount > 0 ? (domesticTotalDiff / domesticCount).toFixed(2) : 0,
+        total_products: domesticCount
+    };
+
+    // Calculate website comparisons
+    Object.entries(websiteStats).forEach(([website, stats]) => {
+        ai.website_comparisons[website] = {
             average_difference: (stats.total_difference / stats.count).toFixed(2),
             total_products: stats.count
         };
-
-        // Category-wise differences
-        ai.category_price_differences[loc] = {};
-        Object.keys(stats.categories).forEach(cat => {
-            const catStats = stats.categories[cat];
-            ai.category_price_differences[loc][cat] = {
-                average_difference: (catStats.total_difference / catStats.count).toFixed(2),
-                total_products: catStats.count
-            };
-        });
-
-        // Subcategory-wise differences
-        ai.subcategory_price_differences[loc] = {};
-        Object.keys(stats.subcategories).forEach(subcat => {
-            const subcatStats = stats.subcategories[subcat];
-            ai.subcategory_price_differences[loc][subcat] = {
-                average_difference: (subcatStats.total_difference / subcatStats.count).toFixed(2),
-                total_products: subcatStats.count,
-                category: subcatStats.category // Include parent category for context
-            };
-        });
     });
 
-    // Get new arrivals (products created today)
-    const today = new Date().toISOString().split('T')[0];
-    const newArrivals = await pool.query(`
-        SELECT p.*, pr.price as latest_price
-        FROM product p
-        LEFT JOIN LATERAL (
-            SELECT price 
-            FROM price 
-            WHERE product_id = p.id 
-            ORDER BY date DESC 
-            LIMIT 1
-        ) pr ON true
-        WHERE p.website = $1 
-        AND DATE(p.created_at) = $2
-    `, [source, today]);
-
-    ai.new_arrivals = newArrivals.rows.map(product => ({
-        title: product.title,
-        category: product.category,
-        sub_category: product.sub_category,
-        price: product.latest_price
-    }));
-
-    // Get top 5 most expensive products at source location
+    // Get top 10 most expensive products
     const expensiveProducts = filteredProducts
         .filter(product => product.difference_percentage > 0) // Only consider products where source is more expensive
         .sort((a, b) => parseFloat(b.difference_percentage) - parseFloat(a.difference_percentage)) // Sort by difference_percentage in descending order
-        .slice(0, 5) // Take top 5
+        .slice(0, 10) // Take top 10
         .map(product => ({
-            title: product.source_name,
+            name: product.source_name,
             category: product.products_data.find(pd => pd.website === source)?.category,
-            sub_category: product.products_data.find(pd => pd.website === source)?.sub_category,
             source_price: product.source_price,
             average_price: product.average,
             difference_percentage: product.difference_percentage,
             difference: product.difference
         }));
 
-    ai.expensive_products = expensiveProducts;
+    ai.top_expensive_products = expensiveProducts;
 
     const totals = filteredProducts.length;
     const paginatedProducts = filteredProducts.slice(offset, offset + limit);
@@ -909,8 +891,8 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
     return res.status(200).json({
         status: "success",
         message: `All products for ${source} fetched successfully`,
-        stats: {
-            productCount: totals,
+        stats:{
+            productCount: cheapest_count+midrange_count+expensive_count,
             cheapestProducts: cheapest_count,
             midrangeProducts: midrange_count,
             expensiveProducts: expensive_count,
