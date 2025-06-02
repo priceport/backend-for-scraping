@@ -109,11 +109,10 @@ const precomputeDailyData = async (source,checkMappings) => {
             FROM 
                 price p
             WHERE 
-                p.date = (
-                    SELECT MAX(date)
-                    FROM price
-                    WHERE product_id = $1
-                ) AND product_id = $1;`,[temp.id]);
+                p.product_id = $1
+            ORDER BY 
+                p.date DESC
+            LIMIT 1;`,[temp.id]);
             // console.log(price.rows[0].price);
 
             if(!price?.rows || price?.rows?.length == 0){
@@ -301,8 +300,8 @@ const precomputeDailyData = async (source,checkMappings) => {
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );
 
-        // if(checFokMappings)
-        // await checkrWrongMappings(finalData);
+        // if(checkMappings)
+        // await checkForWrongMappings(finalData);
 
         console.log('Daily product data successfully precomputed and cached!');
     } catch (error) {
