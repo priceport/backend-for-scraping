@@ -66,7 +66,7 @@ exports.analyze = catchAsync(async (req,res,next)=>{
 
     const completion = await openai.chat.completions.create({
       messages: [
-        { role: 'system', content: 'You are a helpful data analyst' },
+        { role: 'system', content: 'You are a helpful data analyst who analyze data and give helpful json responses that helps our frontend show the data using json. please give the response in json format else it can generate errors in our frontend' },
         { role: 'user', content: prompt },
       ],
       model: 'gpt-4',
