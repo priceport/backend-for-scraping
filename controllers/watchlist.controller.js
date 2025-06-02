@@ -158,7 +158,7 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
         return {
             ...product,
             source_price: sourceProduct.latest_price,
-            source_pricerank: sourceProduct.pricerank,
+            source_pricerank: parseInt(sourceProduct.pricerank.split('/')[0]),
             source_name: sourceProduct.title,
             average,
             difference,
