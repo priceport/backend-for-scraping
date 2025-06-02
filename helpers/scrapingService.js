@@ -4,6 +4,7 @@ const logError = require("./logError");
 const precomputeDailyData = require("./precomputeDailyData");
 const precomputeDailyDataFNB = require("./precomputeDailyDataFNB");
 const scrapeAelia = require("./scrapeAelia");
+const scrapeAeliaAdelaide = require("./scrapeAeliaAdelaide");
 const scrapeAeliaChristchurch = require("./scrapeAeliaChristchurch");
 const scrapeAeliaQueensland = require("./scrapeAeliaQueensland");
 const scrapeBeautyBliss = require("./scrapeBeautyBliss");
@@ -26,7 +27,7 @@ const scrapingService =async ()=>{
 
    console.log("scraping started at:"+Date.now());
 
-   let doneAuckland = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false;
+   let doneAuckland = false, doneAdelaide = false, doneQueensland = false, doneSydney = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false;
    let start_page=1, end_page = 1;
 
    let internalStates = {
@@ -52,6 +53,24 @@ const scrapingService =async ()=>{
         vodka:false,
         whisky:false,
         white:false
+      },
+      adelaide: {
+        brandy: false,
+        cognac: false,
+        fragrance: false,
+        gift_sets: false,
+        gin: false,
+        liqueurs: false,
+        makeup: false,
+        red: false,
+        rose: false,
+        rum: false,
+        skin_care: false,
+        sparkling_champagne: false,
+        tequila: false,
+        vodka: false,
+        whisky: false,
+        white: false
       },
       queensland:{
          baijiu:false,
@@ -304,7 +323,7 @@ const scrapingService =async ()=>{
       }
    };
 
-   while(!doneAuckland||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||!doneChemistWarehouse){
+   while(!doneAuckland||!doneAdelaide||!doneQueensland||!doneSydney||!doneMelbourne||!doneBrisbane||!doneChristchurch||!doneWhiskyAndMore||!doneNzLiquor||!doneBigBarrel||!doneSephora||!doneBeautyBliss||!doneMecca||!doneFarmers||!doneChemistWarehouse){
 
       const browser = await puppeteer.launch({headless:true ,args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
@@ -313,6 +332,14 @@ const scrapingService =async ()=>{
          doneAuckland = await scrapeAelia(start_page,end_page,internalStates,browser);
       }catch(err){
          console.log("There was an error while scraping from aelia auckland");
+         logError(err);
+      }
+
+      if(!doneAdelaide)
+      try{
+         doneAdelaide = await scrapeAeliaAdelaide(start_page,end_page,internalStates,browser);
+      }catch(err){
+         console.log("There was an error while scraping from aelia adelaide");
          logError(err);
       }
 
