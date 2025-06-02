@@ -2,6 +2,7 @@ const pool = require("../configs/postgresql.config");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const isBodyComplete = require("../utils/isBodyComplete");
+const redisClient = require("../configs/redis.config");
 
 
 const source = {
@@ -85,6 +86,7 @@ exports.addProductToWatchlist = catchAsync(async (req,res,next)=>{
 
 exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     const { watchlistId } = req.params;
+    const source = req.query.source;
 
     if (!watchlistId) {
         return next(
@@ -92,160 +94,83 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
         );
     }
 
-    const productData = await pool.query(`
-    WITH unit_conversion AS (
-        SELECT 'kg' AS unit, 1000.0 AS multiplier
-        UNION ALL 
-        SELECT 'g', 1.0
-        UNION ALL 
-        SELECT 'gm', 1.0
-        UNION ALL 
-        SELECT 'l', 1000.0
-        UNION ALL 
-        SELECT 'ml', 1.0
-    ),
-    watchlist_items AS (
+    if (!source) {
+        return next(
+            new AppError("Source param required", 400)
+        );
+    }
+
+    // First get the watchlist products
+    const watchlistProducts = await pool.query(`
         SELECT 
-            wp.product_id AS watchlist_product_id,
-            wp.website AS source_website,
-            p.canprod_id AS canprod_id
+            wp.product_id,
+            wp.website AS source_website
         FROM 
             watchlist_products wp
-        JOIN 
-            product p ON wp.product_id = p.id
         WHERE 
-            wp.watchlist_id = $1 -- Replace with the watchlist ID
-    ),
-    latest_prices AS (
-        SELECT 
-            price.product_id AS price_product_id,
-            MAX(price.date) AS latest_date
-        FROM 
-            price
-        GROUP BY 
-            price.product_id
-    ),
-    latest_price_data AS (
-        SELECT 
-            p.product_id AS product_id,
-            p.price AS latest_price,
-            p.date AS price_date
-        FROM 
-            price p
-        JOIN 
-            latest_prices lp 
-            ON p.product_id = lp.price_product_id AND p.date = lp.latest_date
-    ),
-    latest_promotions AS (
-        SELECT 
-            prom.product_id,
-            prom.text,
-            prom.date,
-            prom.price
-        FROM 
-            promotion prom
-        INNER JOIN (
-            SELECT 
-                product_id,
-                MAX(date) AS latest_date
-            FROM 
-                promotion
-            GROUP BY 
-                product_id
-        ) latest_prom ON prom.product_id = latest_prom.product_id AND prom.date = latest_prom.latest_date
-    ),
-    competing_products AS (
-        SELECT 
-            wi.canprod_id AS canprod_id,
-            wi.source_website AS source_website,
-            p.id AS product_id,
-            p.title,
-            p.brand,
-            p.description,
-            p.alcohol,
-            p.url,
-            p.image_url,
-            p.qty,
-            p.unit,
-            p.created_at,
-            p.last_checked,
-            p.category,
-            p.sub_category,
-            p.website,
-            lpd.latest_price AS latest_price,
-            COALESCE(
-                lpd.latest_price / NULLIF(p.qty * uc.multiplier, 0), 
-                lpd.latest_price -- Fallback to absolute price if qty or unit is missing
-            ) AS price_per_base_unit
-        FROM 
-            watchlist_items wi
-        JOIN 
-            product p ON wi.canprod_id = p.canprod_id
-        LEFT JOIN 
-            latest_price_data lpd ON p.id = lpd.product_id
-        LEFT JOIN 
-            unit_conversion uc ON p.unit = uc.unit
-    ),
-    ranked_products AS (
-        SELECT 
-            cp.*,
-            RANK() OVER (PARTITION BY cp.canprod_id ORDER BY cp.price_per_base_unit ASC) AS rank,
-            COUNT(*) OVER (PARTITION BY cp.canprod_id) AS total_competitors
-        FROM 
-            competing_products cp
-    ),
-    source_ranked_products AS (
-        SELECT 
-            rp.canprod_id,
-            rp.source_website,
-            rp.rank AS source_pricerank,
-            rp.latest_price AS source_price
-        FROM 
-            ranked_products rp
-        WHERE 
-            rp.website = rp.source_website
-    )
-    SELECT 
-        rp.canprod_id AS canprod_id,
-        json_agg(
-            json_build_object(
-                'qty', rp.qty,
-                'url', rp.url,
-                'unit', rp.unit,
-                'brand', rp.brand,
-                'title', rp.title,
-                'website', rp.website,
-                'category', rp.category,
-                'image_url', rp.image_url,
-                'pricerank', rp.rank || '/' || rp.total_competitors,
-                'product_id', rp.product_id,
-                'description', rp.description,
-                'latest_price', rp.latest_price,
-                'sub_category', rp.sub_category,
-                'latest_promotions', (
-                    SELECT json_agg(json_build_object('text',lp.text,'price',lp.price,'date',lp.date)) 
-                    FROM latest_promotions lp
-                    WHERE lp.product_id = rp.product_id
-                )
-            )
-        ) AS products_data,
-        srp.source_pricerank,
-        srp.source_price
-    FROM 
-        ranked_products rp
-    LEFT JOIN 
-        source_ranked_products srp
-    ON 
-        rp.canprod_id = srp.canprod_id AND rp.source_website = srp.source_website
-    GROUP BY 
-        rp.canprod_id, rp.source_website, srp.source_pricerank, srp.source_price;                   
-    `,[watchlistId]);
+            wp.watchlist_id = $1
+    `, [watchlistId]);
+
+    if (!watchlistProducts.rows.length) {
+        return res.status(200).json({
+            status: "success",
+            message: "No products in watchlist",
+            data: []
+        });
+    }
+
+    // Get the cached data from Redis
+    const cachedData = await redisClient.get('daily_product_data');
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
+
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Filter products based on watchlist product IDs
+    const watchlistProductIds = watchlistProducts.rows.map(wp => wp.product_id);
+
+    products = products.filter(product => {
+        // Check if any product in products_data matches our watchlist product IDs
+        return product.products_data.some(pd => watchlistProductIds.includes(pd.product_id));
+    });
+
+    // Add source price, pricerank, and price comparisons to each product
+    products = products.map(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (!sourceProduct) return null;
+
+        // Calculate average price of competitors
+        let sum = 0;
+        let competitorCount = 0;
+        product.products_data.forEach(pd => {
+            if (pd.website !== source) {
+                sum += parseFloat(pd.latest_price);
+                competitorCount++;
+            }
+        });
+
+        const average = competitorCount > 0 ? (sum / competitorCount).toFixed(2) : 0;
+        const difference = (parseFloat(sourceProduct.latest_price) - parseFloat(average)).toFixed(2);
+        const difference_percentage = ((parseFloat(difference) / parseFloat(sourceProduct.latest_price)) * 100).toFixed(2);
+
+        return {
+            ...product,
+            source_price: sourceProduct.latest_price,
+            source_pricerank: sourceProduct.pricerank,
+            source_name: sourceProduct.title,
+            average,
+            difference,
+            difference_percentage
+        };
+    }).filter(product => product !== null); // Remove any products where source wasn't found
 
     // Respond with the fetched products
     return res.status(200).json({
         status: "success",
         message: "Products from watchlist fetched successfully",
-        data: productData?.rows,
+        data: products
     });
 });
 
