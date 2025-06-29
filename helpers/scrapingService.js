@@ -20,16 +20,19 @@ const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
+const scrapeDanMurphy = require("./scrapeDanMurphy");
+
 const updateDailyPriceStats = require("./updateDailyPriceStats");
 const updateProductPriceRank = require("./updateProductPriceRank");
 const waitForXTime = require("./waitForXTime");
 const puppeteer = require('puppeteer');
 
+
 const scrapingService =async ()=>{
 
    console.log("scraping started at:"+Date.now());
 
-   let doneAuckland = false, doneAdelaide = false, doneQueensland = false, doneSydney = false, doneGoldcoast = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneCairns = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false;
+   let doneAuckland = false, doneAdelaide = false, doneQueensland = false, doneSydney = false, doneGoldcoast = false, doneMelbourne = false, doneBrisbane = false, doneChristchurch = false, doneCairns = false, doneWhiskyAndMore = false, doneNzLiquor=false, doneBigBarrel=false, doneSephora=false, doneBeautyBliss = false, doneMecca = false, doneFarmers = false, doneChemistWarehouse=false, doneDanMurphy=false;
    let start_page=1, end_page = 1;
 
    let internalStates = {
@@ -396,6 +399,27 @@ const scrapingService =async ()=>{
          skincare:false,
          cosmetic:false,
          haircare:false
+      },
+      danMurphy:{
+         aperitifs:false,
+         baijiu:false,
+         beer:false,
+         bourbon:false,
+         brandy_cognac:false,
+         champagne_sparkling:false,
+         cider:false,
+         gin:false,
+         liqueurs:false,
+         premix_drinks:false,
+         red_wine:false,
+         rum:false,
+         sake:false,
+         soju_shochu:false,
+         spirits:false,
+         tequila:false,
+         vodka:false,
+         whisky:false,
+         white_wine:false
       }
    };
 
@@ -525,6 +549,14 @@ const scrapingService =async ()=>{
       }
 
       await browser.close();
+
+      if(!doneDanMurphy)
+      try{
+         doneDanMurphy = await scrapeDanMurphy(start_page,end_page,internalStates,browser);
+      }catch(err){
+         console.log("There was an error while scraping from dan murphy");
+         logError(err);
+      }
 
       if(!doneSephora)
       try{
