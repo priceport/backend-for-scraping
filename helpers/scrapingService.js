@@ -20,6 +20,8 @@ const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
+const scrapeDanMurphy = require("./scrapeDanMurphy");
+
 const updateDailyPriceStats = require("./updateDailyPriceStats");
 const updateProductPriceRank = require("./updateProductPriceRank");
 const waitForXTime = require("./waitForXTime");
@@ -30,8 +32,9 @@ const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
 
-const scrapingService = async () => {
-  console.log("scraping started at:" + Date.now());
+
+
+const scrapingService =async ()=>{
 
   let doneAuckland = false,
     doneAdelaide = false,
@@ -53,8 +56,10 @@ const scrapingService = async () => {
     doneTheIconic = false,
     doneAuMecca = false,
     doneAuSephora = false,
-    doneAuChemistWarehouse = false;
-  doneAuThemall = false;
+    doneAuChemistWarehouse = false,
+  doneAuThemall = false,
+doneDanMurphy=false;
+
 
   let start_page = 1,
     end_page = 1;
@@ -531,6 +536,27 @@ const scrapingService = async () => {
       mens_body: false,
       mens_grooming: false,
     },
+    danMurphy:{
+         aperitifs:false,
+         baijiu:false,
+         beer:false,
+         bourbon:false,
+         brandy_cognac:false,
+         champagne_sparkling:false,
+         cider:false,
+         gin:false,
+         liqueurs:false,
+         premix_drinks:false,
+         red_wine:false,
+         rum:false,
+         sake:false,
+         soju_shochu:false,
+         spirits:false,
+         tequila:false,
+         vodka:false,
+         whisky:false,
+         white_wine:false
+      }
   };
 
   while (
@@ -803,12 +829,21 @@ const scrapingService = async () => {
 
     await browser.close();
 
-    if (!doneSephora)
-      try {
-        doneSephora = await scrapeSephora(start_page, end_page, internalStates);
-      } catch (err) {
-        console.log("There was an error while scraping from sephora");
-        logError(err);
+
+      if(!doneDanMurphy)
+      try{
+         doneDanMurphy = await scrapeDanMurphy(start_page,end_page,internalStates,browser);
+      }catch(err){
+         console.log("There was an error while scraping from dan murphy");
+         logError(err);
+      }
+
+      if(!doneSephora)
+      try{
+         doneSephora = await scrapeSephora(start_page,end_page,internalStates);
+      }catch(err){
+         console.log("There was an error while scraping from sephora");
+         logError(err);
       }
 
     if (!doneChemistWarehouse)
