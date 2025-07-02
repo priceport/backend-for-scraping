@@ -57,7 +57,7 @@ const calculateRanksWithTies = (items, valueKey) => {
 exports.getAllSubcategoryBySource = catchAsync(async (req, res, next) => {
     const source = req.query.source;
 
-    const sub_category = await pool.query(`select distinct sub_category from product where website = $1 and last_checked::date > current_date - 2 group by sub_category;`,[source]);
+    const sub_category = await pool.query(`select distinct sub_category from product where website = $1 and last_checked::date > current_date - 15 group by sub_category;`,[source]);
     
     return res.status(200).json({
         status: "success",
