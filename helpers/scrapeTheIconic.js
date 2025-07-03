@@ -1151,6 +1151,7 @@ const scrapeTheIconic = async (start, end, state) => {
     console.log("There was an error while updating data");
     logError(err);
   }
+  await browser.close();
 
   console.log("entries updated for the_iconic");
   return serums_and_treatmentsData?.length == 0;
