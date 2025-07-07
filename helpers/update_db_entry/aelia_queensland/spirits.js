@@ -23,6 +23,12 @@ const updateDBEntry = async (data) => {
         img,
         promo,
       } = data[iterator];
+
+      if(price[0].price == 0){
+        iterator += 1;
+        continue;
+      }
+
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
         quantity,

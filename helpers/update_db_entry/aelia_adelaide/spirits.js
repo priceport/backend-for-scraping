@@ -22,6 +22,12 @@ const updateDBEntry = async (data) => {
         img,
         promo,
       } = data[iterator];
+
+      if(price[0].price == 0){
+        iterator += 1;
+        continue;
+      }
+
       let product = await pool.query(
         "SELECT * FROM product WHERE url = $1 AND website = $2",
         [url, "aelia_adelaide"]
