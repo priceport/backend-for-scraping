@@ -111,7 +111,8 @@ const precomputeDailyData = async (source,checkMappings) => {
             WHERE 
                 p.product_id = $1
             ORDER BY 
-                p.date DESC
+                p.date DESC, 
+                p.id DESC
             LIMIT 1;`,[temp.id]);
             // console.log(price.rows[0].price);
 
