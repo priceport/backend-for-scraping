@@ -72,10 +72,11 @@ const updateDBEntry = async (data) => {
         // Check the most recent price for this product and website
         const latestPrice = await pool.query(
           `SELECT price 
-                    FROM price 
-                    WHERE product_id = $1 AND website = $2 
-                    ORDER BY date DESC 
-                    LIMIT 1`,
+            FROM price 
+            WHERE product_id = $1 
+              AND website = $2 
+            ORDER BY date DESC, id DESC 
+            LIMIT 1`,
           [product?.rows[0]?.id, "aelia_auckland"]
         );
 

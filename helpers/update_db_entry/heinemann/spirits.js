@@ -79,7 +79,7 @@ const updateDBEntry = async (data) => {
         `SELECT price 
                 FROM price 
                 WHERE product_id = $1 AND website = $2 
-                ORDER BY date DESC 
+                ORDER BY date DESC, id DESC 
                 LIMIT 1`,
         [product?.rows[0]?.id, "heinemann_sydney"]
       );
