@@ -966,27 +966,32 @@ exports.getPriceRankFor = catchAsync(async (req,res,next)=>{
 exports.getAllBrands = catchAsync(async (req, res, next) => {
     const { source } = req.query;
 
-    let query = `
-        SELECT DISTINCT brand 
-        FROM product 
-        WHERE canprod_id IS NOT NULL 
-          AND brand IS NOT NULL
-    `;
-    const values = [];
-
-    if (source) {
-        query += ` AND website = $1`;
-        values.push(source);
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+source);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
 
-    query += ` ORDER BY brand ASC`;
+    // Parse cached data
+    let products = JSON.parse(cachedData);
 
-    const data = await pool.query(query, values);
+    // Extract unique brands from precomputed data
+    const brandSet = new Set();
+    
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (sourceProduct && sourceProduct.brand) {
+            brandSet.add(sourceProduct.brand);
+        }
+    });
+
+    // Convert Set to Array and sort alphabetically
+    const brands = Array.from(brandSet).sort();
 
     return res.status(200).json({
         status: "success",
         message: "All brands fetched",
-        data: data?.rows
+        data: brands.map(brand => ({ brand }))
     });
 });
 
