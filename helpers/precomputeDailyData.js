@@ -296,7 +296,7 @@ const precomputeDailyData = async (source,checkMappings) => {
         console.log("product length for today is:"+finalData?.length);
         // Store the result in Redis
         await redisClient.set(
-            'daily_product_data', // Key to store data
+            'daily_product_data'+source, // Key to store data
             JSON.stringify(finalData), // Serialize data to JSON
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );

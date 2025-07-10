@@ -120,7 +120,7 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     }
 
     // Get the cached data from Redis
-    const cachedData = await redisClient.get('daily_product_data');
+    const cachedData = await redisClient.get('daily_product_data'+source);
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }

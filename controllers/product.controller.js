@@ -75,7 +75,7 @@ exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
         }
 
         // Fetch precomputed data from Redis
-        const cachedData = await redisClient.get('daily_product_data');
+        const cachedData = await redisClient.get('daily_product_data'+source);
         if (!cachedData) {
             return next(new AppError("Precomputed data not available. Try again later.", 500));
         }
@@ -135,7 +135,7 @@ exports.getMarginallyBehindProducts = catchAsync(async (req, res, next) => {
     }
 
     // Fetch precomputed data from Redis
-    const cachedData = await redisClient.get('daily_product_data');
+    const cachedData = await redisClient.get('daily_product_data'+source);
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
@@ -582,7 +582,7 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
-    const cachedData = await redisClient.get('daily_product_data');
+    const cachedData = await redisClient.get('daily_product_data'+source);
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
