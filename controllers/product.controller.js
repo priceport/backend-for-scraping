@@ -57,12 +57,32 @@ const calculateRanksWithTies = (items, valueKey) => {
 exports.getAllSubcategoryBySource = catchAsync(async (req, res, next) => {
     const source = req.query.source;
 
-    const sub_category = await pool.query(`select distinct sub_category from product where website = $1 and last_checked::date > current_date - 15 group by sub_category;`,[source]);
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+source);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
+
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Extract unique subcategories from precomputed data
+    const subcategorySet = new Set();
     
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (sourceProduct && sourceProduct.sub_category) {
+            subcategorySet.add(sourceProduct.sub_category);
+        }
+    });
+
+    // Convert Set to Array and sort alphabetically
+    const subcategories = Array.from(subcategorySet).sort();
+
     return res.status(200).json({
         status: "success",
         message: "Sub category fetched succesfully",
-        data: sub_category?.rows,
+        data: subcategories.map(sub_category => ({ sub_category }))
     });
 })
 exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
@@ -1005,7 +1025,7 @@ exports.getAllLocations = catchAsync(async (req,res,next)=>{
 
     return res.status(200).json({
         status:"success",
-        message:"All brands fetched",
+        message:"All locations fetched",
         data:data?.rows
     })
 })
