@@ -313,85 +313,98 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
     if(filter=="all"||!filter) filter=null;
     else filter = filter.split(",");
 
-    // if(!sourceQuery){
-    //     return next(
-    //         new AppError("Source param required",400)
-    //     )
-    // }
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+sourceQuery);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
 
-    const brandCount = await pool.query(`WITH unique_products AS (
-        SELECT 
-            DISTINCT ON (ppr.canprod_id) 
-            ppr.product_id,
-            ppr.canprod_id,
-            ppr.website,
-            ppr.price_rank,
-            ppr.total_peers,
-            ppr.price_per_unit,
-            ppr.date,
-            p.brand AS product_brand
-        FROM 
-            product_price_rank ppr
-        JOIN 
-            product p ON ppr.product_id = p.id
-        WHERE 
-            ($1::text[] IS NULL OR p.category = ANY($1))
-        ORDER BY 
-            ppr.canprod_id, p.brand, ppr.date DESC
-    ),
-    labeled_data AS (
-        SELECT 
-            up.product_brand,
-            up.canprod_id,
-            CASE 
-                WHEN up.price_rank = 1 THEN 'cheapest'
-                WHEN up.price_rank = up.total_peers THEN 'expensive'
-                ELSE 'midrange'
-            END AS price_label
-        FROM 
-            unique_products up
-    ),
-    brand_summary AS (
-        SELECT 
-            ld.product_brand,
-            COUNT(DISTINCT ld.canprod_id) AS product_count,
-            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
-            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
-            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
-        FROM 
-            labeled_data ld
-        GROUP BY 
-            ld.product_brand
-    ),
-    brand_ranked AS (
-        SELECT 
-            bs.product_brand,
-            bs.product_count,
-            bs.cheapest_count,
-            bs.expensive_count,
-            bs.midrange_count,
-            ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) AS percentage_cheapest,
-            RANK() OVER (ORDER BY ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) DESC) AS price_rank
-        FROM 
-            brand_summary bs
-    )
-    SELECT 
-        product_brand AS brand,
-        product_count,
-        cheapest_count,
-        expensive_count,
-        midrange_count,
-        percentage_cheapest,
-        price_rank
-    FROM 
-        brand_ranked;    
-    `,[filter]);
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Filter products based on category filter
+    if (filter) {
+        products = products.filter(product => {
+            const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+            return sourceProduct && filter.includes(sourceProduct.category);
+        });
+    }
+
+    // Calculate brand stats from precomputed data
+    const brandStats = {};
+
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+        if (!sourceProduct) return;
+
+        const brand = sourceProduct.brand;
+        if (!brand) return;
+
+        // Calculate price_per_unit for ranking
+        const rankedProducts = product.products_data.map(pd => ({
+            ...pd,
+            price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+        }));
+
+        // Calculate ranks with ties
+        const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+        
+        // Find source product rank
+        const sourceRankedProduct = rankedWithTies.find(pd => pd.website === sourceQuery);
+        if (!sourceRankedProduct) return;
+
+        const maxRank = Math.max(...rankedWithTies.map(pd => pd.rank));
+        
+        // Determine price label
+        let priceLabel;
+        if (sourceRankedProduct.rank === 1) {
+            priceLabel = 'cheapest';
+        } else if (sourceRankedProduct.rank === maxRank) {
+            priceLabel = 'expensive';
+        } else {
+            priceLabel = 'midrange';
+        }
+
+        // Initialize brand stats if not exists
+        if (!brandStats[brand]) {
+            brandStats[brand] = {
+                brand: brand,
+                product_count: 0,
+                cheapest_count: 0,
+                expensive_count: 0,
+                midrange_count: 0
+            };
+        }
+
+        // Update brand stats
+        brandStats[brand].product_count += 1;
+        if (priceLabel === 'cheapest') {
+            brandStats[brand].cheapest_count += 1;
+        } else if (priceLabel === 'expensive') {
+            brandStats[brand].expensive_count += 1;
+        } else {
+            brandStats[brand].midrange_count += 1;
+        }
+    });
+
+    // Calculate percentage_cheapest and price_rank
+    const brandData = Object.values(brandStats).map(brand => ({
+        ...brand,
+        percentage_cheapest: brand.product_count > 0 ? 
+            parseFloat(((brand.cheapest_count / brand.product_count) * 100).toFixed(2)) : 0
+    }));
+
+    // Sort by percentage_cheapest and add price_rank
+    brandData.sort((a, b) => b.percentage_cheapest - a.percentage_cheapest);
+    brandData.forEach((brand, index) => {
+        brand.price_rank = index + 1;
+    });
 
     return res.status(200).json({
         status:"success",
         message:"Brand stats calculated succesfully",
         data:{
-            brandData:brandCount.rows
+            brandData: brandData
         }
     })
 })
