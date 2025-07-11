@@ -100,15 +100,19 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
         );
     }
 
-    // First get the watchlist products
+    // First get the watchlist products with their canprod_id
     const watchlistProducts = await pool.query(`
         SELECT 
             wp.product_id,
-            wp.website AS source_website
+            wp.website AS source_website,
+            p.canprod_id
         FROM 
             watchlist_products wp
+        JOIN 
+            product p ON wp.product_id = p.id
         WHERE 
             wp.watchlist_id = $1
+            AND p.canprod_id IS NOT NULL
     `, [watchlistId]);
 
     if (!watchlistProducts.rows.length) {
@@ -128,12 +132,12 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     // Parse cached data
     let products = JSON.parse(cachedData);
 
-    // Filter products based on watchlist product IDs
-    const watchlistProductIds = watchlistProducts.rows.map(wp => wp.product_id);
+    // Filter products based on canprod_id from watchlist products
+    const watchlistCanprodIds = watchlistProducts.rows.map(wp => wp.canprod_id);
 
     products = products.filter(product => {
-        // Check if any product in products_data matches our watchlist product IDs
-        return product.products_data.some(pd => watchlistProductIds.includes(pd.product_id));
+        // Check if the product's canprod_id matches any of our watchlist canprod_ids
+        return watchlistCanprodIds.includes(product.canprod_id);
     });
 
     // Add source price, pricerank, and price comparisons to each product
