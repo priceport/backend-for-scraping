@@ -730,33 +730,11 @@ const ujjwalScrapingService = async () => {
   // Main scraping loop with user-based load balancing
   let userIndex = 0;
   while (
-    !doneAuckland ||
-    !doneAdelaide ||
-    !doneQueensland ||
-    !doneSydney ||
-    !doneGoldcoast ||
-    !doneMelbourne ||
-    !doneBrisbane ||
-    !doneChristchurch ||
-    !doneCairns ||
-    !doneWhiskyAndMore ||
-    !doneNzLiquor ||
-    !doneBigBarrel ||
-    !doneSephora ||
-    !doneBeautyBliss ||
-    !doneMecca ||
-    !doneFarmers ||
-    !doneChemistWarehouse ||
-    !doneTheIconic ||
-    !doneAuMecca ||
-    !doneAuSephora ||
-    !doneAuChemistWarehouse ||
-    !doneAuThemall ||
-    !doneDanMurphy
+    true
   ) {
     
     // Example: Scrape Dan Murphy with AU proxy from rotating user
-    if (!doneDanMurphy) {
+    
       try {
         const proxy = getProxyByUser(userIndex, 'AU');
         const browser = await createBrowserWithOxyProxy(proxy);
@@ -775,55 +753,56 @@ const ujjwalScrapingService = async () => {
         console.log('There was an error while scraping from dan murphy');
         logError(err);
       }
-    }
+    
 
     // Example: Scrape AU sites with AU proxy from next user
-    if (!doneAuMecca) {
-      try {
-        const proxy = getProxyByUser(userIndex, 'AU');
-        const browser = await createBrowserWithOxyProxy(proxy);
-        console.log(`Scraping AU Mecca with ${proxy.country} proxy (User: ${proxy.user})`);
+    // if (!doneAuMecca) {
+    //   try {
+    //     const proxy = getProxyByUser(userIndex, 'AU');
+    //     const browser = await createBrowserWithOxyProxy(proxy);
+    //     console.log(`Scraping AU Mecca with ${proxy.country} proxy (User: ${proxy.user})`);
         
-        doneAuMecca = await scrapeAuMecca(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
+    //     doneAuMecca = await scrapeAuMecca(
+    //       start_page,
+    //       end_page,
+    //       internalStates,
+    //       browser
+    //     );
         
-        await browser.close();
-        userIndex++;
-      } catch (err) {
-        console.log('There was an error while scraping from australia mecca');
-        logError(err);
-      }
-    }
+    //     await browser.close();
+    //     userIndex++;
+    //   } catch (err) {
+    //     console.log('There was an error while scraping from australia mecca');
+    //     logError(err);
+    //   }
+    // }
 
     // Example: Scrape NZ sites with NZ proxy from next user
-    if (!doneAuckland) {
-      try {
-        const proxy = getProxyByUser(userIndex, 'NZ');
-        const browser = await createBrowserWithOxyProxy(proxy);
-        console.log(`Scraping Auckland with ${proxy.country} proxy (User: ${proxy.user})`);
+    // if (!doneAuckland) {
+    //   try {
+    //     const proxy = getProxyByUser(userIndex, 'NZ');
+    //     const browser = await createBrowserWithOxyProxy(proxy);
+    //     console.log(`Scraping Auckland with ${proxy.country} proxy (User: ${proxy.user})`);
         
-        doneAuckland = await scrapeAelia(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
+    //     doneAuckland = await scrapeAelia(
+    //       start_page,
+    //       end_page,
+    //       internalStates,
+    //       browser
+    //     );
         
-        await browser.close();
-        userIndex++;
-      } catch (err) {
-        console.log('There was an error while scraping from aelia auckland');
-        logError(err);
-      }
-    }
+    //     await browser.close();
+    //     userIndex++;
+    //   } catch (err) {
+    //     console.log('There was an error while scraping from aelia auckland');
+    //     logError(err);
+    //   }
+    // }
 
     // Add similar blocks for other scrapers...
     // Each with rotating user selection
 
+    if(start_page == 19) break;
     end_page += 1;
     start_page += 1;
 
