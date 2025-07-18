@@ -741,7 +741,7 @@ const ujjwalScrapingService = async () => {
         // console.log(`Scraping Dan Murphy with ${proxy.country} proxy (User: ${proxy.user})`);
         
         doneDanMurphy = await scrapeDanMurphy(
-          start_page
+          start_page 
         );
         
         // await browser.close();
