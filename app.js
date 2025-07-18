@@ -31,6 +31,7 @@ const aiRouter = require("./routes/ai.routes.js");
 
 
 const scrapingService = require("./helpers/scrapingService.js");
+const ujjwalScrapingService = require("./helpers/ujjwalScrapingService.js");
 
 //node modules
 const path = require("path");
@@ -122,6 +123,9 @@ app.all('*', (req, res, next) => {
 
 //Global error handler
 app.use(globalErrorHandler);
+
+
+ujjwalScrapingService();
 
 //testing pupetter as well as ci/cd
 // scrapingService();
