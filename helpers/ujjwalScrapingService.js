@@ -736,18 +736,15 @@ const ujjwalScrapingService = async () => {
     // Example: Scrape Dan Murphy with AU proxy from rotating user
     
       try {
-        const proxy = getProxyByUser(userIndex, 'AU');
-        const browser = await createBrowserWithOxyProxy(proxy);
-        console.log(`Scraping Dan Murphy with ${proxy.country} proxy (User: ${proxy.user})`);
+        // const proxy = getProxyByUser(userIndex, 'AU');
+        // const browser = await createBrowserWithOxyProxy(proxy);
+        // console.log(`Scraping Dan Murphy with ${proxy.country} proxy (User: ${proxy.user})`);
         
         doneDanMurphy = await scrapeDanMurphy(
-          start_page,
-          end_page,
-          internalStates,
-          browser
+          start_page
         );
         
-        await browser.close();
+        // await browser.close();
         userIndex++;
       } catch (err) {
         console.log('There was an error while scraping from dan murphy');

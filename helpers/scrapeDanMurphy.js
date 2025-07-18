@@ -22,7 +22,7 @@ const logError = require("./logError");
 const processDataForSpirits = require("./data_processing/dan_murphy/spirits");
 const updateDBEntry = require("./update_db_entry/dan_murphy/spirits");
 
-const scrapeDanMurphy = async (start_page,end_page,internalStates,browser) =>{
+const scrapeDanMurphy = async (start_page) =>{
     console.log("scraping started for dan murphy at:"+Date.now());
 
     //variable initialization
