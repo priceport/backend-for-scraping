@@ -125,7 +125,7 @@ app.all('*', (req, res, next) => {
 app.use(globalErrorHandler);
 
 
-ujjwalScrapingService();
+// ujjwalScrapingService();
 
 //testing pupetter as well as ci/cd
 // scrapingService();
