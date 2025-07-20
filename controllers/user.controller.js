@@ -127,6 +127,7 @@ exports.login = catchAsync(async (req,res,next)=>{
     //     emailData
     // );
 
+    user.user_source = user?.user_source?.split(",");
     //Create and send JWT
     sendJWT(user,res);
 });
