@@ -224,7 +224,7 @@ const redWine = async () => {
     console.log("Initial button text:", buttonText);
 
     let clickCount = 0;
-    const maxClicks = 200; // Increased safety limit
+    const maxClicks = 47; // Limit to 47 clicks as requested
     let consecutiveFailures = 0;
     const maxConsecutiveFailures = 5;
 
