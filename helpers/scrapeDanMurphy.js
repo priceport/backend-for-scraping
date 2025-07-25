@@ -37,167 +37,167 @@ const scrapeDanMurphy = async (start_page) =>{
         logError(err);
     }
 
-    if(start_page==2)
-    try{
-        whiteWineData = await whiteWine();
-        console.log(`${whiteWineData?.length} data items scraped for white wine`);
-    }catch(err){
-        console.log("There was an error while scraping white wine");
-        logError(err);
-    }
+    // if(start_page==2)
+    // try{
+    //     whiteWineData = await whiteWine();
+    //     console.log(`${whiteWineData?.length} data items scraped for white wine`);
+    // }catch(err){
+    //     console.log("There was an error while scraping white wine");
+    //     logError(err);
+    // }
 
-    if(start_page==3)
-    try{
-        champagneSparklingData = await champagneSparkling();
-        console.log(`${champagneSparklingData?.length} data items scraped for champagne sparkling`);
-    }catch(err){
-        console.log("There was an error while scraping champagne sparkling");
-        logError(err);
-    }
+    // if(start_page==3)
+    // try{
+    //     champagneSparklingData = await champagneSparkling();
+    //     console.log(`${champagneSparklingData?.length} data items scraped for champagne sparkling`);
+    // }catch(err){
+    //     console.log("There was an error while scraping champagne sparkling");
+    //     logError(err);
+    // }
 
-    if(start_page==4)
-    try{
-        fortifiedWineData = await fortifiedWine();
-        console.log(`${fortifiedWineData?.length} data items scraped for fortified wine`);
-    }catch(err){
-        console.log("There was an error while scraping fortified wine");
-        logError(err);
-    }
+    // if(start_page==4)
+    // try{
+    //     fortifiedWineData = await fortifiedWine();
+    //     console.log(`${fortifiedWineData?.length} data items scraped for fortified wine`);
+    // }catch(err){
+    //     console.log("There was an error while scraping fortified wine");
+    //     logError(err);
+    // }
 
-    if(start_page==5)
-    try{
-        whiskyData = await whisky();
-        console.log(`${whiskyData?.length} data items scraped for whisky`);
-    }catch(err){
-        console.log("There was an error while scraping whisky");
-        logError(err);
-    }
+    // if(start_page==5)
+    // try{
+    //     whiskyData = await whisky();
+    //     console.log(`${whiskyData?.length} data items scraped for whisky`);
+    // }catch(err){
+    //     console.log("There was an error while scraping whisky");
+    //     logError(err);
+    // }
 
-    if(start_page==6)
-    try{
-        bourbonData = await bourbon();
-        console.log(`${bourbonData?.length} data items scraped for bourbon`);
-    }catch(err){
-        console.log("There was an error while scraping bourbon");
-        logError(err);
-    }
+    // if(start_page==6)
+    // try{
+    //     bourbonData = await bourbon();
+    //     console.log(`${bourbonData?.length} data items scraped for bourbon`);
+    // }catch(err){
+    //     console.log("There was an error while scraping bourbon");
+    //     logError(err);
+    // }
 
-    if(start_page==7)
-    try{
-        vodkaData = await vodka();
-        console.log(`${vodkaData?.length} data items scraped for vodka`);
-    }catch(err){
-        console.log("There was an error while scraping vodka");
-        logError(err);
-    }
+    // if(start_page==7)
+    // try{
+    //     vodkaData = await vodka();
+    //     console.log(`${vodkaData?.length} data items scraped for vodka`);
+    // }catch(err){
+    //     console.log("There was an error while scraping vodka");
+    //     logError(err);
+    // }
 
-    if(start_page==8)
-    try{
-        ginData = await gin();
-        console.log(`${ginData?.length} data items scraped for gin`);
-    }catch(err){
-        console.log("There was an error while scraping gin");
-        logError(err);
-    }
+    // if(start_page==8)
+    // try{
+    //     ginData = await gin();
+    //     console.log(`${ginData?.length} data items scraped for gin`);
+    // }catch(err){
+    //     console.log("There was an error while scraping gin");
+    //     logError(err);
+    // }
 
-    if(start_page==9)
-    try{
-        rumData = await rum();
-        console.log(`${rumData?.length} data items scraped for rum`);
-    }catch(err){
-        console.log("There was an error while scraping rum");
-        logError(err);
-    }
+    // if(start_page==9)
+    // try{
+    //     rumData = await rum();
+    //     console.log(`${rumData?.length} data items scraped for rum`);
+    // }catch(err){
+    //     console.log("There was an error while scraping rum");
+    //     logError(err);
+    // }
 
-    if(start_page==10)
-    try{
-        liqueursData = await liqueurs();
-        console.log(`${liqueursData?.length} data items scraped for liqueurs`);
-    }catch(err){
-        console.log("There was an error while scraping liqueurs");
-        logError(err);
-    }
+    // if(start_page==10)
+    // try{
+    //     liqueursData = await liqueurs();
+    //     console.log(`${liqueursData?.length} data items scraped for liqueurs`);
+    // }catch(err){
+    //     console.log("There was an error while scraping liqueurs");
+    //     logError(err);
+    // }
 
-    if(start_page==11)
-    try{
-        tequilaData = await tequila();
-        console.log(`${tequilaData?.length} data items scraped for tequila`);
-    }catch(err){
-        console.log("There was an error while scraping tequila");
-        logError(err);
-    }
+    // if(start_page==11)
+    // try{
+    //     tequilaData = await tequila();
+    //     console.log(`${tequilaData?.length} data items scraped for tequila`);
+    // }catch(err){
+    //     console.log("There was an error while scraping tequila");
+    //     logError(err);
+    // }
 
-    if(start_page==12)
-    try{
-        aperitifsData = await aperitifs();
-        console.log(`${aperitifsData?.length} data items scraped for aperitifs`);
-    }catch(err){
-        console.log("There was an error while scraping aperitifs");
-        logError(err);
-    }
+    // if(start_page==12)
+    // try{
+    //     aperitifsData = await aperitifs();
+    //     console.log(`${aperitifsData?.length} data items scraped for aperitifs`);
+    // }catch(err){
+    //     console.log("There was an error while scraping aperitifs");
+    //     logError(err);
+    // }
 
-    if(start_page==13)
-    try{
-        brandyCognacData = await brandyCognac();
-        console.log(`${brandyCognacData?.length} data items scraped for brandy cognac`);
-    }catch(err){
-        console.log("There was an error while scraping brandy cognac");
-        logError(err);
-    }
+    // if(start_page==13)
+    // try{
+    //     brandyCognacData = await brandyCognac();
+    //     console.log(`${brandyCognacData?.length} data items scraped for brandy cognac`);
+    // }catch(err){
+    //     console.log("There was an error while scraping brandy cognac");
+    //     logError(err);
+    // }
 
-    if(start_page==14)
-    try{
-        sakeData = await sake();
-        console.log(`${sakeData?.length} data items scraped for sake`);
-    }catch(err){
-        console.log("There was an error while scraping sake");
-        logError(err);
-    }
+    // if(start_page==14)
+    // try{
+    //     sakeData = await sake();
+    //     console.log(`${sakeData?.length} data items scraped for sake`);
+    // }catch(err){
+    //     console.log("There was an error while scraping sake");
+    //     logError(err);
+    // }
 
-    if(start_page==15)
-    try{
-        baijiuData = await baijiu();
-        console.log(`${baijiuData?.length} data items scraped for baijiu`);
-    }catch(err){
-        console.log("There was an error while scraping baijiu");
-        logError(err);
-    }
+    // if(start_page==15)
+    // try{
+    //     baijiuData = await baijiu();
+    //     console.log(`${baijiuData?.length} data items scraped for baijiu`);
+    // }catch(err){
+    //     console.log("There was an error while scraping baijiu");
+    //     logError(err);
+    // }
 
-    if(start_page==16)
-    try{
-        sojuShochuData = await sojuShochu();
-        console.log(`${sojuShochuData?.length} data items scraped for soju shochu`);
-    }catch(err){
-        console.log("There was an error while scraping soju shochu");
-        logError(err);
-    }
+    // if(start_page==16)
+    // try{
+    //     sojuShochuData = await sojuShochu();
+    //     console.log(`${sojuShochuData?.length} data items scraped for soju shochu`);
+    // }catch(err){
+    //     console.log("There was an error while scraping soju shochu");
+    //     logError(err);
+    // }
 
-    if(start_page==17)
-    try{
-        beerData = await beer();
-        console.log(`${beerData?.length} data items scraped for beer`);
-    }catch(err){
-        console.log("There was an error while scraping beer");
-        logError(err);
-    }
+    // if(start_page==17)
+    // try{
+    //     beerData = await beer();
+    //     console.log(`${beerData?.length} data items scraped for beer`);
+    // }catch(err){
+    //     console.log("There was an error while scraping beer");
+    //     logError(err);
+    // }
 
-    if(start_page==18)
-    try{
-        ciderData = await cider();
-        console.log(`${ciderData?.length} data items scraped for cider`);
-    }catch(err){
-        console.log("There was an error while scraping cider");
-        logError(err);
-    }
+    // if(start_page==18)
+    // try{
+    //     ciderData = await cider();
+    //     console.log(`${ciderData?.length} data items scraped for cider`);
+    // }catch(err){
+    //     console.log("There was an error while scraping cider");
+    //     logError(err);
+    // }
 
-    if(start_page==19)
-    try{
-        premixDrinksData = await premixDrinks();
-        console.log(`${premixDrinksData?.length} data items scraped for premix drinks`);
-    }catch(err){
-        console.log("There was an error while scraping premix drinks");
-        logError(err);
-    }
+    // if(start_page==19)
+    // try{
+    //     premixDrinksData = await premixDrinks();
+    //     console.log(`${premixDrinksData?.length} data items scraped for premix drinks`);
+    // }catch(err){
+    //     console.log("There was an error while scraping premix drinks");
+    //     logError(err);
+    // }
 
     let allData = [...redWineData,...whiteWineData,...champagneSparklingData,...fortifiedWineData,...whiskyData,...bourbonData,...vodkaData,...ginData,...rumData,...liqueursData,...tequilaData,...aperitifsData,...brandyCognacData,...sakeData,...baijiuData,...sojuShochuData,...beerData,...ciderData,...premixDrinksData];
 

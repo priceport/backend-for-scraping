@@ -4,6 +4,7 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const redWine = async () => {
     const browser = await puppeteer.launch({ 
         headless: true,
+        protocolTimeout: 60000, // Increase protocol timeout to 60 seconds
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -197,27 +198,45 @@ const redWine = async () => {
 
     // Function to get button text
     const getButtonText = async () => {
-        return await page.evaluate(() => {
-            const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
-            return button ? button.innerText : null;
-        });
+        try {
+            return await page.evaluate(() => {
+                const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
+                return button ? button.innerText : null;
+            });
+        } catch (error) {
+            console.log("Error getting button text:", error.message);
+            return null;
+        }
     };
 
     // Function to click the button
     const clickButton = async () => {
-        await page.click(".results-pagination-wrapper__inner-wrapper button");
+        try {
+            await page.click(".results-pagination-wrapper__inner-wrapper button");
+            return true;
+        } catch (error) {
+            console.log("Error clicking button:", error.message);
+            return false;
+        }
     };
 
     let buttonText = await getButtonText();
     console.log("Initial button text:", buttonText);
 
     let clickCount = 0;
-    const maxClicks = 100; // Safety limit to prevent infinite loops
+    const maxClicks = 20; // Reduced from 100 to prevent excessive clicking
+    let consecutiveSameText = 0;
+    let lastButtonText = buttonText;
 
     // Keep clicking until button text becomes "Back to top" or we hit the safety limit
     while (buttonText && buttonText !== "Back to top" && clickCount < maxClicks) {
         try {
-            await clickButton();
+            const clickSuccess = await clickButton();
+            if (!clickSuccess) {
+                console.log("Failed to click button, breaking loop");
+                break;
+            }
+            
             clickCount++;
             console.log(`Clicked button ${clickCount} times`);
             
@@ -225,11 +244,15 @@ const redWine = async () => {
             await waitForXTime(3000);
             
             // Wait for network to be idle and ensure elements are loaded
-            await page.waitForFunction(() => {
-                return !document.querySelector('.loading') && 
-                       document.readyState === 'complete' &&
-                       document.querySelectorAll('.js-list').length > 0;
-            }, { timeout: 15000 }).catch(() => console.log("Timeout waiting for page load"));
+            try {
+                await page.waitForFunction(() => {
+                    return !document.querySelector('.loading') && 
+                           document.readyState === 'complete' &&
+                           document.querySelectorAll('.js-list').length > 0;
+                }, { timeout: 10000 }); // Reduced timeout from 15000 to 10000
+            } catch (error) {
+                console.log("Timeout waiting for page load, continuing...");
+            }
             
             // Additional wait to ensure dynamic content is fully loaded
             await waitForXTime(2000);
@@ -238,8 +261,20 @@ const redWine = async () => {
             buttonText = await getButtonText();
             console.log(`Button text after click ${clickCount}:`, buttonText);
             
+            // Check if button text hasn't changed for consecutive clicks
+            if (buttonText === lastButtonText) {
+                consecutiveSameText++;
+                if (consecutiveSameText >= 3) {
+                    console.log("Button text hasn't changed for 3 consecutive clicks, stopping");
+                    break;
+                }
+            } else {
+                consecutiveSameText = 0;
+                lastButtonText = buttonText;
+            }
+            
         } catch (error) {
-            console.log("Error clicking button:", error.message);
+            console.log("Error in button clicking loop:", error.message);
             break;
         }
     }
@@ -248,68 +283,73 @@ const redWine = async () => {
     console.log("Final button text:", buttonText);
 
     // Now scrape the products with multiple selector attempts
-    const products = await page.evaluate(() => {
-        // Try multiple possible selectors
-        const selectors = ['.js-list', '.product-tile', '.product-item', '.product-card', '.item', '.results-item', '.search-result-item'];
-        let productElements = [];
-        
-        for (let selector of selectors) {
-            const elements = document.querySelectorAll(selector);
-            if (elements.length > 0) {
-                console.log(`Found ${elements.length} elements with selector: ${selector}`);
-                productElements = elements;
-                break;
-            }
-        }
-
-        const products = [];
-        let missing = 0;
-        
-        if (productElements.length === 0) {
-            console.log("No product elements found with any selector");
-            return products;
-        }
-
-        productElements.forEach((element, index) => {
-            try {
-                // Try multiple possible selectors for each field
-                const brandElement = element.querySelector('.title') || element.querySelector('.brand') || element.querySelector('.product-brand');
-                const nameElement = element.querySelector('.subtitle') || element.querySelector('.name') || element.querySelector('.product-name');
-                const priceElement = element.querySelector('.price .value') || element.querySelector('.price') || element.querySelector('.product-price');
-                const imageElement = element.querySelector('img');
-                const urlElement = element.querySelector('a') || element.querySelector('.product-link');
-                
-                const name = nameElement ? nameElement.textContent.trim() : '';
-                const price = priceElement ? priceElement.textContent.trim() : '';
-                const brand = brandElement ? brandElement.textContent.trim() : '';
-                const url = urlElement ? urlElement.href.trim() : '';
-                const img = imageElement ? imageElement.src.trim() : '';
-                const description = imageElement ? imageElement.alt.trim() : '';
-
-                console.log(`Product ${index}:`, { name, price, brand, url: url ? 'has-url' : 'no-url', img: img ? 'has-img' : 'no-img' });
-                
-                if (name || brand || price) {
-                    products.push({
-                        name: name,
-                        price: price,
-                        source: 'Dan Murphy',
-                        brand: brand,
-                        url: url,
-                        img: img,
-                        description: description,
-                        category: 'liquor',
-                        sub_category: 'red_wine',
-                        website: 'danmurphy',
-                        country: 'Australia',
-                    });
+    let products = [];
+    try {
+        products = await page.evaluate(() => {
+            // Try multiple possible selectors
+            const selectors = ['.js-list', '.product-tile', '.product-item', '.product-card', '.item', '.results-item', '.search-result-item'];
+            let productElements = [];
+            
+            for (let selector of selectors) {
+                const elements = document.querySelectorAll(selector);
+                if (elements.length > 0) {
+                    console.log(`Found ${elements.length} elements with selector: ${selector}`);
+                    productElements = elements;
+                    break;
                 }
-            } catch (error) {
-                console.log("Error parsing product:", error);
             }
+
+            const products = [];
+            
+            if (productElements.length === 0) {
+                console.log("No product elements found with any selector");
+                return products;
+            }
+
+            productElements.forEach((element, index) => {
+                try {
+                    // Try multiple possible selectors for each field
+                    const brandElement = element.querySelector('.title') || element.querySelector('.brand') || element.querySelector('.product-brand');
+                    const nameElement = element.querySelector('.subtitle') || element.querySelector('.name') || element.querySelector('.product-name');
+                    const priceElement = element.querySelector('.price .value') || element.querySelector('.price') || element.querySelector('.product-price');
+                    const imageElement = element.querySelector('img');
+                    const urlElement = element.querySelector('a') || element.querySelector('.product-link');
+                    
+                    const name = nameElement ? nameElement.textContent.trim() : '';
+                    const price = priceElement ? priceElement.textContent.trim() : '';
+                    const brand = brandElement ? brandElement.textContent.trim() : '';
+                    const url = urlElement ? urlElement.href.trim() : '';
+                    const img = imageElement ? imageElement.src.trim() : '';
+                    const description = imageElement ? imageElement.alt.trim() : '';
+
+                    console.log(`Product ${index}:`, { name, price, brand, url: url ? 'has-url' : 'no-url', img: img ? 'has-img' : 'no-img' });
+                    
+                    if (name || brand || price) {
+                        products.push({
+                            name: name,
+                            price: price,
+                            source: 'Dan Murphy',
+                            brand: brand,
+                            url: url,
+                            img: img,
+                            description: description,
+                            category: 'liquor',
+                            sub_category: 'red_wine',
+                            website: 'danmurphy',
+                            country: 'Australia',
+                        });
+                    }
+                } catch (error) {
+                    console.log("Error parsing product:", error);
+                }
+            });
+            
+            return products;
         });
-        
-        return products;
-    });
+    } catch (error) {
+        console.log("Error scraping products:", error.message);
+        products = [];
+    }
 
     console.log("products", products);
     console.log(`Scraped ${products.length} products`);
