@@ -62,11 +62,11 @@ const redWine = async () => {
     console.log("Navigating to Dan Murphy's red wine page...");
     
     // First, go to the main page to establish a session
-    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2' });
+    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
     await waitForXTime(3000);
     
     // Then navigate to the red wine page
-    await page.goto('https://www.danmurphys.com.au/red-wine/all', { waitUntil: 'networkidle2' });
+    await page.goto('https://www.danmurphys.com.au/red-wine/all', { waitUntil: 'networkidle2', timeout: 60000 });
 
     await waitForXTime(8000);
     console.log("Initial wait complete");
@@ -93,7 +93,7 @@ const redWine = async () => {
         console.log("Detected blocking or loading issue, trying alternative approach...");
         
         // Try going directly to the search results with specific parameters
-        await page.goto('https://www.danmurphys.com.au/red-wine/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2' });
+        await page.goto('https://www.danmurphys.com.au/red-wine/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 60000 });
         await waitForXTime(5000);
         
         // Try scrolling to trigger lazy loading
@@ -196,7 +196,7 @@ const redWine = async () => {
 
     console.log("Page structure debug:", JSON.stringify(pageStructure, null, 2));
 
-    // Function to get button text
+    // Function to get button text with better error handling
     const getButtonText = async () => {
         try {
             return await page.evaluate(() => {
@@ -209,7 +209,7 @@ const redWine = async () => {
         }
     };
 
-    // Function to click the button
+    // Function to click the button with better error handling
     const clickButton = async () => {
         try {
             await page.click(".results-pagination-wrapper__inner-wrapper button");
@@ -224,32 +224,45 @@ const redWine = async () => {
     console.log("Initial button text:", buttonText);
 
     let clickCount = 0;
-    const maxClicks = 20; // Reduced from 100 to prevent excessive clicking
-    let consecutiveSameText = 0;
-    let lastButtonText = buttonText;
+    const maxClicks = 200; // Increased safety limit
+    let consecutiveFailures = 0;
+    const maxConsecutiveFailures = 5;
 
     // Keep clicking until button text becomes "Back to top" or we hit the safety limit
-    while (buttonText && buttonText !== "Back to top" && clickCount < maxClicks) {
+    while (buttonText && buttonText.includes("SHOW") && clickCount < maxClicks && consecutiveFailures < maxConsecutiveFailures) {
         try {
+            console.log(`Attempting to click button ${clickCount + 1} times`);
+            
+            // Scroll to the button to ensure it's visible
+            await page.evaluate(() => {
+                const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
+                if (button) {
+                    button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+            await waitForXTime(1000);
+            
             const clickSuccess = await clickButton();
             if (!clickSuccess) {
-                console.log("Failed to click button, breaking loop");
-                break;
+                consecutiveFailures++;
+                console.log(`Click failed. Consecutive failures: ${consecutiveFailures}`);
+                await waitForXTime(2000);
+                continue;
             }
             
             clickCount++;
+            consecutiveFailures = 0; // Reset failure counter on success
             console.log(`Clicked button ${clickCount} times`);
             
             // Wait for the page to load new content
             await waitForXTime(3000);
             
-            // Wait for network to be idle and ensure elements are loaded
+            // Wait for network to be idle and ensure elements are loaded with shorter timeout
             try {
                 await page.waitForFunction(() => {
                     return !document.querySelector('.loading') && 
-                           document.readyState === 'complete' &&
-                           document.querySelectorAll('.js-list').length > 0;
-                }, { timeout: 10000 }); // Reduced timeout from 15000 to 10000
+                           document.readyState === 'complete';
+                }, { timeout: 10000 });
             } catch (error) {
                 console.log("Timeout waiting for page load, continuing...");
             }
@@ -261,21 +274,16 @@ const redWine = async () => {
             buttonText = await getButtonText();
             console.log(`Button text after click ${clickCount}:`, buttonText);
             
-            // Check if button text hasn't changed for consecutive clicks
-            if (buttonText === lastButtonText) {
-                consecutiveSameText++;
-                if (consecutiveSameText >= 3) {
-                    console.log("Button text hasn't changed for 3 consecutive clicks, stopping");
-                    break;
-                }
-            } else {
-                consecutiveSameText = 0;
-                lastButtonText = buttonText;
+            // If button text is null or doesn't contain "SHOW", we're done
+            if (!buttonText || !buttonText.includes("SHOW")) {
+                console.log("Button no longer shows 'SHOW', stopping clicks");
+                break;
             }
             
         } catch (error) {
             console.log("Error in button clicking loop:", error.message);
-            break;
+            consecutiveFailures++;
+            await waitForXTime(3000);
         }
     }
 
@@ -283,73 +291,67 @@ const redWine = async () => {
     console.log("Final button text:", buttonText);
 
     // Now scrape the products with multiple selector attempts
-    let products = [];
-    try {
-        products = await page.evaluate(() => {
-            // Try multiple possible selectors
-            const selectors = ['.js-list', '.product-tile', '.product-item', '.product-card', '.item', '.results-item', '.search-result-item'];
-            let productElements = [];
-            
-            for (let selector of selectors) {
-                const elements = document.querySelectorAll(selector);
-                if (elements.length > 0) {
-                    console.log(`Found ${elements.length} elements with selector: ${selector}`);
-                    productElements = elements;
-                    break;
-                }
+    const products = await page.evaluate(() => {
+        // Try multiple possible selectors
+        const selectors = ['.js-list', '.product-tile', '.product-item', '.product-card', '.item', '.results-item', '.search-result-item'];
+        let productElements = [];
+        
+        for (let selector of selectors) {
+            const elements = document.querySelectorAll(selector);
+            if (elements.length > 0) {
+                console.log(`Found ${elements.length} elements with selector: ${selector}`);
+                productElements = elements;
+                break;
             }
+        }
 
-            const products = [];
-            
-            if (productElements.length === 0) {
-                console.log("No product elements found with any selector");
-                return products;
-            }
-
-            productElements.forEach((element, index) => {
-                try {
-                    // Try multiple possible selectors for each field
-                    const brandElement = element.querySelector('.title') || element.querySelector('.brand') || element.querySelector('.product-brand');
-                    const nameElement = element.querySelector('.subtitle') || element.querySelector('.name') || element.querySelector('.product-name');
-                    const priceElement = element.querySelector('.price .value') || element.querySelector('.price') || element.querySelector('.product-price');
-                    const imageElement = element.querySelector('img');
-                    const urlElement = element.querySelector('a') || element.querySelector('.product-link');
-                    
-                    const name = nameElement ? nameElement.textContent.trim() : '';
-                    const price = priceElement ? priceElement.textContent.trim() : '';
-                    const brand = brandElement ? brandElement.textContent.trim() : '';
-                    const url = urlElement ? urlElement.href.trim() : '';
-                    const img = imageElement ? imageElement.src.trim() : '';
-                    const description = imageElement ? imageElement.alt.trim() : '';
-
-                    console.log(`Product ${index}:`, { name, price, brand, url: url ? 'has-url' : 'no-url', img: img ? 'has-img' : 'no-img' });
-                    
-                    if (name || brand || price) {
-                        products.push({
-                            name: name,
-                            price: price,
-                            source: 'Dan Murphy',
-                            brand: brand,
-                            url: url,
-                            img: img,
-                            description: description,
-                            category: 'liquor',
-                            sub_category: 'red_wine',
-                            website: 'danmurphy',
-                            country: 'Australia',
-                        });
-                    }
-                } catch (error) {
-                    console.log("Error parsing product:", error);
-                }
-            });
-            
+        const products = [];
+        
+        if (productElements.length === 0) {
+            console.log("No product elements found with any selector");
             return products;
+        }
+
+        productElements.forEach((element, index) => {
+            try {
+                // Try multiple possible selectors for each field
+                const brandElement = element.querySelector('.title') || element.querySelector('.brand') || element.querySelector('.product-brand');
+                const nameElement = element.querySelector('.subtitle') || element.querySelector('.name') || element.querySelector('.product-name');
+                const priceElement = element.querySelector('.price .value') || element.querySelector('.price') || element.querySelector('.product-price');
+                const imageElement = element.querySelector('img');
+                const urlElement = element.querySelector('a') || element.querySelector('.product-link');
+                
+                const name = nameElement ? nameElement.textContent.trim() : '';
+                const price = priceElement ? priceElement.textContent.trim() : '';
+                const brand = brandElement ? brandElement.textContent.trim() : '';
+                const url = urlElement ? urlElement.href.trim() : '';
+                const img = imageElement ? imageElement.src.trim() : '';
+                const description = imageElement ? imageElement.alt.trim() : '';
+
+                console.log(`Product ${index}:`, { name, price, brand, url: url ? 'has-url' : 'no-url', img: img ? 'has-img' : 'no-img' });
+                
+                if (name || brand || price) {
+                    products.push({
+                        name: name,
+                        price: price,
+                        source: 'Dan Murphy',
+                        brand: brand,
+                        url: url,
+                        img: img,
+                        description: description,
+                        category: 'liquor',
+                        sub_category: 'red_wine',
+                        website: 'danmurphy',
+                        country: 'Australia',
+                    });
+                }
+            } catch (error) {
+                console.log("Error parsing product:", error);
+            }
         });
-    } catch (error) {
-        console.log("Error scraping products:", error.message);
-        products = [];
-    }
+        
+        return products;
+    });
 
     console.log("products", products);
     console.log(`Scraped ${products.length} products`);
