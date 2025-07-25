@@ -4,6 +4,7 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const beer = async () => {
     const browser = await puppeteer.launch({ 
         headless: true,
+        protocolTimeout: 60000, // Increase protocol timeout to 60 seconds
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -61,11 +62,11 @@ const beer = async () => {
     console.log("Navigating to Dan Murphy's beer page...");
     
     // First, go to the main page to establish a session
-    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2' });
+    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
     await waitForXTime(3000);
     
     // Then navigate to the beer page
-    await page.goto('https://www.danmurphys.com.au/beer/all', { waitUntil: 'networkidle2' });
+    await page.goto('https://www.danmurphys.com.au/beer/all', { waitUntil: 'networkidle2', timeout: 60000 });
 
     await waitForXTime(8000);
     console.log("Initial wait complete");
@@ -88,7 +89,7 @@ const beer = async () => {
         console.log("Detected blocking or loading issue, trying alternative approach...");
         
         // Try going directly to the search results with specific parameters
-        await page.goto('https://www.danmurphys.com.au/beer/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2' });
+        await page.goto('https://www.danmurphys.com.au/beer/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 60000 });
         await waitForXTime(5000);
         
         // Try scrolling to trigger lazy loading
@@ -104,41 +105,76 @@ const beer = async () => {
         await waitForXTime(2000);
     }
 
-    // Function to get button text
+    // Function to get button text with better error handling
     const getButtonText = async () => {
-        return await page.evaluate(() => {
-            const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
-            return button ? button.innerText : null;
-        });
+        try {
+            return await page.evaluate(() => {
+                const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
+                return button ? button.innerText : null;
+            });
+        } catch (error) {
+            console.log("Error getting button text:", error.message);
+            return null;
+        }
     };
 
-    // Function to click the button
+    // Function to click the button with better error handling
     const clickButton = async () => {
-        await page.click(".results-pagination-wrapper__inner-wrapper button");
+        try {
+            await page.click(".results-pagination-wrapper__inner-wrapper button");
+            return true;
+        } catch (error) {
+            console.log("Error clicking button:", error.message);
+            return false;
+        }
     };
 
     let buttonText = await getButtonText();
     console.log("Initial button text:", buttonText);
 
     let clickCount = 0;
-    const maxClicks = 100; // Safety limit to prevent infinite loops
+    const maxClicks = 47; // Limit to 47 clicks as requested
+    let consecutiveFailures = 0;
+    const maxConsecutiveFailures = 5;
 
     // Keep clicking until button text becomes "Back to top" or we hit the safety limit
-    while (buttonText && buttonText !== "Back to top" && clickCount < maxClicks) {
+    while (buttonText && buttonText.includes("SHOW") && clickCount < maxClicks && consecutiveFailures < maxConsecutiveFailures) {
         try {
-            await clickButton();
+            console.log(`Attempting to click button ${clickCount + 1} times`);
+            
+            // Scroll to the button to ensure it's visible
+            await page.evaluate(() => {
+                const button = document.querySelector(".results-pagination-wrapper__inner-wrapper button");
+                if (button) {
+                    button.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+            await waitForXTime(1000);
+            
+            const clickSuccess = await clickButton();
+            if (!clickSuccess) {
+                consecutiveFailures++;
+                console.log(`Click failed. Consecutive failures: ${consecutiveFailures}`);
+                await waitForXTime(2000);
+                continue;
+            }
+            
             clickCount++;
+            consecutiveFailures = 0; // Reset failure counter on success
             console.log(`Clicked button ${clickCount} times`);
             
             // Wait for the page to load new content
             await waitForXTime(3000);
             
-            // Wait for network to be idle and ensure elements are loaded
-            await page.waitForFunction(() => {
-                return !document.querySelector('.loading') && 
-                       document.readyState === 'complete' &&
-                       document.querySelectorAll('.js-list').length > 0;
-            }, { timeout: 15000 }).catch(() => console.log("Timeout waiting for page load"));
+            // Wait for network to be idle and ensure elements are loaded with shorter timeout
+            try {
+                await page.waitForFunction(() => {
+                    return !document.querySelector('.loading') && 
+                           document.readyState === 'complete';
+                }, { timeout: 10000 });
+            } catch (error) {
+                console.log("Timeout waiting for page load, continuing...");
+            }
             
             // Additional wait to ensure dynamic content is fully loaded
             await waitForXTime(2000);
@@ -147,9 +183,16 @@ const beer = async () => {
             buttonText = await getButtonText();
             console.log(`Button text after click ${clickCount}:`, buttonText);
             
+            // If button text is null or doesn't contain "SHOW", we're done
+            if (!buttonText || !buttonText.includes("SHOW")) {
+                console.log("Button no longer shows 'SHOW', stopping clicks");
+                break;
+            }
+            
         } catch (error) {
-            console.log("Error clicking button:", error.message);
-            break;
+            console.log("Error in button clicking loop:", error.message);
+            consecutiveFailures++;
+            await waitForXTime(3000);
         }
     }
 
