@@ -897,7 +897,16 @@ doneDanMurphy=false;
   await extract_unit_and_quantity();
   await updateProductPriceRank();
   await updateDailyPriceStats("aelia_auckland");
-  await precomputeDailyData("aelia_auckland", true);
+  precomputeDailyData('aelia_auckland',true);
+  precomputeDailyData('aelia_adelaide',true);
+  precomputeDailyData('nz_themall',true);
+  precomputeDailyData('lotte_melbourne',true);
+  precomputeDailyData('aelia_queenstown',true);
+  precomputeDailyData('lotte_brisbane',true);
+  precomputeDailyData('heinemann_sydney',true);
+  precomputeDailyData('aelia_christchurch',true);
+  precomputeDailyData('heinemann_goldcoast',true);
+  precomputeDailyData('aelia_cairns',true);
   await precomputeDailyDataFNB();
 };
 

@@ -694,8 +694,17 @@ const testWebsite = async ()=>{
 // }
 //pricerank, id->product_id, latest_price, latest_promotions, price_per_unit
 // temp();
-// precomputeDailyData('aelia_auckland',true);
+precomputeDailyData('aelia_auckland',true);
 precomputeDailyData('aelia_adelaide',true);
+precomputeDailyData('nz_themall',true);
+precomputeDailyData('lotte_melbourne',true);
+precomputeDailyData('aelia_queenstown',true);
+precomputeDailyData('lotte_brisbane',true);
+precomputeDailyData('heinemann_sydney',true);
+precomputeDailyData('aelia_christchurch',true);
+precomputeDailyData('heinemann_goldcoast',true);
+precomputeDailyData('aelia_cairns',true);
+
 
 precomputeDailyDataFNB();
 
