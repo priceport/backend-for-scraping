@@ -57,12 +57,32 @@ const calculateRanksWithTies = (items, valueKey) => {
 exports.getAllSubcategoryBySource = catchAsync(async (req, res, next) => {
     const source = req.query.source;
 
-    const sub_category = await pool.query(`select distinct sub_category from product where website = $1 and last_checked::date > current_date - 15 group by sub_category;`,[source]);
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+source);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
+
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Extract unique subcategories from precomputed data
+    const subcategorySet = new Set();
     
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (sourceProduct && sourceProduct.sub_category) {
+            subcategorySet.add(sourceProduct.sub_category);
+        }
+    });
+
+    // Convert Set to Array and sort alphabetically
+    const subcategories = Array.from(subcategorySet).sort();
+
     return res.status(200).json({
         status: "success",
         message: "Sub category fetched succesfully",
-        data: sub_category?.rows,
+        data: subcategories.map(sub_category => ({ sub_category }))
     });
 })
 exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
@@ -75,7 +95,7 @@ exports.getLeastCompetitiveProducts = catchAsync(async (req, res, next) => {
         }
 
         // Fetch precomputed data from Redis
-        const cachedData = await redisClient.get('daily_product_data');
+        const cachedData = await redisClient.get('daily_product_data'+source);
         if (!cachedData) {
             return next(new AppError("Precomputed data not available. Try again later.", 500));
         }
@@ -135,7 +155,7 @@ exports.getMarginallyBehindProducts = catchAsync(async (req, res, next) => {
     }
 
     // Fetch precomputed data from Redis
-    const cachedData = await redisClient.get('daily_product_data');
+    const cachedData = await redisClient.get('daily_product_data'+source);
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
@@ -313,85 +333,98 @@ exports.getBrandStatsFor = catchAsync(async (req,res,next)=>{
     if(filter=="all"||!filter) filter=null;
     else filter = filter.split(",");
 
-    // if(!sourceQuery){
-    //     return next(
-    //         new AppError("Source param required",400)
-    //     )
-    // }
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+sourceQuery);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
+    }
 
-    const brandCount = await pool.query(`WITH unique_products AS (
-        SELECT 
-            DISTINCT ON (ppr.canprod_id) 
-            ppr.product_id,
-            ppr.canprod_id,
-            ppr.website,
-            ppr.price_rank,
-            ppr.total_peers,
-            ppr.price_per_unit,
-            ppr.date,
-            p.brand AS product_brand
-        FROM 
-            product_price_rank ppr
-        JOIN 
-            product p ON ppr.product_id = p.id
-        WHERE 
-            ($1::text[] IS NULL OR p.category = ANY($1))
-        ORDER BY 
-            ppr.canprod_id, p.brand, ppr.date DESC
-    ),
-    labeled_data AS (
-        SELECT 
-            up.product_brand,
-            up.canprod_id,
-            CASE 
-                WHEN up.price_rank = 1 THEN 'cheapest'
-                WHEN up.price_rank = up.total_peers THEN 'expensive'
-                ELSE 'midrange'
-            END AS price_label
-        FROM 
-            unique_products up
-    ),
-    brand_summary AS (
-        SELECT 
-            ld.product_brand,
-            COUNT(DISTINCT ld.canprod_id) AS product_count,
-            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
-            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
-            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
-        FROM 
-            labeled_data ld
-        GROUP BY 
-            ld.product_brand
-    ),
-    brand_ranked AS (
-        SELECT 
-            bs.product_brand,
-            bs.product_count,
-            bs.cheapest_count,
-            bs.expensive_count,
-            bs.midrange_count,
-            ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) AS percentage_cheapest,
-            RANK() OVER (ORDER BY ROUND((bs.cheapest_count::NUMERIC / NULLIF(bs.product_count, 0)) * 100, 2) DESC) AS price_rank
-        FROM 
-            brand_summary bs
-    )
-    SELECT 
-        product_brand AS brand,
-        product_count,
-        cheapest_count,
-        expensive_count,
-        midrange_count,
-        percentage_cheapest,
-        price_rank
-    FROM 
-        brand_ranked;    
-    `,[filter]);
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Filter products based on category filter
+    if (filter) {
+        products = products.filter(product => {
+            const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+            return sourceProduct && filter.includes(sourceProduct.category);
+        });
+    }
+
+    // Calculate brand stats from precomputed data
+    const brandStats = {};
+
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+        if (!sourceProduct) return;
+
+        const brand = sourceProduct.brand;
+        if (!brand) return;
+
+        // Calculate price_per_unit for ranking
+        const rankedProducts = product.products_data.map(pd => ({
+            ...pd,
+            price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+        }));
+
+        // Calculate ranks with ties
+        const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+        
+        // Find source product rank
+        const sourceRankedProduct = rankedWithTies.find(pd => pd.website === sourceQuery);
+        if (!sourceRankedProduct) return;
+
+        const maxRank = Math.max(...rankedWithTies.map(pd => pd.rank));
+        
+        // Determine price label
+        let priceLabel;
+        if (sourceRankedProduct.rank === 1) {
+            priceLabel = 'cheapest';
+        } else if (sourceRankedProduct.rank === maxRank) {
+            priceLabel = 'expensive';
+        } else {
+            priceLabel = 'midrange';
+        }
+
+        // Initialize brand stats if not exists
+        if (!brandStats[brand]) {
+            brandStats[brand] = {
+                brand: brand,
+                product_count: 0,
+                cheapest_count: 0,
+                expensive_count: 0,
+                midrange_count: 0
+            };
+        }
+
+        // Update brand stats
+        brandStats[brand].product_count += 1;
+        if (priceLabel === 'cheapest') {
+            brandStats[brand].cheapest_count += 1;
+        } else if (priceLabel === 'expensive') {
+            brandStats[brand].expensive_count += 1;
+        } else {
+            brandStats[brand].midrange_count += 1;
+        }
+    });
+
+    // Calculate percentage_cheapest and price_rank
+    const brandData = Object.values(brandStats).map(brand => ({
+        ...brand,
+        percentage_cheapest: brand.product_count > 0 ? 
+            parseFloat(((brand.cheapest_count / brand.product_count) * 100).toFixed(2)) : 0
+    }));
+
+    // Sort by percentage_cheapest and add price_rank
+    brandData.sort((a, b) => b.percentage_cheapest - a.percentage_cheapest);
+    brandData.forEach((brand, index) => {
+        brand.price_rank = index + 1;
+    });
 
     return res.status(200).json({
         status:"success",
         message:"Brand stats calculated succesfully",
         data:{
-            brandData:brandCount.rows
+            brandData: brandData
         }
     })
 })
@@ -404,148 +437,98 @@ exports.getCategoryStatsFor = catchAsync(async (req,res,next)=>{
     if(filter=="all"||!filter) filter=null;
     else filter = filter.split(",");
 
-    // if(!sourceQuery){
-    //     return next(
-    //         new AppError("Source param required",400)
-    //     )
-    // }
-    const categoryCount = await pool.query(`
-    
-    WITH unique_products AS (
-        SELECT 
-            DISTINCT ON (ppr.canprod_id) 
-            ppr.product_id,
-            ppr.canprod_id,
-            ppr.website,
-            ppr.price_rank,
-            ppr.total_peers,
-            ppr.price_per_unit,
-            ppr.date,
-            p.category AS product_category
-        FROM 
-            product_price_rank ppr
-        JOIN 
-            product p ON ppr.product_id = p.id
-        WHERE 
-            ($1::text[] IS NULL OR p.tag = ANY($1))
-        ORDER BY 
-            ppr.canprod_id, ppr.date DESC
-    ),
-    labeled_data AS (
-        SELECT 
-            up.product_category,
-            up.canprod_id,
-            CASE 
-                WHEN up.price_rank = 1 THEN 'cheapest'
-                WHEN up.price_rank = up.total_peers THEN 'expensive'
-                ELSE 'midrange'
-            END AS price_label
-        FROM 
-            unique_products up
-    ),
-    category_summary AS (
-        SELECT 
-            ld.product_category,
-            COUNT(DISTINCT ld.canprod_id) AS product_count,
-            COUNT(CASE WHEN ld.price_label = 'cheapest' THEN 1 END) AS cheapest_count,
-            COUNT(CASE WHEN ld.price_label = 'expensive' THEN 1 END) AS expensive_count,
-            COUNT(CASE WHEN ld.price_label = 'midrange' THEN 1 END) AS midrange_count
-        FROM 
-            labeled_data ld
-        GROUP BY 
-            ld.product_category
-    ),
-    category_ranked AS (
-        SELECT 
-            cs.product_category,
-            cs.product_count,
-            cs.cheapest_count,
-            cs.expensive_count,
-            cs.midrange_count,
-            ROUND((cs.cheapest_count::NUMERIC / NULLIF(cs.product_count, 0)) * 100, 2) AS percentage_cheapest,
-            RANK() OVER (ORDER BY ROUND((cs.cheapest_count::NUMERIC / NULLIF(cs.product_count, 0)) * 100, 2) DESC) AS price_rank
-        FROM 
-            category_summary cs
-    )
-    SELECT 
-        product_category AS category,
-        product_count,
-        cheapest_count,
-        expensive_count,
-        midrange_count,
-        percentage_cheapest,
-        price_rank
-    FROM 
-        category_ranked;    
-`,[filter])
-
-
-    let tempData = [
-        {
-            category: "liquor",
-            cheapest_count: "375",
-            expensive_count: "5",
-            midrange_count: "107",
-            price_rank: "1",
-            product_count: "487"
-        },
-        {
-            category: "beauty",
-            cheapest_count: "99",
-            expensive_count: "1",
-            midrange_count: "103",
-            price_rank: "2",
-            product_count: "203"
-        },
-    ]
-
-    if(filter && filter[0]=="duty-free"){
-        tempData = [
-            {
-                category: "liquor",
-                cheapest_count: "375",
-                expensive_count: "25",
-                midrange_count: "87",
-                price_rank: "1",
-                product_count: "487"
-            },
-            {
-                category: "beauty",
-                cheapest_count: "99",
-                expensive_count: "8",
-                midrange_count: "96",
-                price_rank: "2",
-                product_count: "203"
-            },
-        ]
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+sourceQuery);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
 
-    if(filter && filter[0]=="domestic"){
-        tempData = [
-            {
-                category: "liquor",
-                cheapest_count: "398",
-                expensive_count: "1",
-                midrange_count: "88",
-                price_rank: "1",
-                product_count: "487"
-            },
-            {
-                category: "beauty",
-                cheapest_count: "102",
-                expensive_count: "5",
-                midrange_count: "96",
-                price_rank: "2",
-                product_count: "203"
-            },
-        ]
+    // Parse cached data
+    let products = JSON.parse(cachedData);
+
+    // Filter products based on tag filter
+    if (filter) {
+        products = products.filter(product => {
+            const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+            return sourceProduct && filter.includes(sourceProduct.tag);
+        });
     }
+
+    // Calculate category stats from precomputed data
+    const categoryStats = {};
+
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === sourceQuery);
+        if (!sourceProduct) return;
+
+        const category = sourceProduct.category;
+        if (!category) return;
+
+        // Calculate price_per_unit for ranking
+        const rankedProducts = product.products_data.map(pd => ({
+            ...pd,
+            price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+        }));
+
+        // Calculate ranks with ties
+        const rankedWithTies = calculateRanksWithTies(rankedProducts, 'price_per_unit');
+        
+        // Find source product rank
+        const sourceRankedProduct = rankedWithTies.find(pd => pd.website === sourceQuery);
+        if (!sourceRankedProduct) return;
+
+        const maxRank = Math.max(...rankedWithTies.map(pd => pd.rank));
+        
+        // Determine price label
+        let priceLabel;
+        if (sourceRankedProduct.rank === 1) {
+            priceLabel = 'cheapest';
+        } else if (sourceRankedProduct.rank === maxRank) {
+            priceLabel = 'expensive';
+        } else {
+            priceLabel = 'midrange';
+        }
+
+        // Initialize category stats if not exists
+        if (!categoryStats[category]) {
+            categoryStats[category] = {
+                category: category,
+                product_count: 0,
+                cheapest_count: 0,
+                expensive_count: 0,
+                midrange_count: 0
+            };
+        }
+
+        // Update category stats
+        categoryStats[category].product_count += 1;
+        if (priceLabel === 'cheapest') {
+            categoryStats[category].cheapest_count += 1;
+        } else if (priceLabel === 'expensive') {
+            categoryStats[category].expensive_count += 1;
+        } else {
+            categoryStats[category].midrange_count += 1;
+        }
+    });
+
+    // Calculate percentage_cheapest and price_rank
+    const categoryData = Object.values(categoryStats).map(category => ({
+        ...category,
+        percentage_cheapest: category.product_count > 0 ? 
+            parseFloat(((category.cheapest_count / category.product_count) * 100).toFixed(2)) : 0
+    }));
+
+    // Sort by percentage_cheapest and add price_rank
+    categoryData.sort((a, b) => b.percentage_cheapest - a.percentage_cheapest);
+    categoryData.forEach((category, index) => {
+        category.price_rank = index + 1;
+    });
 
     return res.status(200).json({
         status:"success",
         message:"Category stats calculated succesfully",
         data:{
-            categoryData:tempData
+            categoryData: categoryData
         }
     })
 })
@@ -582,7 +565,7 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
         return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
-    const cachedData = await redisClient.get('daily_product_data');
+    const cachedData = await redisClient.get('daily_product_data'+source);
     if (!cachedData) {
         return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
@@ -1003,27 +986,32 @@ exports.getPriceRankFor = catchAsync(async (req,res,next)=>{
 exports.getAllBrands = catchAsync(async (req, res, next) => {
     const { source } = req.query;
 
-    let query = `
-        SELECT DISTINCT brand 
-        FROM product 
-        WHERE canprod_id IS NOT NULL 
-          AND brand IS NOT NULL
-    `;
-    const values = [];
-
-    if (source) {
-        query += ` AND website = $1`;
-        values.push(source);
+    // Fetch precomputed data from Redis
+    const cachedData = await redisClient.get('daily_product_data'+source);
+    if (!cachedData) {
+        return next(new AppError("Precomputed data not available. Try again later.", 500));
     }
 
-    query += ` ORDER BY brand ASC`;
+    // Parse cached data
+    let products = JSON.parse(cachedData);
 
-    const data = await pool.query(query, values);
+    // Extract unique brands from precomputed data
+    const brandSet = new Set();
+    
+    products.forEach(product => {
+        const sourceProduct = product.products_data.find(pd => pd.website === source);
+        if (sourceProduct && sourceProduct.brand) {
+            brandSet.add(sourceProduct.brand);
+        }
+    });
+
+    // Convert Set to Array and sort alphabetically
+    const brands = Array.from(brandSet).sort();
 
     return res.status(200).json({
         status: "success",
         message: "All brands fetched",
-        data: data?.rows
+        data: brands.map(brand => ({ brand }))
     });
 });
 
@@ -1037,7 +1025,7 @@ exports.getAllLocations = catchAsync(async (req,res,next)=>{
 
     return res.status(200).json({
         status:"success",
-        message:"All brands fetched",
+        message:"All locations fetched",
         data:data?.rows
     })
 })

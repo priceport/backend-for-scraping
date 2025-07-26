@@ -30,149 +30,88 @@ exports.priceChangeGraph = catchAsync(async (req,res,next)=>{
     const limit = req?.query?.limit;
     const offset = req?.query?.offset;
 
-    // const graphData = await pool.query(`
-    // WITH date_bounds AS (
-    //     SELECT 
-    //         COALESCE($1::DATE, MIN(date)) AS start_date, -- Use provided start_date or minimum date
-    //         COALESCE($2::DATE, MAX(date)) AS end_date   -- Use provided end_date or maximum date
-    //     FROM 
-    //         price
-    // ),
-    // date_range AS (
-    //     SELECT 
-    //         generate_series(
-    //             (SELECT start_date FROM date_bounds),
-    //             (SELECT end_date FROM date_bounds),
-    //             '1 day'::INTERVAL
-    //         )::DATE AS snapshot_date
-    // ),
-    // interval_dates AS (
-    //     SELECT 
-    //         snapshot_date,
-    //         ROW_NUMBER() OVER (ORDER BY snapshot_date) AS row_num,
-    //         (SELECT COUNT(*) FROM date_range) AS total_days
-    //     FROM 
-    //         date_range
-    // ),
-    // selected_dates AS (
-    //     SELECT 
-    //         snapshot_date
-    //     FROM 
-    //         interval_dates
-    //     WHERE 
-    //         $4::INTEGER IS NULL -- If parts is not provided, include all dates
-    //         OR row_num = 1 -- Always include the first date
-    //         OR row_num = total_days -- Always include the last date
-    //         OR MOD((row_num - 1), CEIL(total_days::NUMERIC / $4::NUMERIC)) = 0 -- Select spaced dates
-    // )
-    // SELECT 
-    //     pc.snapshot_date,
-    //     COUNT(CASE WHEN pc.price_change = 'increased' THEN 1 END) AS increased_count,
-    //     COUNT(CASE WHEN pc.price_change = 'decreased' THEN 1 END) AS decreased_count
-    // FROM 
-    //     (
-    //         SELECT 
-    //             p1.product_id,
-    //             p1.website,
-    //             p1.date AS snapshot_date,
-    //             CASE 
-    //                 WHEN p1.price > p2.price THEN 'increased'
-    //                 WHEN p1.price < p2.price THEN 'decreased'
-    //                 ELSE 'unchanged'
-    //             END AS price_change
-    //         FROM 
-    //             price p1
-    //         LEFT JOIN 
-    //             price p2 
-    //         ON 
-    //             p1.product_id = p2.product_id 
-    //             AND p1.website = p2.website
-    //             AND p1.date = p2.date + INTERVAL '1 day'
-    //         WHERE 
-    //             (COALESCE($1::DATE, (SELECT MIN(date) FROM price)) IS NULL OR p1.date >= COALESCE($1::DATE, (SELECT MIN(date) FROM price))) -- Start date filter
-    //             AND (COALESCE($2::DATE, (SELECT MAX(date) FROM price)) IS NULL OR p1.date <= COALESCE($2::DATE, (SELECT MAX(date) FROM price))) -- End date filter
-    //             AND ($3::TEXT[] IS NULL OR p1.website = ANY($3)) -- Website filter
-    //     ) AS pc
-    // WHERE 
-    //     pc.snapshot_date IN (SELECT snapshot_date FROM selected_dates)
-    // GROUP BY 
-    //     pc.snapshot_date
-    // ORDER BY 
-    //     pc.snapshot_date
-    // LIMIT $5::INTEGER OFFSET $6::INTEGER;                      
-    // `,[start_date,end_date,sources,parts,limit,offset]);
-
-
-    //new query
-    const dates = await pool.query(`SELECT 
-    GREATEST(
-        COALESCE($1::DATE, MIN(date)),  -- Use min_date if start_date is NULL
-        MIN(date)                       -- Ensure it's not less than min_date
-    ) AS start_date, -- Use provided start_date or minimum date
-    LEAST(
-        COALESCE($2::DATE, MAX(date)),  -- Use min_date if start_date is NULL
-        MAX(date)                       -- Ensure it's not less than min_date
-    ) AS end_date   -- Use provided end_date or maximum date
-    FROM 
-    price`,[start_date,end_date]);
-
-
-    const data = await pool.query(`select pr.date as new_price_date, pr.price as new_price, p.* from price pr JOIN product p ON pr.product_id = p.id WHERE 
-    ($1::DATE IS NULL OR pr.date >= $1::DATE) 
-    AND ($2::DATE IS NULL OR pr.date <= $2::DATE)
-    AND ($3::VARCHAR[] IS NULL OR p.category = ANY($3::VARCHAR[]))
-    AND ($4::VARCHAR[] IS NULL OR p.brand = ANY($4::VARCHAR[]))
-    AND ($5::VARCHAR[] IS NULL OR p.website = ANY($5::VARCHAR[]))
-    AND p.canprod_id IS NOT NULL
-    ORDER BY pr.date DESC;`,[dates.rows[0].start_date,dates.rows[0].end_date,category,brand,sources]);
-
-    let temp = {};
-    
-    for(let i=0;i<data?.rows?.length;i++){
-
-        const last_price_website = await pool.query(`SELECT price,date
+    // Optimized single query approach
+    const optimizedQuery = `
+    WITH date_bounds AS (
+        SELECT 
+            GREATEST(
+                COALESCE($1::DATE, MIN(date)),
+                MIN(date)
+            ) AS start_date,
+            LEAST(
+                COALESCE($2::DATE, MAX(date)),
+                MAX(date)
+            ) AS end_date
         FROM price
-        WHERE product_id = $3
-          AND date::DATE < $1
-          AND website = $2
-        ORDER BY date DESC
-        LIMIT 1;`,[data?.rows[i]?.new_price_date,data?.rows[i]?.website,data?.rows[i]?.id]);
+    ),
+    price_changes AS (
+        SELECT 
+            pr.date AS new_price_date,
+            pr.price AS new_price,
+            pr.product_id,
+            pr.website,
+            LAG(pr.price) OVER (
+                PARTITION BY pr.product_id, pr.website 
+                ORDER BY pr.date
+            ) AS old_price,
+            LAG(pr.date) OVER (
+                PARTITION BY pr.product_id, pr.website 
+                ORDER BY pr.date
+            ) AS old_price_date,
+            p.category,
+            p.brand,
+            p.canprod_id
+        FROM price pr
+        JOIN product p ON pr.product_id = p.id
+        WHERE 
+            ($1::DATE IS NULL OR pr.date >= $1::DATE)
+            AND ($2::DATE IS NULL OR pr.date <= $2::DATE)
+            AND ($3::VARCHAR[] IS NULL OR p.category = ANY($3::VARCHAR[]))
+            AND ($4::VARCHAR[] IS NULL OR p.brand = ANY($4::VARCHAR[]))
+            AND ($5::VARCHAR[] IS NULL OR p.website = ANY($5::VARCHAR[]))
+            AND p.canprod_id IS NOT NULL
+    ),
+    daily_stats AS (
+        SELECT 
+            new_price_date::DATE AS snapshot_date,
+            COUNT(CASE WHEN new_price > old_price THEN 1 END) AS increased_count,
+            COUNT(CASE WHEN new_price < old_price THEN 1 END) AS decreased_count
+        FROM price_changes
+        WHERE old_price IS NOT NULL
+        GROUP BY new_price_date::DATE
+        ORDER BY new_price_date::DATE
+    )
+    SELECT 
+        snapshot_date,
+        increased_count,
+        decreased_count
+    FROM daily_stats
+    ORDER BY snapshot_date DESC
+    `;
 
-        if(!last_price_website?.rows ||last_price_website?.rows?.length == 0) {
-            data.rows[i].old_price = 0;
-            data.rows[i].percentage_diff = 100
-        }
-        else {
-            data.rows[i].old_price_date = last_price_website.rows[0].date;
-            data.rows[i].old_price = last_price_website.rows[0]?.price;
-            data.rows[i].percentage_diff = ((data.rows[i].new_price - data.rows[i].old_price)/ data.rows[i].old_price) * 100;
-        }
+    const data = await pool.query(optimizedQuery, [start_date, end_date, category, brand, sources]);
 
-        if(!temp[data.rows[i]?.new_price_date?.toISOString()?.split("T")[0]]){
-            temp[data.rows[i]?.new_price_date?.toISOString()?.split("T")[0]] = {
-                snapshot_date:data.rows[i]?.new_price_date,
-                increased_count:0,
-                decreased_count:0
-            }
-        }
+    let temp = data.rows.map(row => ({
+        snapshot_date: row.snapshot_date,
+        increased_count: parseInt(row.increased_count) || 0,
+        decreased_count: parseInt(row.decreased_count) || 0
+    }));
 
-        if(data.rows[i].percentage_diff>0) temp[data.rows[i]?.new_price_date?.toISOString()?.split("T")[0]].increased_count +=1;
-        else if(data.rows[i].percentage_diff<0) temp[data.rows[i]?.new_price_date?.toISOString()?.split("T")[0]].decreased_count +=1;
+    // Apply parts filtering if specified
+    if (parts !== null && parts > 0) {
+        temp = getParts(temp, parts + 1); // +1 because getParts expects total parts, not parts-1
     }
 
-    temp = Object.keys(temp)?.map(key=>temp[key]);
-
-    temp = getParts(temp,parts);
-
-    if(offset!==undefined&&limit!==undefined){
-        temp = temp.slice(offset, parseInt(offset) + parseInt(limit));
+    // Apply pagination
+    if (offset !== undefined && limit !== undefined) {
+        temp = temp.slice(parseInt(offset), parseInt(offset) + parseInt(limit));
     }
 
     return res.status(200).json({
-        status:"success",
-        message:"Price changes graph fetched succesfully",
-        data:temp
-    })
+        status: "success",
+        message: "Price changes graph fetched successfully",
+        data: temp
+    });
 });
 
 exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
@@ -294,73 +233,188 @@ exports.getLivePriceChanges = catchAsync(async (req,res,next)=>{
     // OFFSET $9 LIMIT $10;                 
     // `,[brand,category,start_date,end_date,locations,sourceQuery,action,diff_value,offset,limit])
     
-    const data = await pool.query(`select pr.date as new_price_date, pr.price as new_price, p.* from price pr JOIN product p ON pr.product_id = p.id WHERE 
-    ($1::DATE IS NULL OR pr.date >= $1::DATE) 
-    AND ($2::DATE IS NULL OR pr.date <= $2::DATE)
-    AND ($3::VARCHAR[] IS NULL OR p.category = ANY($3::VARCHAR[]))
-    AND ($4::VARCHAR[] IS NULL OR p.brand = ANY($4::VARCHAR[]))
-    AND ($5::VARCHAR[] IS NULL OR p.website = ANY($5::VARCHAR[]))
-    AND p.canprod_id IS NOT NULL
-    ORDER BY pr.date DESC;`,[start_date,end_date,category,brand,locations]);
-    
-    for(let i=0;i<data?.rows?.length;i++){
+    // Optimized single query approach
+    const optimizedQuery = `
+    WITH price_changes AS (
+        SELECT 
+            p.title,
+            p.brand,
+            p.description,
+            p.alcohol,
+            p.canprod_id,
+            p.url,
+            p.image_url,
+            p.qty,
+            p.unit,
+            p.created_at,
+            p.last_checked,
+            p.category,
+            p.sub_category,
+            p.id as product_id,
+            pr.date AS new_price_date,
+            pr.price AS new_price,
+            pr.website,
+            LAG(pr.price) OVER (
+                PARTITION BY pr.product_id, pr.website 
+                ORDER BY pr.date
+            ) AS old_price,
+            LAG(pr.date) OVER (
+                PARTITION BY pr.product_id, pr.website 
+                ORDER BY pr.date
+            ) AS old_price_date,
+            ROUND(
+                CASE 
+                    WHEN LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date) > 0 THEN
+                        ((pr.price - LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date)) 
+                         / LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date)) * 100
+                    ELSE NULL
+                END, 2
+            ) AS percentage_diff
+        FROM price pr
+        JOIN product p ON pr.product_id = p.id
+        WHERE 
+            ($1::DATE IS NULL OR pr.date >= $1::DATE)
+            AND ($2::DATE IS NULL OR pr.date <= $2::DATE)
+            AND ($3::VARCHAR[] IS NULL OR p.category = ANY($3::VARCHAR[]))
+            AND ($4::VARCHAR[] IS NULL OR p.brand = ANY($4::VARCHAR[]))
+            AND ($5::VARCHAR[] IS NULL OR p.website = ANY($5::VARCHAR[]))
+            AND p.canprod_id IS NOT NULL
+    ),
+    latest_source_prices AS (
+        SELECT 
+            p.canprod_id,
+            MAX(pr.price) AS latest_price
+        FROM product p
+        JOIN price pr ON pr.product_id = p.id
+        WHERE p.website = $6::VARCHAR
+        GROUP BY p.canprod_id
+    ),
+    filtered_changes AS (
+        SELECT 
+            pc.*,
+            lsp.latest_price AS latest_source_price
+        FROM price_changes pc
+        LEFT JOIN latest_source_prices lsp ON pc.canprod_id = lsp.canprod_id
+        WHERE 
+            pc.old_price IS NOT NULL
+            AND pc.new_price != pc.old_price
+            AND (
+                $7::TEXT IS NULL OR (
+                    $7 = 'equal' AND pc.percentage_diff = $8::NUMERIC
+                ) OR (
+                    $7 = 'greater_than' AND pc.percentage_diff > $8::NUMERIC
+                ) OR (
+                    $7 = 'greater_than_equal_to' AND pc.percentage_diff >= $8::NUMERIC
+                ) OR (
+                    $7 = 'less_than' AND pc.percentage_diff < $8::NUMERIC
+                ) OR (
+                    $7 = 'less_than_equal_to' AND pc.percentage_diff <= $8::NUMERIC
+                )
+            )
+    )
+    SELECT 
+        title,
+        brand,
+        description,
+        alcohol,
+        canprod_id,
+        url,
+        image_url,
+        qty,
+        unit,
+        created_at,
+        last_checked,
+        category,
+        sub_category,
+        product_id,
+        new_price_date,
+        new_price,
+        old_price,
+        old_price_date,
+        percentage_diff,
+        latest_source_price,
+        website
+    FROM filtered_changes
+    ORDER BY new_price_date DESC
+    OFFSET $9::INTEGER LIMIT $10::INTEGER
+    `;
 
-        const last_price_website = await pool.query(`SELECT price,date
-        FROM price
-        WHERE product_id = $3
-          AND date::DATE < $1
-          AND website = $2
-        ORDER BY date DESC
-        LIMIT 1;`,[data?.rows[i]?.new_price_date,data?.rows[i]?.website,data?.rows[i]?.id]);
+    // Query to get total count without pagination
+    const countQuery = `
+    WITH price_changes AS (
+        SELECT 
+            p.canprod_id,
+            pr.date AS new_price_date,
+            pr.price AS new_price,
+            pr.website,
+            LAG(pr.price) OVER (
+                PARTITION BY pr.product_id, pr.website 
+                ORDER BY pr.date
+            ) AS old_price,
+            ROUND(
+                CASE 
+                    WHEN LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date) > 0 THEN
+                        ((pr.price - LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date)) 
+                         / LAG(pr.price) OVER (PARTITION BY pr.product_id, pr.website ORDER BY pr.date)) * 100
+                    ELSE NULL
+                END, 2
+            ) AS percentage_diff
+        FROM price pr
+        JOIN product p ON pr.product_id = p.id
+        WHERE 
+            ($1::DATE IS NULL OR pr.date >= $1::DATE)
+            AND ($2::DATE IS NULL OR pr.date <= $2::DATE)
+            AND ($3::VARCHAR[] IS NULL OR p.category = ANY($3::VARCHAR[]))
+            AND ($4::VARCHAR[] IS NULL OR p.brand = ANY($4::VARCHAR[]))
+            AND ($5::VARCHAR[] IS NULL OR p.website = ANY($5::VARCHAR[]))
+            AND p.canprod_id IS NOT NULL
+    )
+    SELECT COUNT(*) as total_count
+    FROM price_changes
+    WHERE 
+        old_price IS NOT NULL
+        AND new_price != old_price
+        AND (
+            $6::TEXT IS NULL OR (
+                $6 = 'equal' AND percentage_diff = $7::NUMERIC
+            ) OR (
+                $6 = 'greater_than' AND percentage_diff > $7::NUMERIC
+            ) OR (
+                $6 = 'greater_than_equal_to' AND percentage_diff >= $7::NUMERIC
+            ) OR (
+                $6 = 'less_than' AND percentage_diff < $7::NUMERIC
+            ) OR (
+                $6 = 'less_than_equal_to' AND percentage_diff <= $7::NUMERIC
+            )
+        )
+    `;
 
-        const source_canprod = await pool.query(`SELECT id FROM product WHERE canprod_id=$1 AND website=$2`,[data?.rows[i]?.canprod_id,sourceQuery]);
+    // Get total count
+    const totalCount = await pool.query(countQuery, [
+        start_date, 
+        end_date, 
+        category, 
+        brand, 
+        locations, 
+        action, 
+        diff_value
+    ]);
 
-        let last_source_website;
-        if(source_canprod&&source_canprod?.rows?.length>0)
-        last_source_website = await pool.query(`SELECT price,date
-        FROM price
-        WHERE product_id = $1
-        ORDER BY date DESC
-        LIMIT 1;`,[source_canprod?.rows[0]?.id]);
+    // Get paginated data
+    const data = await pool.query(optimizedQuery, [
+        start_date, 
+        end_date, 
+        category, 
+        brand, 
+        locations, 
+        sourceQuery, 
+        action, 
+        diff_value, 
+        offset || 0, 
+        limit || 1000
+    ]);
 
-        if(!last_price_website?.rows ||last_price_website?.rows?.length == 0) {
-            data.rows[i].old_price = 0;
-            data.rows[i].percentage_diff = 100
-        }
-        else {
-            data.rows[i].old_price_date = last_price_website.rows[0].date;
-            data.rows[i].old_price = last_price_website.rows[0]?.price;
-            data.rows[i].percentage_diff = ((data.rows[i].new_price - data.rows[i].old_price)/ data.rows[i].old_price) * 100;
-        }
-
-        if(!last_source_website || last_source_website.rows.length==0) data.rows[i].latest_source_price = null;
-        else data.rows[i].latest_source_price = last_source_website.rows[0].price;
-    }
-
-    if(action&&(diff_value!==null))
-    data.rows = data.rows.filter(el=>{
-        if(action=='equal'){
-            return parseFloat(el.percentage_diff.toFixed(3)) == parseFloat(parseFloat(diff_value).toFixed(3));
-        }
-        else if(action=='greater_than'){
-            return parseFloat(el.percentage_diff.toFixed(3)) > parseFloat(parseFloat(diff_value).toFixed(3));
-        }
-        else if(action=='greater_than_equal_to'){
-            return parseFloat(el.percentage_diff.toFixed(3)) >= parseFloat(parseFloat(diff_value).toFixed(3));
-        }
-        else if(action=='less_than'){
-            return parseFloat(el.percentage_diff.toFixed(3)) < parseFloat(parseFloat(diff_value).toFixed(3));
-        }
-        else if(action=='less_than_equal_to'){
-            return parseFloat(el.percentage_diff.toFixed(3)) <= parseFloat(parseFloat(diff_value).toFixed(3));
-        }
-    })
-
-    const totals = data?.rows?.length;
-
-    if(offset!==undefined&&limit!==undefined){
-    data.rows = data.rows.slice(offset, parseInt(offset) + parseInt(limit));
-    }
+    const totals = parseInt(totalCount.rows[0]?.total_count) || 0;
     return res.status(200).json({
         status:"success",
         message:"Live price monitoring",
