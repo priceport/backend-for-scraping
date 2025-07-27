@@ -130,7 +130,7 @@ app.use(globalErrorHandler);
 // ujjwalScrapingService();
 
 //testing pupetter as well as ci/cd
-// scrapingService();
+scrapingService();
 
 
 const testWebsite = async ()=>{
@@ -709,9 +709,9 @@ precomputeDailyData('aelia_cairns',true);
 precomputeDailyDataFNB();
 
 // Schedule the task to run at 12 AM New Zealand Time
-cron.schedule('50 7 * * *', scrapingService, {
-  scheduled: true,
-  timezone: 'Pacific/Auckland', // New Zealand timezone
-});
+// cron.schedule('50 7 * * *', scrapingService, {
+//   scheduled: true,
+//   timezone: 'Pacific/Auckland', // New Zealand timezone
+// });
  
 module.exports = app;
