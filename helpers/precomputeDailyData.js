@@ -130,7 +130,7 @@ const precomputeDailyData = async (source,checkMappings) => {
             FROM 
                 promotion p
             WHERE 
-                p.date::DATE >= CURRENT_DATE - 2 AND product_id = $1;`,[temp.id]);
+                p.date::DATE >= CURRENT_DATE - 10 AND product_id = $1;`,[temp.id]);
 
             temp.latest_promotions = promotions.rows;
             
