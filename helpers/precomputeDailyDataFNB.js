@@ -79,43 +79,49 @@ const precomputeDailyDataFNB = async (source) => {
 
         finalData[i].products_data.sort((a, b) => a.latest_price - b.latest_price);
         
-        let prank = 1, plength = 0, lastprice=0,source_pricerank,total_price=0;
-
-        for(let j=0;j<finalData[i]?.products_data?.length;j++){
-        if(j==0){
-            // finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-            // lastprice = finalData[i].products_data[j].latest_price;
-            total_price+= parseFloat(finalData[i].products_data[j].latest_price);
-        }
-        else{
-            // if(lastprice==finalData[i].products_data[j].latest_price){
-            //     finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-            //     plength+=1;
-            // }
-            // else{
-            //     prank+=(1+plength);
-            //     finalData[i].products_data[j].pricerank = `${prank}/${finalData[i]?.products_data?.length}`;
-            //     plength=0;
-            //     lastprice=finalData[i].products_data[j].latest_price;
-            // }
-            total_price+= parseFloat(finalData[i].products_data[j].latest_price);
-        }
-
-        // if(finalData[i].products_data[j].website==source) source_pricerank = parseInt(finalData[i].products_data[j].pricerank?.split("/")[0]);
-        }
-        finalData[i].total_price = total_price;
-        // finalData[i].source_pricerank = source_pricerank;
+        // Remove the old total_price calculation as it's not needed and causing issues
+        // The average will be calculated correctly in the final loop below
     }
 
         finalData = finalData?.filter(data=>data.products_data.length!==0);
 
         let newData = [];
         finalData?.forEach(data=>{
+            // Calculate the average price of all products in this group
+            const totalPrice = data.products_data.reduce((sum, product) => sum + parseFloat(product.latest_price), 0);
+            const averagePrice = data.products_data.length > 0 ? totalPrice / data.products_data.length : 0;
+            
+            // Debug logs
+            console.log('=== DEBUG CALCULATION ===');
+            console.log('canprod_id:', data.canprod_id);
+            console.log('Number of products:', data.products_data.length);
+            console.log('Prices:', data.products_data.map(p => p.latest_price));
+            console.log('Total price calculated:', totalPrice);
+            console.log('Average price calculated:', averagePrice);
+            console.log('Old total_price from data:', data.total_price);
+            console.log('========================');
+            
             data?.products_data?.forEach(product=>{
-                console.log(product?.terminal_name);
                 if(product?.terminal_name!="OTHERS"){
-                    let avg = ((data?.total_price-product?.latest_price)/(data?.products_data?.length - 1));
-                    newData.push({...data,average:avg,store_name:product?.store_name,store_price:product?.latest_price,product_name:product?.name,terminal_name:product?.terminal_name,store_pricerank:product?.pricerank,difference:(parseFloat(product?.latest_price)-parseFloat(avg)),difference_percentage:((parseFloat(product?.latest_price)-parseFloat(avg))/parseFloat(product?.latest_price))*100})
+                    const difference = parseFloat(product?.latest_price) - averagePrice;
+                    const difference_percentage = product?.latest_price > 0 ? (difference / parseFloat(product?.latest_price)) * 100 : 0;
+                    
+                    // Debug for this specific product
+                    console.log(`Product: ${product.name}, Price: ${product.latest_price}, Difference: ${difference}, Percentage: ${difference_percentage}%`);
+                    
+                    newData.push({
+                        canprod_id: data.canprod_id,
+                        products_data: data.products_data,
+                        total_price: totalPrice, // Use the correctly calculated total
+                        average: averagePrice,
+                        store_name: product?.store_name,
+                        store_price: product?.latest_price,
+                        product_name: product?.name,
+                        terminal_name: product?.terminal_name,
+                        store_pricerank: product?.pricerank,
+                        difference: difference,
+                        difference_percentage: difference_percentage
+                    });
                 }
             })
         });

@@ -211,8 +211,27 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
             }
         }
 
-        products[i].average = total_price / (products[i]?.products_data?.length - 1)
-        // console.log(total_price / (products[i]?.products_data?.length - 1),products[i].average);
+        // Calculate the correct average of all products in this group
+        const allPrices = products[i].products_data.map(pd => parseFloat(pd.latest_price));
+        const totalAllPrices = allPrices.reduce((sum, price) => sum + price, 0);
+        const correctAverage = allPrices.length > 0 ? totalAllPrices / allPrices.length : 0;
+        
+        // Calculate the average of other stores (excluding current store+terminal combination)
+        const otherStoresPrices = products[i].products_data
+            .filter(pd => !(pd.store_name?.toLowerCase() === products[i]?.store_name?.toLowerCase() && 
+                           pd.terminal_name?.toLowerCase() === products[i]?.terminal_name?.toLowerCase()))
+            .map(pd => parseFloat(pd.latest_price));
+        const otherStoresAverage = otherStoresPrices.length > 0 ? 
+            otherStoresPrices.reduce((sum, price) => sum + price, 0) / otherStoresPrices.length : 0;
+        
+        // Use the average of other stores for comparison (this is what the original logic intended)
+        products[i].average = otherStoresAverage;
+        
+        // Recalculate difference and difference_percentage based on the correct average
+        const currentPrice = parseFloat(products[i].store_price);
+        products[i].difference = currentPrice - otherStoresAverage;
+        products[i].difference_percentage = otherStoresAverage > 0 ? 
+            ((currentPrice - otherStoresAverage) / currentPrice) * 100 : 0;
     }
 
     // Sort data
