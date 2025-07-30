@@ -61,9 +61,9 @@ const updateDBEntry = async (data) => {
         // If product exists, update last check
         await pool.query(
           `UPDATE product 
-                    SET last_checked = current_timestamp , country = $2
+                    SET last_checked = current_timestamp , country = $2, image_url = $3
                     WHERE id = $1`,
-          [product?.rows[0]?.id, "Australia"]
+          [product?.rows[0]?.id, "Australia", img]
         );
         await pool.query(
           `UPDATE product 
