@@ -1017,11 +1017,44 @@ exports.getAllBrands = catchAsync(async (req, res, next) => {
 
 
 exports.getAllLocations = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`SELECT DISTINCT website 
-    FROM product 
-    WHERE canprod_id IS NOT NULL 
-      AND website IS NOT NULL 
-    ORDER BY website ASC`);
+    const source = req.query.source;
+    
+    if (!source) {
+        return next(new AppError("Source parameter is required", 400));
+    }
+
+    // Define country mappings for sources
+    const countryMappings = {
+        // New Zealand sources
+        "aelia_auckland": "new zealand",
+        "aelia_queenstown": "new zealand", 
+        "aelia_christchurch": "new zealand",
+        
+        // Australia sources
+        "lotte_melbourne": "Australia",
+        "lotte_brisbane": "Australia",
+        "heinemann_sydney": "Australia",
+        "heinemann_goldcoast": "Australia",
+        "aelia_cairns": "Australia",
+        "aelia_adelaide": "Australia"
+    };
+
+    const country = countryMappings[source];
+    if (!country) {
+        return next(new AppError("Invalid source parameter", 400));
+    }
+
+    const data = await pool.query(`
+        SELECT DISTINCT website 
+        FROM product 
+        WHERE canprod_id IS NOT NULL 
+          AND website IS NOT NULL 
+          AND (
+            (tag = 'duty-free') OR 
+            (tag = 'domestic' AND country = $1)
+          )
+        ORDER BY website ASC
+    `, [country]);
 
     return res.status(200).json({
         status:"success",
