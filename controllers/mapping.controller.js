@@ -119,7 +119,7 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
     }
 
     console.log("filtering similar products using openai from "+matches["0.3"]?.length+" products");
-    let newData = await filterCandidates({title:req.query.title},matches["0.3"]);
+    let newData = await filterCandidates({title:req.query.title},matches["0.3"]?matches["0.3"]:[]);
     console.log(newData);
     
     return res.status(200).json({
