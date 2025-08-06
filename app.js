@@ -130,7 +130,7 @@ app.use(globalErrorHandler);
 // ujjwalScrapingService();
 
 //testing pupetter as well as ci/cd
-// scrapingService();
+scrapingService();
 
 
 const testWebsite = async ()=>{
