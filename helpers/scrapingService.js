@@ -31,6 +31,7 @@ const scrapeAuMecca = require("./scrapeAuMecca");
 const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
+const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
 
 
 
@@ -897,16 +898,27 @@ doneDanMurphy=false;
   await extract_unit_and_quantity();
   await updateProductPriceRank();
   await updateDailyPriceStats("aelia_auckland");
-  precomputeDailyData('aelia_auckland',true);
-  precomputeDailyData('aelia_adelaide',true);
-  precomputeDailyData('nz_themall',true);
-  precomputeDailyData('lotte_melbourne',true);
-  precomputeDailyData('aelia_queenstown',true);
-  precomputeDailyData('lotte_brisbane',true);
-  precomputeDailyData('heinemann_sydney',true);
-  precomputeDailyData('aelia_christchurch',true);
-  precomputeDailyData('heinemann_goldcoast',true);
-  precomputeDailyData('aelia_cairns',true);
+  await precomputeDailyData('aelia_auckland',true);
+  await precomputeDailyData('aelia_adelaide',true);
+  await precomputeDailyData('nz_themall',true);
+  await precomputeDailyData('lotte_melbourne',true);
+  await precomputeDailyData('aelia_queenstown',true);
+  await precomputeDailyData('lotte_brisbane',true);
+  await precomputeDailyData('heinemann_sydney',true);
+  await precomputeDailyData('aelia_christchurch',true);
+  await precomputeDailyData('heinemann_goldcoast',true);
+  await precomputeDailyData('aelia_cairns',true);
+
+  await precomputeLivePriceChanges('aelia_auckland');
+  // precomputeLivePriceChanges('aelia_adelaide');
+  // precomputeLivePriceChanges('nz_themall');
+  // precomputeLivePriceChanges('lotte_melbourne');
+  // precomputeLivePriceChanges('aelia_queenstown');
+  // precomputeLivePriceChanges('lotte_brisbane');
+  // precomputeLivePriceChanges('heinemann_sydney');
+  // precomputeLivePriceChanges('aelia_christchurch');
+  // precomputeLivePriceChanges('heinemann_goldcoast');
+  // precomputeLivePriceChanges('aelia_cairns');
   await precomputeDailyDataFNB();
 };
 

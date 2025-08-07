@@ -44,6 +44,7 @@ const redisClient = require("./configs/redis.config.js");
 const pool = require("./configs/postgresql.config.js");
 const precomputeDailyDataFNB = require("./helpers/precomputeDailyDataFNB.js");
 const scrapeAelia = require("./helpers/scrapeAelia.js");
+const { precomputeLivePriceChanges } = require("./helpers/precompuetLivePriceChanges.js");
 // const precomputeDailyDataAdmin = require("./helpers/precomputeDailyDataAdmin.js");
 
 const app = express();
@@ -694,19 +695,36 @@ const testWebsite = async ()=>{
 // }
 //pricerank, id->product_id, latest_price, latest_promotions, price_per_unit
 // temp();
-precomputeDailyData('aelia_auckland',true);
-precomputeDailyData('aelia_adelaide',true);
-precomputeDailyData('nz_themall',true);
-precomputeDailyData('lotte_melbourne',true);
-precomputeDailyData('aelia_queenstown',true);
-precomputeDailyData('lotte_brisbane',true);
-precomputeDailyData('heinemann_sydney',true);
-precomputeDailyData('aelia_christchurch',true);
-precomputeDailyData('heinemann_goldcoast',true);
-precomputeDailyData('aelia_cairns',true);
 
 
-precomputeDailyDataFNB();
+
+
+async function runPrecomputes(){
+  await precomputeDailyData('aelia_auckland',true);
+  await precomputeDailyData('aelia_adelaide',true);
+  await precomputeDailyData('nz_themall',true);
+  await precomputeDailyData('lotte_melbourne',true);
+  await precomputeDailyData('aelia_queenstown',true);
+  await precomputeDailyData('lotte_brisbane',true);
+  await precomputeDailyData('heinemann_sydney',true);
+  await precomputeDailyData('aelia_christchurch',true);
+  await precomputeDailyData('heinemann_goldcoast',true);
+  await precomputeDailyData('aelia_cairns',true);
+  await precomputeLivePriceChanges('aelia_auckland');
+  // await precomputeLivePriceChanges('aelia_adelaide');
+  // await precomputeLivePriceChanges('nz_themall');
+  // await precomputeLivePriceChanges('lotte_melbourne');
+  // await precomputeLivePriceChanges('aelia_queenstown');
+  // await precomputeLivePriceChanges('lotte_brisbane');
+  // await precomputeLivePriceChanges('heinemann_sydney');
+  // await precomputeLivePriceChanges('aelia_christchurch');
+  // await precomputeLivePriceChanges('heinemann_goldcoast');
+  // await precomputeLivePriceChanges('aelia_cairns');
+  await precomputeDailyDataFNB();
+  
+}
+
+runPrecomputes();
 
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('50 7 * * *', scrapingService, {

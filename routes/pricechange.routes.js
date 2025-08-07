@@ -7,5 +7,5 @@ router.route("/")
 .get(UserController.isLoggedIn,cacheMiddleware,PricechangeController.priceChangeGraph);
 
 router.route("/product")
-.get(UserController.isLoggedIn,cacheMiddleware,PricechangeController.getLivePriceChanges);
+.get(UserController.isLoggedIn,cacheMiddleware,PricechangeController.newLivePriceChanges);
 module.exports = router;
