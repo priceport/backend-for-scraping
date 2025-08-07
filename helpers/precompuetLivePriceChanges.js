@@ -73,15 +73,17 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
     const sourceProductCache = {};
     const sourcePriceCache = {};
 
-    // Process data in chunks and save month-wise
-    const monthlyData = {};
+    // Process in very small chunks and save immediately
+    const CHUNK_SIZE = 20; // Very small chunks
+    const SAVE_INTERVAL = 100; // Save every 100 items
     let processedCount = 0;
     let totalNewItems = 0;
+    let currentMonthData = {}; // Only keep current month in memory
 
-    for(let i = 0; i < priceChanges?.rows?.length; i += 100){
-        console.log(`Processing batch ${i} to ${Math.min(i + 100, priceChanges.rows.length)}`);
-        const curItems = priceChanges?.rows?.slice(i, i + 100);
+    for(let i = 0; i < priceChanges?.rows?.length; i += CHUNK_SIZE){
+        const curItems = priceChanges?.rows?.slice(i, i + CHUNK_SIZE);
         
+        // Process small chunk
         let processedItems = await Promise.all(curItems?.map(async item => {
             if(productCache[item?.product_id]){ 
                 return {...item, product: productCache[item?.product_id]}
@@ -116,7 +118,7 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
             }
         }));
 
-        // Transform and group by month immediately
+        // Transform items
         processedItems = processedItems.map(item => ({
             title: item?.product?.title,
             brand: item?.product?.brand,
@@ -143,8 +145,8 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
             source_product: item?.product?.sourceProduct,
         }));
 
-        // Group by month and add to monthlyData
-        let newItemsInBatch = 0;
+        // Group by month and add to current month data
+        let newItemsInChunk = 0;
         processedItems.forEach(item => {
             if (item.new_price_date) {
                 const date = new Date(item.new_price_date);
@@ -152,44 +154,44 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
                 const year = date.getFullYear();
                 const key = `${month}_${year}`;
                 
-                if (!monthlyData[key]) {
-                    monthlyData[key] = [];
+                if (!currentMonthData[key]) {
+                    currentMonthData[key] = [];
                 }
-                monthlyData[key].push(item);
-                newItemsInBatch++;
+                currentMonthData[key].push(item);
+                newItemsInChunk++;
             }
         });
 
         processedCount += processedItems.length;
-        totalNewItems += newItemsInBatch;
-        console.log(`Processed ${processedCount}/${priceChanges.rows.length} items. New items in batch: ${newItemsInBatch}. Total new items: ${totalNewItems}. Memory usage: ${Object.keys(monthlyData).length} months`);
+        totalNewItems += newItemsInChunk;
 
-        // Save to cache every 10,000 items to prevent memory buildup
-        if (processedCount % 10000 === 0) {
-            await saveMonthlyDataToCache(monthlyData, sourceQuery);
-            console.log(`Saved intermediate data to cache at ${processedCount} items (${totalNewItems} new items total)`);
+        // Save to cache frequently
+        if (processedCount % SAVE_INTERVAL === 0) {
+            await saveCurrentMonthDataToCache(currentMonthData, sourceQuery);
+            console.log(`Saved at ${processedCount}/${priceChanges.rows.length} items (${totalNewItems} new items total)`);
             
-            // Clear monthlyData to prevent double-counting in next batch
-            Object.keys(monthlyData).forEach(key => {
-                monthlyData[key] = [];
-            });
-            console.log(`Cleared monthlyData to prevent double-counting`);
+            // Clear current month data to free memory
+            currentMonthData = {};
+            
+            // Force garbage collection
+            if (global.gc) {
+                global.gc();
+            }
         }
     }
 
-    console.log('All data processed. Saving final data to cache...');
-
-    // Save final data to cache
-    await saveMonthlyDataToCache(monthlyData, sourceQuery);
+    // Save any remaining data
+    if (Object.keys(currentMonthData).length > 0) {
+        await saveCurrentMonthDataToCache(currentMonthData, sourceQuery);
+    }
 
     console.log("Live price changes precomputed and cached by month!");
-    console.log(`Updated/created months: ${Object.keys(monthlyData).join(' → ')}`);
     console.log(`Total processed: ${processedCount}, Total new items: ${totalNewItems}`);
 };
 
-// Helper function to save monthly data to cache
-const saveMonthlyDataToCache = async (monthlyData, sourceQuery) => {
-    const sortedMonths = Object.keys(monthlyData).sort((a, b) => {
+// Helper function to save current month data to cache
+const saveCurrentMonthDataToCache = async (currentMonthData, sourceQuery) => {
+    const sortedMonths = Object.keys(currentMonthData).sort((a, b) => {
         const [monthA, yearA] = a.split('_');
         const [monthB, yearB] = b.split('_');
         
@@ -204,7 +206,7 @@ const saveMonthlyDataToCache = async (monthlyData, sourceQuery) => {
     const cachePromises = sortedMonths.map(async (monthYear) => {
         const cacheKey = `live_price_changes_${sourceQuery}_${monthYear}`;
         
-        // If this month already exists in cache, merge with existing data
+        // Get existing data
         let existingData = [];
         let existingCount = 0;
         try {
@@ -212,18 +214,17 @@ const saveMonthlyDataToCache = async (monthlyData, sourceQuery) => {
             if (existingCache) {
                 existingData = JSON.parse(existingCache);
                 existingCount = existingData.length;
-                console.log(`Found existing data for ${monthYear}: ${existingCount} items`);
             }
         } catch (error) {
             console.log(`Error fetching existing cache for ${monthYear}:`, error.message);
         }
         
-        // Merge existing and new data, removing duplicates based on product_id and new_price_date
+        // Merge with new data
         const mergedData = [...existingData];
         const existingKeys = new Set(existingData.map(item => `${item.product_id}_${item.new_price_date}`));
         
         let newItemsCount = 0;
-        monthlyData[monthYear].forEach(newItem => {
+        currentMonthData[monthYear].forEach(newItem => {
             const key = `${newItem.product_id}_${newItem.new_price_date}`;
             if (!existingKeys.has(key)) {
                 mergedData.push(newItem);
@@ -232,15 +233,15 @@ const saveMonthlyDataToCache = async (monthlyData, sourceQuery) => {
             }
         });
         
-        // Sort merged data by date to maintain chronological order
+        // Sort by date
         mergedData.sort((a, b) => new Date(a.new_price_date) - new Date(b.new_price_date));
         
-        console.log(`Caching ${mergedData.length} items for ${monthYear} (${newItemsCount} new items, ${existingCount} existing)`);
+        console.log(`Caching ${mergedData.length} items for ${monthYear} (${newItemsCount} new, ${existingCount} existing)`);
         
         return redisClient.set(
             cacheKey,
             JSON.stringify(mergedData),
-            'EX', 86400 // Set expiry to 24 hours (in seconds)
+            'EX', 86400
         );
     });
 
