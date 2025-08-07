@@ -1,4 +1,6 @@
 const pool = require("../configs/postgresql.config");
+const redisClient = require("../configs/redis.config");
+const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 
 function getParts(array, parts) {
@@ -111,6 +113,196 @@ exports.priceChangeGraph = catchAsync(async (req,res,next)=>{
         status: "success",
         message: "Price changes graph fetched successfully",
         data: temp
+    });
+});
+
+exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
+    let limit = req?.query?.limit;
+    let offset = req?.query?.offset;
+    let category = req?.query?.category?.split(",") || null;
+    let brand = req?.query?.brand?.split(",") || null;
+    let start_date = req?.query?.start_date ||null;
+    let end_date = req?.query?.end_date || null;
+    let locations = req?.query?.locations?.split(",") || null;
+    let diff_value = req?.query?.diff_value || null;
+    let action = req?.query?.action || null;
+    let sourceQuery = req?.query?.source;
+    let title = req?.query?.title;
+
+    if(!sourceQuery){
+        return next(
+            new AppError("Source is required",400)
+        )
+    }
+
+    // Get all cached monthly data for this sourceQuery
+    let allPriceChanges = [];
+    let cachedKeys = []; // Declare cachedKeys here
+    
+    try {
+        cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*`);
+        console.log(`Found ${cachedKeys.length} cached months for ${sourceQuery}`);
+        
+        if (cachedKeys.length > 0) {
+            // Sort keys chronologically
+            const sortedKeys = cachedKeys.sort((a, b) => {
+                const matchA = a.match(/live_price_changes_.*_([a-z]+)_(\d{4})$/);
+                const matchB = b.match(/live_price_changes_.*_([a-z]+)_(\d{4})$/);
+                
+                if (matchA && matchB) {
+                    const [monthA, yearA] = [matchA[1], parseInt(matchA[2])];
+                    const [monthB, yearB] = [matchB[1], parseInt(matchB[2])];
+                    
+                    if (yearA !== yearB) return yearA - yearB;
+                    
+                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                    return months.indexOf(monthA) - months.indexOf(monthB);
+                }
+                return 0;
+            });
+
+            // Fetch data from all cached months
+            for (const key of sortedKeys) {
+                const cachedData = await redisClient.get(key);
+                if (cachedData) {
+                    const monthData = JSON.parse(cachedData);
+                    allPriceChanges.push(...monthData);
+                    console.log(`Loaded ${monthData.length} items from ${key}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.log("Error fetching cached data:", error.message);
+    }
+
+    console.log(`Total cached items: ${allPriceChanges.length}`);
+
+    // Apply date filtering if specified
+    if (start_date && end_date) {
+        allPriceChanges = allPriceChanges.filter(item => {
+            const itemDate = new Date(item.new_price_date);
+            const startDate = new Date(start_date);
+            const endDate = new Date(end_date);
+            return itemDate >= startDate && itemDate <= endDate;
+        });
+        console.log(`After date filtering: ${allPriceChanges.length} items`);
+    }
+
+    // Apply location filtering if specified
+    if (locations && locations.length > 0) {
+        allPriceChanges = allPriceChanges.filter(item => 
+            locations.includes(item.website)
+        );
+        console.log(`After location filtering: ${allPriceChanges.length} items`);
+    }
+
+    // Apply category filtering
+    if (category && category.length > 0) {
+        allPriceChanges = allPriceChanges.filter(item => 
+            category.includes(item.category)
+        );
+        console.log(`After category filtering: ${allPriceChanges.length} items`);
+    }
+
+    // Apply brand filtering
+    if (brand && brand.length > 0) {
+        allPriceChanges = allPriceChanges.filter(item => 
+            brand.includes(item.brand)
+        );
+        console.log(`After brand filtering: ${allPriceChanges.length} items`);
+    }
+
+    // Apply title filtering
+    if (title) {
+        allPriceChanges = allPriceChanges.filter(item => 
+            item.title === title
+        );
+        console.log(`After title filtering: ${allPriceChanges.length} items`);
+    }
+
+    // Filter out items without canprod_id
+    allPriceChanges = allPriceChanges.filter(item => 
+        item.canprod_id != null
+    );
+    console.log(`After canprod_id filtering: ${allPriceChanges.length} items`);
+
+    // Apply percentage difference filtering if specified
+    if (diff_value && action) {
+        const diffValue = parseFloat(diff_value);
+        
+        switch (action) {
+            case 'less_than':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff < diffValue
+                );
+                break;
+            case 'less_than_equal_to':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff <= diffValue
+                );
+                break;
+            case 'greater_than':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff > diffValue
+                );
+                break;
+            case 'greater_than_equal_to':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff >= diffValue
+                );
+                break;
+            case 'equal_to':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff === diffValue
+                );
+                break;
+            case 'increase':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff > diffValue
+                );
+                break;
+            case 'decrease':
+                allPriceChanges = allPriceChanges.filter(item => 
+                    item.percentage_diff < -diffValue
+                );
+                break;
+            default:
+                // Default behavior: filter by absolute value greater than diff_value
+                allPriceChanges = allPriceChanges.filter(item => 
+                    Math.abs(item.percentage_diff) > diffValue
+                );
+                break;
+        }
+        console.log(`After percentage filtering (${action} ${diffValue}): ${allPriceChanges.length} items`);
+    } else if (diff_value) {
+        // If only diff_value is provided, use default behavior (absolute value)
+        const diffValue = parseFloat(diff_value);
+        allPriceChanges = allPriceChanges.filter(item => 
+            Math.abs(item.percentage_diff) > diffValue
+        );
+        console.log(`After percentage filtering (absolute > ${diffValue}): ${allPriceChanges.length} items`);
+    }
+
+    // Sort by date (newest first)
+    allPriceChanges.sort((a, b) => new Date(b.new_price_date) - new Date(a.new_price_date));
+
+    const totals = allPriceChanges.length;
+    console.log(`Final filtered results: ${totals} items`);
+
+    // Apply pagination
+    let finalData = allPriceChanges;
+    if (offset !== undefined && limit !== undefined) {
+        const startIndex = parseInt(offset);
+        const endIndex = startIndex + parseInt(limit);
+        finalData = allPriceChanges.slice(startIndex, endIndex);
+    }
+
+    return res.status(200).json({
+        status: "success",
+        message: "Price changes fetched successfully from cache",
+        data: finalData,
+        totals,
+        cached_months: cachedKeys ? cachedKeys.length : 0
     });
 });
 
