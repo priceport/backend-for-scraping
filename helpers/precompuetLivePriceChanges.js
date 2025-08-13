@@ -11,41 +11,95 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
     // Get the latest cached month for this sourceQuery
     let latestCachedDate = null;
     try {
-        const cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*`);
+        const cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*_chunk_*`);
         if (cachedKeys.length > 0) {
             // Extract dates from cache keys and find the latest
             const dates = cachedKeys.map(key => {
-                const match = key.match(/live_price_changes_.*_([a-z]+)_(\d{4})$/);
+                const match = key.match(/live_price_changes_.*_([a-z]+)_(\d{4})_chunk_(\d+)$/);
                 if (match) {
                     const month = match[1];
                     const year = parseInt(match[2]);
-                    return { month, year, key };
+                    const chunk = parseInt(match[3]);
+                    return { month, year, chunk, key };
                 }
                 return null;
             }).filter(Boolean);
 
             if (dates.length > 0) {
-                // Sort by year and month to find the latest
-                dates.sort((a, b) => {
-                    if (a.year !== b.year) return b.year - a.year;
-                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-                    return months.indexOf(b.month) - months.indexOf(a.month);
+                // Group by month to check completeness
+                const monthGroups = {};
+                dates.forEach(date => {
+                    const monthKey = `${date.month}_${date.year}`;
+                    if (!monthGroups[monthKey]) {
+                        monthGroups[monthKey] = [];
+                    }
+                    monthGroups[monthKey].push(date);
                 });
+
+                // Find the latest month and check if it's complete
+                const sortedMonths = Object.keys(monthGroups).sort((a, b) => {
+                    const [monthA, yearA] = a.split('_');
+                    const [monthB, yearB] = b.split('_');
+                    
+                    if (parseInt(yearA) !== parseInt(yearB)) {
+                        return parseInt(yearB) - parseInt(yearA);
+                    }
+                    
+                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                    return months.indexOf(monthB) - months.indexOf(monthA);
+                });
+
+                const latestMonthKey = sortedMonths[0];
+                const latestMonthChunks = monthGroups[latestMonthKey];
                 
-                const latest = dates[0];
-                // Get the first day of the next month after the latest cached month
-                const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-                const monthIndex = months.indexOf(latest.month);
-                let nextMonth = monthIndex + 1;
-                let nextYear = latest.year;
+                // Sort chunks for the latest month
+                latestMonthChunks.sort((a, b) => a.chunk - b.chunk);
                 
-                if (nextMonth >= 12) {
-                    nextMonth = 0;
-                    nextYear++;
+                const latestChunk = latestMonthChunks[latestMonthChunks.length - 1];
+                const [latestMonth, latestYear] = latestMonthKey.split('_');
+                
+                // Check if the latest month might be incomplete
+                // If the latest chunk has fewer than MONTH_CHUNK_SIZE items, it might be incomplete
+                let isLatestMonthComplete = false;
+                try {
+                    const latestChunkData = await redisClient.get(latestChunk.key);
+                    if (latestChunkData) {
+                        const chunkItems = JSON.parse(latestChunkData);
+                        // If the latest chunk has exactly MONTH_CHUNK_SIZE items, it's likely complete
+                        // If it has fewer, it might be incomplete
+                        isLatestMonthComplete = chunkItems.length === 10000;
+                    }
+                } catch (error) {
+                    console.log("Error checking latest chunk completeness:", error.message);
                 }
-                
-                latestCachedDate = new Date(nextYear, nextMonth, 1);
-                console.log(`Latest cached month: ${latest.month}_${latest.year}, starting from: ${latestCachedDate.toISOString()}`);
+
+                if (isLatestMonthComplete) {
+                    // Latest month is complete, start from next month
+                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                    const monthIndex = months.indexOf(latestMonth);
+                    let nextMonth = monthIndex + 1;
+                    let nextYear = parseInt(latestYear);
+                    
+                    if (nextMonth >= 12) {
+                        nextMonth = 0;
+                        nextYear++;
+                    }
+                    
+                    latestCachedDate = new Date(nextYear, nextMonth, 1);
+                    console.log(`Latest month ${latestMonth}_${latestYear} is complete, starting from: ${latestCachedDate.toISOString()}`);
+                } else {
+                    // Latest month might be incomplete, redo it from the beginning
+                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+                    const monthIndex = months.indexOf(latestMonth);
+                    latestCachedDate = new Date(parseInt(latestYear), monthIndex, 1);
+                    
+                    // Delete all chunks for this month to redo it
+                    console.log(`Latest month ${latestMonth}_${latestYear} appears incomplete, redoing from: ${latestCachedDate.toISOString()}`);
+                    for (const chunk of latestMonthChunks) {
+                        await redisClient.del(chunk.key);
+                        console.log(`Deleted ${chunk.key}`);
+                    }
+                }
             }
         }
     } catch (error) {
@@ -76,6 +130,7 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
     // Process in very small chunks and save immediately
     const CHUNK_SIZE = 20; // Very small chunks
     const SAVE_INTERVAL = 100; // Save every 100 items
+    const MONTH_CHUNK_SIZE = 10000; // Max items per month chunk
     let processedCount = 0;
     let totalNewItems = 0;
     let currentMonthData = {}; // Only keep current month in memory
@@ -167,7 +222,7 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
 
         // Save to cache frequently
         if (processedCount % SAVE_INTERVAL === 0) {
-            await saveCurrentMonthDataToCache(currentMonthData, sourceQuery);
+            await saveCurrentMonthDataToChunks(currentMonthData, sourceQuery, MONTH_CHUNK_SIZE);
             console.log(`Saved at ${processedCount}/${priceChanges.rows.length} items (${totalNewItems} new items total)`);
             
             // Clear current month data to free memory
@@ -182,15 +237,15 @@ exports.precomputeLivePriceChanges = async (sourceQuery)=>{
 
     // Save any remaining data
     if (Object.keys(currentMonthData).length > 0) {
-        await saveCurrentMonthDataToCache(currentMonthData, sourceQuery);
+        await saveCurrentMonthDataToChunks(currentMonthData, sourceQuery, MONTH_CHUNK_SIZE);
     }
 
-    console.log("Live price changes precomputed and cached by month!");
+    console.log("Live price changes precomputed and cached by month chunks!");
     console.log(`Total processed: ${processedCount}, Total new items: ${totalNewItems}`);
 };
 
-// Helper function to save current month data to cache
-const saveCurrentMonthDataToCache = async (currentMonthData, sourceQuery) => {
+// Helper function to save current month data to chunks
+const saveCurrentMonthDataToChunks = async (currentMonthData, sourceQuery, chunkSize) => {
     const sortedMonths = Object.keys(currentMonthData).sort((a, b) => {
         const [monthA, yearA] = a.split('_');
         const [monthB, yearB] = b.split('_');
@@ -204,19 +259,23 @@ const saveCurrentMonthDataToCache = async (currentMonthData, sourceQuery) => {
     });
 
     const cachePromises = sortedMonths.map(async (monthYear) => {
-        const cacheKey = `live_price_changes_${sourceQuery}_${monthYear}`;
+        const monthData = currentMonthData[monthYear];
         
-        // Get existing data
+        // Get existing chunks for this month
+        const existingChunkKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_${monthYear}_chunk_*`);
         let existingData = [];
-        let existingCount = 0;
-        try {
-            const existingCache = await redisClient.get(cacheKey);
-            if (existingCache) {
-                existingData = JSON.parse(existingCache);
-                existingCount = existingData.length;
+        
+        // Load all existing data for this month
+        for (const key of existingChunkKeys) {
+            try {
+                const existingCache = await redisClient.get(key);
+                if (existingCache) {
+                    const chunkData = JSON.parse(existingCache);
+                    existingData.push(...chunkData);
+                }
+            } catch (error) {
+                console.log(`Error fetching existing cache for ${key}:`, error.message);
             }
-        } catch (error) {
-            console.log(`Error fetching existing cache for ${monthYear}:`, error.message);
         }
         
         // Merge with new data
@@ -224,7 +283,7 @@ const saveCurrentMonthDataToCache = async (currentMonthData, sourceQuery) => {
         const existingKeys = new Set(existingData.map(item => `${item.product_id}_${item.new_price_date}`));
         
         let newItemsCount = 0;
-        currentMonthData[monthYear].forEach(newItem => {
+        monthData.forEach(newItem => {
             const key = `${newItem.product_id}_${newItem.new_price_date}`;
             if (!existingKeys.has(key)) {
                 mergedData.push(newItem);
@@ -236,13 +295,33 @@ const saveCurrentMonthDataToCache = async (currentMonthData, sourceQuery) => {
         // Sort by date
         mergedData.sort((a, b) => new Date(a.new_price_date) - new Date(b.new_price_date));
         
-        console.log(`Caching ${mergedData.length} items for ${monthYear} (${newItemsCount} new, ${existingCount} existing)`);
+        // Split into chunks
+        const chunks = [];
+        for (let i = 0; i < mergedData.length; i += chunkSize) {
+            chunks.push(mergedData.slice(i, i + chunkSize));
+        }
         
-        return redisClient.set(
-            cacheKey,
-            JSON.stringify(mergedData),
-            'EX', 86400
-        );
+        console.log(`Saving ${mergedData.length} items for ${monthYear} in ${chunks.length} chunks (${newItemsCount} new items)`);
+        
+        // Save each chunk
+        const chunkPromises = chunks.map(async (chunk, index) => {
+            const chunkKey = `live_price_changes_${sourceQuery}_${monthYear}_chunk_${index + 1}`;
+            return redisClient.set(
+                chunkKey,
+                JSON.stringify(chunk),
+                'EX', 86400
+            );
+        });
+        
+        await Promise.all(chunkPromises);
+        
+        // Delete old chunks if we have fewer chunks now
+        if (existingChunkKeys.length > chunks.length) {
+            for (let i = chunks.length + 1; i <= existingChunkKeys.length; i++) {
+                const oldKey = `live_price_changes_${sourceQuery}_${monthYear}_chunk_${i}`;
+                await redisClient.del(oldKey);
+            }
+        }
     });
 
     await Promise.all(cachePromises);

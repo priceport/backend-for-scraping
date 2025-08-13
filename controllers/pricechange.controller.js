@@ -135,39 +135,42 @@ exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
         )
     }
 
-    // Get all cached monthly data for this sourceQuery
+    // Get all cached monthly chunk data for this sourceQuery
     let allPriceChanges = [];
     let cachedKeys = []; // Declare cachedKeys here
     
     try {
-        cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*`);
-        console.log(`Found ${cachedKeys.length} cached months for ${sourceQuery}`);
+        cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*_chunk_*`);
+        console.log(`Found ${cachedKeys.length} cached chunks for ${sourceQuery}`);
         
         if (cachedKeys.length > 0) {
-            // Sort keys chronologically
+            // Sort keys chronologically by month and chunk
             const sortedKeys = cachedKeys.sort((a, b) => {
-                const matchA = a.match(/live_price_changes_.*_([a-z]+)_(\d{4})$/);
-                const matchB = b.match(/live_price_changes_.*_([a-z]+)_(\d{4})$/);
+                const matchA = a.match(/live_price_changes_.*_([a-z]+)_(\d{4})_chunk_(\d+)$/);
+                const matchB = b.match(/live_price_changes_.*_([a-z]+)_(\d{4})_chunk_(\d+)$/);
                 
                 if (matchA && matchB) {
-                    const [monthA, yearA] = [matchA[1], parseInt(matchA[2])];
-                    const [monthB, yearB] = [matchB[1], parseInt(matchB[2])];
+                    const [monthA, yearA, chunkA] = [matchA[1], parseInt(matchA[2]), parseInt(matchA[3])];
+                    const [monthB, yearB, chunkB] = [matchB[1], parseInt(matchB[2]), parseInt(matchB[3])];
                     
                     if (yearA !== yearB) return yearA - yearB;
                     
                     const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-                    return months.indexOf(monthA) - months.indexOf(monthB);
+                    const monthDiff = months.indexOf(monthA) - months.indexOf(monthB);
+                    if (monthDiff !== 0) return monthDiff;
+                    
+                    return chunkA - chunkB;
                 }
                 return 0;
             });
 
-            // Fetch data from all cached months
+            // Fetch data from all cached chunks
             for (const key of sortedKeys) {
                 const cachedData = await redisClient.get(key);
                 if (cachedData) {
-                    const monthData = JSON.parse(cachedData);
-                    allPriceChanges.push(...monthData);
-                    console.log(`Loaded ${monthData.length} items from ${key}`);
+                    const chunkData = JSON.parse(cachedData);
+                    allPriceChanges.push(...chunkData);
+                    console.log(`Loaded ${chunkData.length} items from ${key}`);
                 }
             }
         }
@@ -299,10 +302,10 @@ exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
 
     return res.status(200).json({
         status: "success",
-        message: "Price changes fetched successfully from cache",
+        message: "Price changes fetched successfully from cache chunks",
         data: finalData,
         totals,
-        cached_months: cachedKeys ? cachedKeys.length : 0
+        cached_chunks: cachedKeys ? cachedKeys.length : 0
     });
 });
 
