@@ -893,18 +893,49 @@ doneDanMurphy=false;
 
     await waitForXTime(10000);
   }
+  
+  // Clear all Redis cache except live_price_changes_* keys
+  console.log("Clearing Redis cache while preserving live price changes...");
+  
+  try {
+    // Get all keys
+    const allKeys = await redisClient.keys('*');
+    
+    // Filter out live_price_changes_* keys
+    const keysToDelete = allKeys.filter(key => !key.startsWith('live_price_changes_'));
+    
+    if (keysToDelete.length > 0) {
+      // Delete keys in batches to avoid memory issues
+      const batchSize = 1000;
+      for (let i = 0; i < keysToDelete.length; i += batchSize) {
+        const batch = keysToDelete.slice(i, i + batchSize);
+        await Promise.all(batch.map(key => redisClient.del(key)));
+      }
+      console.log(`Cleared ${keysToDelete.length} keys from Redis cache`);
+    }
+    
+    // Log preserved keys
+    const preservedKeys = allKeys.filter(key => key.startsWith('live_price_changes_'));
+    if (preservedKeys.length > 0) {
+      console.log(`Preserved ${preservedKeys.length} live price change keys:`, preservedKeys.slice(0, 5), preservedKeys.length > 5 ? '...' : '');
+    }
+    
+  } catch (error) {
+    console.log("Error clearing Redis cache:", error.message);
+  }
+
   // await redisClient.flushAll();
-  await redisClient.del('daily_product_data_fnb');
-  await redisClient.del('daily_product_dataaelia_auckland');
-  await redisClient.del('daily_product_dataaelia_christchurch');
-  await redisClient.del('daily_product_datalotte_melbourne');
-  await redisClient.del('daily_product_dataaelia_queenstown');
-  await redisClient.del('daily_product_datanz_themall');
-  await redisClient.del('daily_product_dataheinemann_sydney');
-  await redisClient.del('daily_product_dataaelia_adelaide');
-  await redisClient.del('daily_product_dataaelia_cairns');
-  await redisClient.del('daily_product_dataheinemann_goldcoast');
-  await redisClient.del('daily_product_datalotte_brisbane');
+  // await redisClient.del('daily_product_data_fnb');
+  // await redisClient.del('daily_product_dataaelia_auckland');
+  // await redisClient.del('daily_product_dataaelia_christchurch');
+  // await redisClient.del('daily_product_datalotte_melbourne');
+  // await redisClient.del('daily_product_dataaelia_queenstown');
+  // await redisClient.del('daily_product_datanz_themall');
+  // await redisClient.del('daily_product_dataheinemann_sydney');
+  // await redisClient.del('daily_product_dataaelia_adelaide');
+  // await redisClient.del('daily_product_dataaelia_cairns');
+  // await redisClient.del('daily_product_dataheinemann_goldcoast');
+  // await redisClient.del('daily_product_datalotte_brisbane');
 
   
   console.log("Cache cleared");
