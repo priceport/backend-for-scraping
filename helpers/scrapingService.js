@@ -921,6 +921,7 @@ doneDanMurphy=false;
   await precomputeDailyData('aelia_christchurch',true);
   await precomputeDailyData('heinemann_goldcoast',true);
   await precomputeDailyData('aelia_cairns',true);
+  await precomputeDailyDataFNB();
 
   await precomputeLivePriceChanges('aelia_auckland');
   // precomputeLivePriceChanges('aelia_adelaide');
@@ -932,7 +933,6 @@ doneDanMurphy=false;
   // precomputeLivePriceChanges('aelia_christchurch');
   // precomputeLivePriceChanges('heinemann_goldcoast');
   // precomputeLivePriceChanges('aelia_cairns');
-  await precomputeDailyDataFNB();
 };
 
 module.exports = scrapingService;

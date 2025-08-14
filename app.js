@@ -700,6 +700,7 @@ const testWebsite = async ()=>{
 
 
 async function runPrecomputes(){
+  await precomputeDailyDataFNB();
   await precomputeDailyData('aelia_auckland',true);
   await precomputeDailyData('aelia_adelaide',true);
   await precomputeDailyData('nz_themall',true);
@@ -710,6 +711,7 @@ async function runPrecomputes(){
   await precomputeDailyData('aelia_christchurch',true);
   await precomputeDailyData('heinemann_goldcoast',true);
   await precomputeDailyData('aelia_cairns',true);
+  
   // await precomputeLivePriceChanges('aelia_auckland');
   // await precomputeLivePriceChanges('aelia_adelaide');
   // await precomputeLivePriceChanges('nz_themall');
@@ -720,7 +722,7 @@ async function runPrecomputes(){
   // await precomputeLivePriceChanges('aelia_christchurch');
   // await precomputeLivePriceChanges('heinemann_goldcoast');
   // await precomputeLivePriceChanges('aelia_cairns');
-  await precomputeDailyDataFNB();
+ 
   
 }
 
