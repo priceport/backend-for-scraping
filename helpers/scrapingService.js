@@ -893,7 +893,20 @@ doneDanMurphy=false;
 
     await waitForXTime(10000);
   }
-  await redisClient.flushAll();
+  // await redisClient.flushAll();
+  await redisClient.del('daily_product_data_fnb');
+  await redisClient.del('daily_product_dataaelia_auckland');
+  await redisClient.del('daily_product_dataaelia_christchurch');
+  await redisClient.del('daily_product_datalotte_melbourne');
+  await redisClient.del('daily_product_dataaelia_queenstown');
+  await redisClient.del('daily_product_datanz_themall');
+  await redisClient.del('daily_product_dataheinemann_sydney');
+  await redisClient.del('daily_product_dataaelia_adelaide');
+  await redisClient.del('daily_product_dataaelia_cairns');
+  await redisClient.del('daily_product_dataheinemann_goldcoast');
+  await redisClient.del('daily_product_datalotte_brisbane');
+
+  
   console.log("Cache cleared");
   await extract_unit_and_quantity();
   await updateProductPriceRank();
