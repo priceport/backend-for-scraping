@@ -215,12 +215,13 @@ exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
         console.log(`After brand filtering: ${allPriceChanges.length} items`);
     }
 
-    // Apply title filtering
+    // Apply title filtering (partial match)
     if (title) {
+        const titleLower = title.toLowerCase();
         allPriceChanges = allPriceChanges.filter(item => 
-            item.title === title
+            item.title && item.title.toLowerCase().includes(titleLower)
         );
-        console.log(`After title filtering: ${allPriceChanges.length} items`);
+        console.log(`After title filtering (partial match for "${title}"): ${allPriceChanges.length} items`);
     }
 
     // Filter out items without canprod_id
