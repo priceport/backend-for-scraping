@@ -960,7 +960,7 @@ doneDanMurphy=false;
   // precomputeLivePriceChanges('lotte_melbourne');
   // precomputeLivePriceChanges('aelia_queenstown');
   // precomputeLivePriceChanges('lotte_brisbane');
-  // precomputeLivePriceChanges('heinemann_sydney');
+  await precomputeLivePriceChanges('heinemann_sydney');
   // precomputeLivePriceChanges('aelia_christchurch');
   // precomputeLivePriceChanges('heinemann_goldcoast');
   // precomputeLivePriceChanges('aelia_cairns');
