@@ -87,6 +87,7 @@ exports.addProductToWatchlist = catchAsync(async (req,res,next)=>{
 exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     const { watchlistId } = req.params;
     const source = req.query.source;
+    const sort = req.query.sort || 'A_to_Z'; // Default to A_to_Z if not provided
 
     if (!watchlistId) {
         return next(
@@ -97,6 +98,13 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     if (!source) {
         return next(
             new AppError("Source param required", 400)
+        );
+    }
+
+    // Validate sort parameter
+    if (sort !== 'A_to_Z' && sort !== 'Z_to_A') {
+        return next(
+            new AppError("Sort parameter must be either 'A_to_Z' or 'Z_to_A'", 400)
         );
     }
 
@@ -169,6 +177,18 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
             difference_percentage
         };
     }).filter(product => product !== null); // Remove any products where source wasn't found
+
+    // Sort products based on source_name
+    products.sort((a, b) => {
+        const titleA = a.source_name.toLowerCase();
+        const titleB = b.source_name.toLowerCase();
+        
+        if (sort === 'A_to_Z') {
+            return titleA.localeCompare(titleB);
+        } else {
+            return titleB.localeCompare(titleA);
+        }
+    });
 
     // Respond with the fetched products
     return res.status(200).json({
