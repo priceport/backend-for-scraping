@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const rose_wine = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/wine-sparkling-champagne/wine/rose-wine/c/cat_1111/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/wine-sparkling-champagne/wine/rose-wine/c/auscat_1111/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     

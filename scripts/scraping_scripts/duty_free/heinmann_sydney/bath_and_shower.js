@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const bath_and_shower = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/perfume-cologne/women-fragrances/bath-shower/c/cat_4012/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/products/perfume-cologne/women-fragrances/bath-shower/c/auscat_4012/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     

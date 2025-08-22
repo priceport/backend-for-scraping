@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const home_fragrance_candle = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/perfume-cologne/home-fragrances-candles/c/cat_4040/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/products/perfume-cologne/home-fragrances-candles/c/auscat_4040/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     

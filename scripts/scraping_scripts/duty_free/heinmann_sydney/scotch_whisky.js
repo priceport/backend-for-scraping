@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const scotch_whisky = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/spirits/whisky/scotch-whisky/c/cat_5154/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/products/spirits/whisky/scotch-whisky/c/auscat_5154/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     

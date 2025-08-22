@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const powders = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/make-up/face/powders/c/cat_3013/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/products/make-up/face/powders/c/auscat_3013/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     

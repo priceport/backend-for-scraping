@@ -7,7 +7,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const lipstick_and_lipliner = async (start,end,browser)=>{
     let pageNo = start-1;
-    const url = "https://www.heinemann.com.au/en/sydt1/make-up/lips/lipstick-lipliner/c/cat_3021/?q=%3Arelevance&page=";
+    const url = "https://www.heinemann.com.au/en/sydt1/products/make-up/lips/lipstick-lipliner/c/auscat_3021/?q=%3Arelevance&page=";
     const page = await browser.newPage();
     const allProducts = [];
     
