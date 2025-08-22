@@ -32,7 +32,7 @@ const makeup = async (start,end,browser)=>{
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
       
         const [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelectorAll('.css-17b0w3j > .css-9py13e');
+          const productElements = document.querySelectorAll('.css-1mdzhs1');
           const productList = [];
           let missing = 0;
       
