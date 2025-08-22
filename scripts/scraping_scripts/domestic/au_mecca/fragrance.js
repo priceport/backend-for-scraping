@@ -33,7 +33,7 @@ const fragrance = async (start, end, browser) => {
 
       const [products, missing] = await page.evaluate(() => {
         const productElements = document.querySelectorAll(
-          ".css-17b0w3j > .css-9py13e"
+          ".css-1mdzhs1"
         );
         const productList = [];
         let missing = 0;
