@@ -584,6 +584,7 @@ doneDanMurphy=false;
     !doneAuChemistWarehouse ||
     !doneAuThemall
   ) {
+    console.log("current page",start_page);
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
