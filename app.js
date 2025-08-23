@@ -738,13 +738,13 @@ async function runPrecomputes(){
   await precomputeDailyData('heinemann_goldcoast',true);
   await precomputeDailyData('aelia_cairns',true);
   
-  // await precomputeLivePriceChanges('aelia_auckland');
+  await precomputeLivePriceChanges('aelia_auckland');
   // await precomputeLivePriceChanges('aelia_adelaide');
   // await precomputeLivePriceChanges('nz_themall');
   // await precomputeLivePriceChanges('lotte_melbourne');
   // await precomputeLivePriceChanges('aelia_queenstown');
   // await precomputeLivePriceChanges('lotte_brisbane');
-  // await precomputeLivePriceChanges('heinemann_sydney');
+  await precomputeLivePriceChanges('heinemann_sydney');
   // await precomputeLivePriceChanges('aelia_christchurch');
   // await precomputeLivePriceChanges('heinemann_goldcoast');
   // await precomputeLivePriceChanges('aelia_cairns');
@@ -755,9 +755,9 @@ async function runPrecomputes(){
 runPrecomputes();
 
 // Schedule the task to run at 12 AM New Zealand Time
-cron.schedule('50 7 * * *', scrapingService, {
-  scheduled: true,
-  timezone: 'Pacific/Auckland', // New Zealand timezone
-});
+// cron.schedule('50 7 * * *', scrapingService, {
+//   scheduled: true,
+//   timezone: 'Pacific/Auckland', // New Zealand timezone
+// });
  
 module.exports = app;
