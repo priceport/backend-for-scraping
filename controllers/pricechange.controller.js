@@ -21,6 +21,37 @@ function getParts(array, parts) {
     return result;
 }
 
+// Helper function to get relevant cache keys for a date range
+async function getRelevantCacheKeys(sourceQuery, startDate, endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const relevantKeys = [];
+    
+    // Get all cache keys for this source
+    const allKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*_chunk_*`);
+    
+    // Filter keys that fall within the date range
+    for (const key of allKeys) {
+        const match = key.match(/live_price_changes_.*_(\d{4})_(\d{2})_(\d{2})_chunk_(\d+)$/);
+        if (match) {
+            const [year, month, day] = [
+                parseInt(match[1]), 
+                parseInt(match[2]), 
+                parseInt(match[3])
+            ];
+            
+            const keyDate = new Date(year, month - 1, day);
+            
+            // Check if this date falls within our range
+            if (keyDate >= start && keyDate <= end) {
+                relevantKeys.push(key);
+            }
+        }
+    }
+    
+    return relevantKeys;
+}
+
 exports.priceChangeGraph = catchAsync(async (req,res,next)=>{
 
     let start_date = req?.query?.start_date || null;
@@ -135,42 +166,66 @@ exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
         )
     }
 
-    // Get all cached monthly chunk data for this sourceQuery
+    // Get cached daily chunk data for this sourceQuery
     let allPriceChanges = [];
-    let cachedKeys = []; // Declare cachedKeys here
+    let cachedKeys = [];
     
     try {
-        cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*_chunk_*`);
-        console.log(`Found ${cachedKeys.length} cached chunks for ${sourceQuery}`);
+        // If we have date range, only fetch relevant chunks
+        if (start_date && end_date) {
+            cachedKeys = await getRelevantCacheKeys(sourceQuery, start_date, end_date);
+            console.log(`Found ${cachedKeys.length} relevant cached daily chunks for ${sourceQuery} between ${start_date} and ${end_date}`);
+        } else {
+            // If no date range, fetch all chunks
+            cachedKeys = await redisClient.keys(`live_price_changes_${sourceQuery}_*_chunk_*`);
+            console.log(`Found ${cachedKeys.length} cached daily chunks for ${sourceQuery} (no date filter)`);
+        }
         
         if (cachedKeys.length > 0) {
-            // Sort keys chronologically by month and chunk
+            // Sort keys chronologically by date and chunk
             const sortedKeys = cachedKeys.sort((a, b) => {
-                const matchA = a.match(/live_price_changes_.*_([a-z]+)_(\d{4})_chunk_(\d+)$/);
-                const matchB = b.match(/live_price_changes_.*_([a-z]+)_(\d{4})_chunk_(\d+)$/);
+                const matchA = a.match(/live_price_changes_.*_(\d{4})_(\d{2})_(\d{2})_chunk_(\d+)$/);
+                const matchB = b.match(/live_price_changes_.*_(\d{4})_(\d{2})_(\d{2})_chunk_(\d+)$/);
                 
                 if (matchA && matchB) {
-                    const [monthA, yearA, chunkA] = [matchA[1], parseInt(matchA[2]), parseInt(matchA[3])];
-                    const [monthB, yearB, chunkB] = [matchB[1], parseInt(matchB[2]), parseInt(matchB[3])];
+                    const [yearA, monthA, dayA, chunkA] = [
+                        parseInt(matchA[1]), 
+                        parseInt(matchA[2]), 
+                        parseInt(matchA[3]), 
+                        parseInt(matchA[4])
+                    ];
+                    const [yearB, monthB, dayB, chunkB] = [
+                        parseInt(matchB[1]), 
+                        parseInt(matchB[2]), 
+                        parseInt(matchB[3]), 
+                        parseInt(matchB[4])
+                    ];
                     
-                    if (yearA !== yearB) return yearA - yearB;
+                    // Compare by date first
+                    const dateA = new Date(yearA, monthA - 1, dayA);
+                    const dateB = new Date(yearB, monthB - 1, dayB);
                     
-                    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-                    const monthDiff = months.indexOf(monthA) - months.indexOf(monthB);
-                    if (monthDiff !== 0) return monthDiff;
+                    if (dateA.getTime() !== dateB.getTime()) {
+                        return dateA.getTime() - dateB.getTime();
+                    }
                     
+                    // If same date, sort by chunk number
                     return chunkA - chunkB;
                 }
                 return 0;
             });
 
-            // Fetch data from all cached chunks
+            // Fetch data from relevant cached chunks
             for (const key of sortedKeys) {
-                const cachedData = await redisClient.get(key);
-                if (cachedData) {
-                    const chunkData = JSON.parse(cachedData);
-                    allPriceChanges.push(...chunkData);
-                    console.log(`Loaded ${chunkData.length} items from ${key}`);
+                try {
+                    const cachedData = await redisClient.get(key);
+                    if (cachedData) {
+                        const chunkData = JSON.parse(cachedData);
+                        allPriceChanges.push(...chunkData);
+                        console.log(`Loaded ${chunkData.length} items from ${key}`);
+                    }
+                } catch (error) {
+                    console.log(`Error loading chunk ${key}:`, error.message);
                 }
             }
         }
@@ -303,7 +358,7 @@ exports.newLivePriceChanges = catchAsync(async (req,res,next)=>{
 
     return res.status(200).json({
         status: "success",
-        message: "Price changes fetched successfully from cache chunks",
+        message: "Price changes fetched successfully from daily cache chunks",
         data: finalData,
         totals,
         cached_chunks: cachedKeys ? cachedKeys.length : 0
