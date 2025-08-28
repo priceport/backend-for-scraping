@@ -102,11 +102,40 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
     }
 
     // Validate sort parameter
-    if (sort !== 'A_to_Z' && sort !== 'Z_to_A') {
+    const validSortOptions = ['A_to_Z', 'Z_to_A', 'price_low_to_high', 'price_high_to_low', 'pricerank_low_to_high', 'pricerank_high_to_low', 'difference_low_to_high', 'difference_high_to_low', 'difference_percentage_low_to_high', 'difference_percentage_high_to_low'];
+    if (!validSortOptions.includes(sort)) {
         return next(
-            new AppError("Sort parameter must be either 'A_to_Z' or 'Z_to_A'", 400)
+            new AppError("Invalid sort parameter. Valid options: A_to_Z, Z_to_A, price_low_to_high, price_high_to_low, pricerank_low_to_high, pricerank_high_to_low, difference_low_to_high, difference_high_to_low, difference_percentage_low_to_high, difference_percentage_high_to_low", 400)
         );
     }
+
+    // Helper function to calculate price per unit (same as in product.controller.js)
+    const calculatePricePerUnit = (qty, unit, price) => {
+        if (!qty || !unit || !price) return null;
+        const unitMapping = {
+            ml: 1,
+            l: 1000,
+            g: 1,
+            kg: 1000,
+        };
+        const standardizedQty = qty * (unitMapping[unit.toLowerCase()] || 1);
+        return price / standardizedQty;
+    };
+
+    // Helper function to calculate ranks with ties (same as in product.controller.js)
+    const calculateRanksWithTies = (items, valueKey) => {
+        const sortedItems = [...items].sort((a, b) => a[valueKey] - b[valueKey]);
+        let rank = 1;
+        for (let i = 0; i < sortedItems.length; i++) {
+            if (i > 0 && sortedItems[i][valueKey] === sortedItems[i - 1][valueKey]) {
+                sortedItems[i].rank = sortedItems[i - 1].rank;
+            } else {
+                sortedItems[i].rank = rank;
+            }
+            rank++;
+        }
+        return sortedItems;
+    };
 
     // First get the watchlist products with their canprod_id
     const watchlistProducts = await pool.query(`
@@ -148,47 +177,86 @@ exports.getAllProductsFromWatchlist = catchAsync(async (req, res, next) => {
         return watchlistCanprodIds.includes(product.canprod_id);
     });
 
-    // Add source price, pricerank, and price comparisons to each product
+    // Process each product with price ranking logic (same as getAllProductsFor)
     products = products.map(product => {
-        const sourceProduct = product.products_data.find(pd => pd.website === source);
-        if (!sourceProduct) return null;
+        let filteredProductsData = product.products_data;
+        const sourceIndex = filteredProductsData?.findIndex(el => el.website == source);
+        if (sourceIndex === -1) return null;
 
-        // Calculate average price of competitors
-        let sum = 0;
-        let competitorCount = 0;
-        product.products_data.forEach(pd => {
-            if (pd.website !== source) {
-                sum += parseFloat(pd.latest_price);
-                competitorCount++;
-            }
+        // Calculate price per unit or fallback to flat price
+        let hasUnitAndQty = true;
+        const rankedProducts = filteredProductsData.map(pd => { 
+            if (!pd.unit || !pd.qty) hasUnitAndQty = false;
+            return ({
+                ...pd,
+                price_per_unit: calculatePricePerUnit(pd.qty, pd.unit, pd.latest_price) || pd.latest_price,
+            });
         });
 
-        const average = competitorCount > 0 ? (sum / competitorCount).toFixed(2) : 0;
-        const difference = (parseFloat(sourceProduct.latest_price) - parseFloat(average)).toFixed(2);
-        const difference_percentage = ((parseFloat(difference) / parseFloat(sourceProduct.latest_price)) * 100).toFixed(2);
+        // Recalculate ranks with ties
+        const rankedWithTies = calculateRanksWithTies(rankedProducts, hasUnitAndQty ? 'price_per_unit' : 'latest_price');
+        let sum = 0;
+        rankedWithTies.forEach(pd => {
+            pd.pricerank = `${pd.rank}/${rankedWithTies.length}`;
+            if (pd.website != source) sum += parseFloat(pd.latest_price);
+        });
+
+        // Find the updated source pricerank and price
+        const sourceProduct = rankedWithTies.find(pd => pd.website === source);
+        if (!sourceProduct) return null;
+
+        const sourcePriceRank = sourceProduct ? parseInt(sourceProduct.pricerank.split('/')[0], 10) : null;
+        const sourcePrice = sourceProduct ? sourceProduct.latest_price : null;
+        const sourceName = sourceProduct ? sourceProduct.title : null;
+        const average = rankedWithTies?.length != 1 ? (sum / (rankedWithTies?.length - 1)).toFixed(2) : 0;
+        const difference = sourceProduct ? (parseFloat(sourceProduct.latest_price) - average).toFixed(2) : 0;
+        const difference_percentage = sourceProduct ? ((difference / parseFloat(sourceProduct.latest_price)) * 100).toFixed(2) : 0;
+
+        // Determine price range based on source pricerank
+        let price_range = null;
+        if (sourcePriceRank === 1) {
+            price_range = "cheapest";
+        } else if (sourcePriceRank === rankedWithTies.length) {
+            price_range = "expensive";
+        } else {
+            price_range = "midrange";
+        }
 
         return {
             ...product,
-            source_price: sourceProduct.latest_price,
-            source_pricerank: parseInt(sourceProduct.pricerank.split('/')[0]),
-            source_name: sourceProduct.title,
+            products_data: rankedWithTies,
+            source_pricerank: sourcePriceRank,
+            source_price: sourcePrice,
+            source_name: sourceName,
             average,
             difference,
-            difference_percentage
+            difference_percentage,
+            price_range
         };
-    }).filter(product => product !== null); // Remove any products where source wasn't found
+    }).filter(product => product !== null);
 
-    // Sort products based on source_name
-    products.sort((a, b) => {
-        const titleA = a.source_name.toLowerCase();
-        const titleB = b.source_name.toLowerCase();
-        
-        if (sort === 'A_to_Z') {
-            return titleA.localeCompare(titleB);
-        } else {
-            return titleB.localeCompare(titleA);
-        }
-    });
+    // Sort products based on the sort parameter
+    if (sort === 'A_to_Z') {
+        products.sort((a, b) => a.source_name.toLowerCase().localeCompare(b.source_name.toLowerCase()));
+    } else if (sort === 'Z_to_A') {
+        products.sort((a, b) => b.source_name.toLowerCase().localeCompare(a.source_name.toLowerCase()));
+    } else if (sort === 'price_low_to_high') {
+        products.sort((a, b) => a.source_price - b.source_price);
+    } else if (sort === 'price_high_to_low') {
+        products.sort((a, b) => b.source_price - a.source_price);
+    } else if (sort === 'pricerank_low_to_high') {
+        products.sort((a, b) => a.source_pricerank - b.source_pricerank);
+    } else if (sort === 'pricerank_high_to_low') {
+        products.sort((a, b) => b.source_pricerank - a.source_pricerank);
+    } else if (sort === 'difference_low_to_high') {
+        products.sort((a, b) => a.difference - b.difference);
+    } else if (sort === 'difference_high_to_low') {
+        products.sort((a, b) => b.difference - a.difference);
+    } else if (sort === 'difference_percentage_low_to_high') {
+        products.sort((a, b) => a.difference_percentage - b.difference_percentage);
+    } else if (sort === 'difference_percentage_high_to_low') {
+        products.sort((a, b) => b.difference_percentage - a.difference_percentage);
+    }
 
     // Respond with the fetched products
     return res.status(200).json({
