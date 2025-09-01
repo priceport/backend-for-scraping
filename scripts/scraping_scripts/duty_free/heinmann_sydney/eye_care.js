@@ -46,7 +46,7 @@ const eye_care = async (start,end,browser)=>{
                 const url = product?.querySelector("a")?.href || null;
                 const img = product?.querySelector("img")?.src || null;
                 const promo = [];
-                const isMultibuy = product?.querySelector(".c-ribbon")?.innerText == "Multibuy";
+                const isMultibuy = product?.querySelector(".c-ribbon")?.innerText == "Multibuy" || product?.querySelector(".c-ribbon--special")?.innerText == "Multibuy";
 
                 if(!title||!brand||!price||!url||!img){missing+=1;}
 
