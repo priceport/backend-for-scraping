@@ -832,13 +832,13 @@ doneDanMurphy=false;
     await browser.close();
 
 
-      if(!doneDanMurphy)
-      try{
-          await scrapeDanMurphy(start_page,end_page,internalStates,browser);
-      }catch(err){
-         console.log("There was an error while scraping from dan murphy");
-         logError(err);
-      }
+      // if(!doneDanMurphy)
+      // try{
+      //     await scrapeDanMurphy(start_page,end_page,internalStates,browser);
+      // }catch(err){
+      //    console.log("There was an error while scraping from dan murphy");
+      //    logError(err);
+      // }
 
       if(!doneSephora)
       try{
