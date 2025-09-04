@@ -12,7 +12,7 @@ router.route("/upload")
 .post(UserController.isLoggedIn, upload.single('fnbdata'),FNBProductController.addFnbProductsWithExcel);
 
 router.route("/")
-.get(UserController.isLoggedIn,cacheMiddleware,FNBProductController.getAllFnbProductsFor);
+.get(UserController.isLoggedIn,FNBProductController.getAllFnbProductsFor);
 
 router.route("/")
 .post(UserController.isLoggedIn,FNBProductController.addProduct);
