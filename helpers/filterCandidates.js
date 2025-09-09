@@ -27,7 +27,7 @@ async function filterCandidates(mainProduct, candidateProducts) {
         {
           role: "system",
           content:
-            "You are an AI assistant that determines whether a list of product listings refer to the exact same physical product as the main product.",
+            "You are an AI assistant that determines whether a list of product listings refer to the nearly same physical product as the main product.",
         },
         {
           role: "user",
@@ -58,8 +58,8 @@ function buildBatchPrompt(mainProduct, candidates) {
 Main product:
 Title: ${mainProduct.title}
 
-Below is a list of candidate products. Identify which ones are the exact same product as the main product.
-For each candidate, answer "Yes" if it is the same, "Likely" if it is very similar, or "No" if it is different.
+Below is a list of candidate products. Identify which ones are the nearly same product as the main product.
+For each candidate, answer "Yes" if it is the same, "Likely" if it is similar or not very different, or "No" if it is very different.
 
 Format your response as:
 1. Yes/No/Likely
