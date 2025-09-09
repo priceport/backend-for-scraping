@@ -86,7 +86,7 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
 
     const { title, source } = req.query;
 
-    let result, matches = {}, similarity = 1.0;
+    let result, matches = {}, similarity = 0.3;
 
     console.log("fetching similar products");
     while (similarity > 0.2) {
