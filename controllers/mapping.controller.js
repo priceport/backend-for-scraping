@@ -183,7 +183,7 @@ const createMapping = catchAsync(async (req, res, next) => {
         );
     }
 
-    precomputeDailyData('heinemann_sydney',false);
+    precomputeDailyData('lotte_melbourne',false);
 
     // Respond with the created canonical product and updated mappings
     return res.status(200).json({
@@ -235,7 +235,7 @@ const addProductToMapping = catchAsync(async (req, res, next) => {
         );
     }
 
-    precomputeDailyData('heinemann_sydney',false);
+    precomputeDailyData('lotte_melbourne',false);
 
     // Respond with the updated product
     return res.status(200).json({
