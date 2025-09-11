@@ -1,5 +1,5 @@
 //processing script imports
-const processDataForSpirits = require("./data_processing/aelia/spirits");
+const processDataForSpirits = require("./data_processing/aelia_australia/spirits");
 const logError = require("./logError");
 
 //db update imports
