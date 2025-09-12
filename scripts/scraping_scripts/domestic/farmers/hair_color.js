@@ -13,88 +13,117 @@ const hair_color = async (start,end,browser)=>{
     const allProducts = [];
     
     try{
+        // Enable request interception for performance
+        await page.setRequestInterception(true);
 
-    // Enable request interception to block unnecessary resources
-    await page.setRequestInterception(true);
+        // Smart request blocking - allow essential resources
+        page.on('request', (req) => {
+            const resourceType = req.resourceType();
+            const url = req.url();
 
-    // Only allow 'document' (HTML) requests
-    page.on('request', (req) => {
-         const resourceType = req.resourceType();
-
-         if (resourceType === 'document') {
-         req.continue();
-         } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
-         }
-    });
-
-    while(true){
-        await waitForXTime(constants.timeout);
-        await page.goto(pageNo==1?default_url:url.replace("replace_me",pageNo-1), { waitUntil: 'networkidle2' });
-      
-        const [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelectorAll('.product-list > .product-list-item');
-          const productList = [];
-          let missing = 0;
-      
-          productElements.forEach(product => {
-            const titleElement = product.querySelector('.product-title-span');
-            const brandElement = product.querySelector('.css-cfm1ok');
-            const priceElement = product.querySelector('.current-price');
-            const promoElement = product.querySelector('.basics-promotion-label');
-            const urlElement = product.querySelector('.product-image-container > a');
-            const imgElement = product.querySelector('.product-image');
-      
-            // console.log(titleElement.innerText);
-            // console.log(brandElement);
-            // console.log(priceElement);
-            // console.log(urlElement);
-            // console.log(imgElement);
-
-            const title = titleElement ? titleElement.innerText.trim() : null;
-            const brand = brandElement ? brandElement.innerText.trim() : null;
-            const price = priceElement ? priceElement.innerText.trim() : null;
-            const promo = promoElement ? promoElement?.innerText?.trim() : null;
-            const url = urlElement ? urlElement.href.trim() : null;
-            const img = imgElement ? imgElement.src.trim() : null;
-      
-            if(!title||!brand||!price||!url||!img){missing+=1;}
-
-            if(!title&&!brand&&!price&&!url){}
-            else
-            productList.push({ 
-              title, 
-              brand, 
-              price,
-              promo, 
-              url, 
-              category:'beauty',
-              source:{website_base:"https://www.farmers.co.nz",location:"new-zealand",tag:"domestic"}, 
-              date:Date.now(),
-              last_check:Date.now(),
-              mapping_ref:null,
-              unit:undefined,
-              subcategory:'hair',
-              img
-            });
-          });
-      
-          return [productList,missing];
+            // Allow essential resources for proper page loading
+            if (resourceType === 'document' || 
+                resourceType === 'script' || 
+                resourceType === 'xhr' || 
+                resourceType === 'fetch' ||
+                (resourceType === 'stylesheet' && url.includes('farmers.co.nz')) ||
+                (resourceType === 'image' && url.includes('farmers.co.nz'))) {
+                req.continue();
+            } else {
+                req.abort();
+            }
         });
 
-        if(missing > 5) {
-          await insertScrapingError("More than 5 entries missing for farmers - hair_color: "+pageNo,"scraping_missing");
-        }
+        // Set realistic browser settings
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setViewport({ width: 1920, height: 1080 });
+        
+        // Set extra headers to avoid detection
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        });
 
-        allProducts.push(...products);
-
-          if(products?.length==0||pageNo==end){ 
-            await page.close();
-            return allProducts;
-          }
+        while(true){
+            await waitForXTime(constants.timeout);
             
-          pageNo+=1;
-        }
+            const targetUrl = pageNo==1 ? default_url : url.replace("replace_me", pageNo-1);
+            
+            try {
+                await page.goto(targetUrl, { 
+                    waitUntil: 'networkidle2',
+                    timeout: 30000
+                });
+                
+                // Wait for dynamic content to load - using setTimeout instead of waitForTimeout
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Wait for product elements to be present
+                await page.waitForSelector('.product-list > .product-list-item', { timeout: 10000 });
+                
+            } catch (gotoError) {
+                console.log(`Error loading page ${pageNo}: ${gotoError.message}`);
+                throw gotoError;
+            }
+
+            const [products,missing] = await page.evaluate(() => {
+              const productElements = document.querySelectorAll('.product-list > .product-list-item');
+              const productList = [];
+              let missing = 0;
+          
+              productElements.forEach(product => {
+                const titleElement = product.querySelector('.product-title-span');
+                const brandElement = product.querySelector('.css-cfm1ok');
+                const priceElement = product.querySelector('.current-price');
+                const promoElement = product.querySelector('.basics-promotion-label');
+                const urlElement = product.querySelector('.product-image-container > a');
+                const imgElement = product.querySelector('.product-image');
+          
+                const title = titleElement ? titleElement.innerText.trim() : null;
+                const brand = brandElement ? brandElement.innerText.trim() : null;
+                const price = priceElement ? priceElement.innerText.trim() : null;
+                const promo = promoElement ? promoElement?.innerText?.trim() : null;
+                const url = urlElement ? urlElement.href.trim() : null;
+                const img = imgElement ? imgElement.src.trim() : null;
+          
+                if(!title||!brand||!price||!url||!img){missing+=1;}
+
+                if(!title&&!brand&&!price&&!url){}
+                else
+                productList.push({ 
+                  title, 
+                  brand, 
+                  price,
+                  promo, 
+                  url, 
+                  category:'beauty',
+                  source:{website_base:"https://www.farmers.co.nz",location:"new-zealand",tag:"domestic"}, 
+                  date:Date.now(),
+                  last_check:Date.now(),
+                  mapping_ref:null,
+                  unit:undefined,
+                  subcategory:'hair',
+                  img
+                });
+              });
+          
+              return [productList,missing];
+            });
+
+            if(missing > 5) {
+              await insertScrapingError("More than 5 entries missing for farmers - hair_color: "+pageNo,"scraping_missing");
+            }
+
+            allProducts.push(...products);
+
+              if(products?.length==0||pageNo==end){ 
+                await page.close();
+                return allProducts;
+              }
+                
+              pageNo+=1;
+            }
 
       }catch(err){
         logError(err);
