@@ -586,7 +586,7 @@ doneDanMurphy=false;
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
