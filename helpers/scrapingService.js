@@ -958,7 +958,7 @@ doneDanMurphy=false;
   await precomputeLivePriceChanges('aelia_auckland');
   // precomputeLivePriceChanges('aelia_adelaide');
   // precomputeLivePriceChanges('nz_themall');
-  // precomputeLivePriceChanges('lotte_melbourne');
+  await precomputeLivePriceChanges('lotte_melbourne');
   // precomputeLivePriceChanges('aelia_queenstown');
   // precomputeLivePriceChanges('lotte_brisbane');
   await precomputeLivePriceChanges('heinemann_sydney');

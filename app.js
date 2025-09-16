@@ -741,7 +741,7 @@ async function runPrecomputes(){
   await precomputeLivePriceChanges('aelia_auckland');
   // await precomputeLivePriceChanges('aelia_adelaide');
   // await precomputeLivePriceChanges('nz_themall');
-  // await precomputeLivePriceChanges('lotte_melbourne');
+  await precomputeLivePriceChanges('lotte_melbourne');
   // await precomputeLivePriceChanges('aelia_queenstown');
   // await precomputeLivePriceChanges('lotte_brisbane');
   await precomputeLivePriceChanges('heinemann_sydney');
