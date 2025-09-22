@@ -12,6 +12,9 @@ router.route("/unseen")
 router.route("/add-product")
 .patch(UserController.isLoggedIn,MappingController.addProductToMapping);
 
+router.route("/add-multiple-products")
+.patch(UserController.isLoggedIn,MappingController.addMultipleProductsToMapping);
+
 router.route("/similarity")
 .get(UserController.isLoggedIn,MappingController.getSimilarityByTitleFromSource);
 
