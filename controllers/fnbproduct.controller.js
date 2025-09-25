@@ -561,13 +561,17 @@ exports.getPriceHistory = catchAsync(async (req,res,next)=>{
         p.name AS product_title,
         ph.date AS price_date,
         ph.price AS product_price,
-        s.name AS store
+        CONCAT(s.name, ' - ', t.name) AS store
     FROM 
         product_fnb p
     JOIN 
         store s
     ON 
        p.store_id = s.id
+    JOIN 
+        terminal t
+    ON 
+       s.terminal_id = t.id
     JOIN 
         price_fnb ph 
     ON 
