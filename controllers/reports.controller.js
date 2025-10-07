@@ -1,25 +1,27 @@
 const pool = require("../configs/postgresql.config");
 const catchAsync = require("../utils/catchAsync");
 const isBodyComplete = require("../utils/isBodyComplete");
+const AppError = require("../utils/appError");
 
 exports.createReport = catchAsync(async (req,res,next)=>{
 
-    const isComplete = isBodyComplete(req, ["name", "category", "brand", "location"]);
+    const isComplete = isBodyComplete(req, ["name", "category", "subcategory", "brand", "location"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
         );
     }
 
-    const data = await pool.query(`INSERT INTO reports (user_id, name, categories, brands, locations)
+    const data = await pool.query(`INSERT INTO reports (user_id, name, categories, subcategories, brands, locations)
     VALUES (
         $1,
         $2,
         $3,
         $4,
-        $5
+        $5,
+        $6
     ) RETURNING *;
-    `,[req?.user?.id,req?.body?.name,req?.body?.category,req?.body?.brand,req?.body?.location]);
+    `,[req?.user?.id,req?.body?.name,req?.body?.category,req?.body?.subcategory,req?.body?.brand,req?.body?.location]);
 
     return res.status(200).json({
         status:"success",
@@ -41,7 +43,7 @@ exports.getAllReports = catchAsync(async (req,res,next)=>{
 exports.editReport = catchAsync(async (req,res,next)=>{
     const id = req?.params?.reportId;
 
-    const isComplete = isBodyComplete(req, ["name", "category", "brand", "location"]);
+    const isComplete = isBodyComplete(req, ["name", "category", "subcategory", "brand", "location"]);
     if (!isComplete[0]) {
         return next(
             new AppError(`${isComplete[1]} missing from request body!`, 400)
@@ -52,13 +54,14 @@ exports.editReport = catchAsync(async (req,res,next)=>{
     SET 
         name = $2,
         categories = $3, -- Updated categories
-        brands = $4,                  -- Updated brands
-        locations = $5             -- Updated locations
+        subcategories = $4, -- Updated subcategories
+        brands = $5,                  -- Updated brands
+        locations = $6             -- Updated locations
     WHERE 
-        id = $6                                     -- Report ID to update
+        id = $7                                     -- Report ID to update
         AND user_id = $1
     RETURNING *;                           -- Ensure it belongs to the current user
-    `,[req?.user?.id, req?.body?.name,req?.body?.category,req?.body?.brand,req?.body?.location,id]);
+    `,[req?.user?.id, req?.body?.name,req?.body?.category,req?.body?.subcategory,req?.body?.brand,req?.body?.location,id]);
 
     return res.status(200).json({
         status:"success",

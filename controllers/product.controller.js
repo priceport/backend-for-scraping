@@ -650,6 +650,7 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
             if (location) filteredProductsData = filteredProductsData.filter(pd => location.includes(pd.website));
             if (compliant !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.compliant + "") == compliant) || pd.website == source);
             if (ai_check !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.ai_check == ai_check) || pd.website == source));
+            if (sub_category) filteredProductsData = filteredProductsData.filter(pd => sub_category.includes(pd.sub_category) || pd.website === source);
         }
 
             // Calculate price per unit or fallback to flat price
