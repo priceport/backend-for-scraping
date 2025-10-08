@@ -740,3 +740,112 @@ exports.addProduct = catchAsync(async (req, res, next) => {
       }
     });
   });
+
+exports.getPriceChanges = catchAsync(async (req, res, next) => {
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+
+    try {
+        const basicCheck = await pool.query(`
+            SELECT COUNT(*) as total_products, 
+                   COUNT(DISTINCT p.id) as products_with_prices
+            FROM product_fnb p
+            LEFT JOIN price_fnb ph ON p.id = ph.product_id
+            WHERE p.canprod_id IS NOT NULL
+        `);
+
+
+        // Check for products with multiple price entries
+        const multiPriceCheck = await pool.query(`
+            SELECT p.id, p.name, COUNT(ph.date) as price_count
+            FROM product_fnb p
+            JOIN price_fnb ph ON p.id = ph.product_id
+            WHERE p.canprod_id IS NOT NULL
+            GROUP BY p.id, p.name
+            HAVING COUNT(ph.date) > 1
+            LIMIT 5
+        `);
+
+        const priceChangesQuery = `
+            SELECT DISTINCT
+                p.name as product_name,
+                s.name as store_name,
+                t.name as terminal_name,
+                ph_old.price as old_price,
+                ph_new.price as new_price,
+                ph_old.date as old_price_date,
+                ph_new.date as new_price_date
+            FROM product_fnb p
+            JOIN store s ON p.store_id = s.id
+            JOIN terminal t ON p.terminal_id = t.id
+            JOIN price_fnb ph_new ON p.id = ph_new.product_id
+            JOIN price_fnb ph_old ON p.id = ph_old.product_id
+            WHERE p.canprod_id IS NOT NULL
+                AND ph_new.date > ph_old.date
+                AND ph_new.price != ph_old.price
+                AND ph_new.date = (
+                    SELECT MAX(ph1.date) 
+                    FROM price_fnb ph1 
+                    WHERE ph1.product_id = p.id
+                )
+                AND ph_old.date = (
+                    SELECT MAX(ph2.date) 
+                    FROM price_fnb ph2 
+                    WHERE ph2.product_id = p.id 
+                        AND ph2.date < ph_new.date
+                )
+            ORDER BY ph_new.date DESC
+            OFFSET $1 LIMIT $2
+        `;
+
+        // Count query
+        const countQuery = `
+            SELECT COUNT(DISTINCT p.id) as total_count
+            FROM product_fnb p
+            JOIN price_fnb ph_new ON p.id = ph_new.product_id
+            JOIN price_fnb ph_old ON p.id = ph_old.product_id
+            WHERE p.canprod_id IS NOT NULL
+                AND ph_new.date > ph_old.date
+                AND ph_new.price != ph_old.price
+                AND ph_new.date = (
+                    SELECT MAX(ph1.date) 
+                    FROM price_fnb ph1 
+                    WHERE ph1.product_id = p.id
+                )
+                AND ph_old.date = (
+                    SELECT MAX(ph2.date) 
+                    FROM price_fnb ph2 
+                    WHERE ph2.product_id = p.id 
+                        AND ph2.date < ph_new.date
+                )
+        `;
+
+        const [dataResult, countResult] = await Promise.all([
+            pool.query(priceChangesQuery, [offset, limit]),
+            pool.query(countQuery)
+        ]);
+
+        const totalCount = parseInt(countResult.rows[0].total_count);
+
+        return res.status(200).json({
+            status: "success",
+            message: "Price changes fetched successfully",
+            data: dataResult.rows,
+            pagination: {
+                total: totalCount,
+                limit: limit,
+                offset: offset,
+                pages: Math.ceil(totalCount / limit)
+            },
+            debug: {
+                total_products: basicCheck.rows[0].total_products,
+                products_with_prices: basicCheck.rows[0].products_with_prices,
+                products_with_multiple_prices: multiPriceCheck.rows.length
+            }
+        });
+
+    } catch (error) {
+        console.error('Error fetching price changes:', error);
+        return next(new AppError("Error fetching price changes", 500));
+    }
+});

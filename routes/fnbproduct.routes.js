@@ -29,6 +29,9 @@ router.route("/terminal")
 router.route("/price-history/:canprod_id")
 .get(UserController.isLoggedIn,FNBProductController.getPriceHistory);
 
+router.route("/price-change")
+.get(UserController.isLoggedIn,FNBProductController.getPriceChanges);
+
 router.route("/:id")
 .put(UserController.isLoggedIn,UserController.isAuthorized("admin"),FNBProductController.editProduct);
 
