@@ -122,8 +122,9 @@ const processDataForSpirits = async (data)=>{
                     let promoURL = rawData.promo[i];
                     let text = await detectTextFromURL(promoURL);
                     if(text){
-
-                        let res = calculatePriceFromText(text, rawData?.price);
+                        // Clean the price string (remove $ and convert to number)
+                        const cleanPrice = parseFloat(rawData.price.replace("$", ""));
+                        let res = calculatePriceFromText(text, cleanPrice);
 
                         if(res) {
                             finalData.promo = res;
