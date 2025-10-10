@@ -6,7 +6,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const gift_sets = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://www.aeliadutyfree.co.nz/auckland/beauty/gift-sets.html?p=';
+    const url = 'https://aucklanddutyfree.co.nz/beauty/gift-sets.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
@@ -62,7 +62,7 @@ const gift_sets = async (start,end,browser)=>{
               promo, 
               url, 
               category:'beauty',
-              source:{website_base:"https://www.aeliadutyfree.co.nz/auckland",location:"auckland",tag:"duty-free"}, 
+              source:{website_base:"https://aucklanddutyfree.co.nz",location:"auckland",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,

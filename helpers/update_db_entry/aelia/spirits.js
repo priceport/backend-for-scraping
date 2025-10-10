@@ -28,9 +28,15 @@ const updateDBEntry = async (data) => {
         continue;
       }
 
+      // Match by URL slug (handles domain migration)
+      // Old: https://www.aeliadutyfree.co.nz/auckland/product-name.html
+      // New: https://aucklanddutyfree.co.nz/product-name.html
+      // Both share the same slug: product-name.html
+      const urlSlug = url.split('/').pop();
+      
       let product = await pool.query(
-        "SELECT * FROM product WHERE url = $1 AND website = $2",
-        [url, "aelia_auckland"]
+        "SELECT * FROM product WHERE url LIKE $1 AND website = $2",
+        [`%${urlSlug}`, "aelia_auckland"]
       );
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
@@ -98,25 +104,22 @@ const updateDBEntry = async (data) => {
           );
         }
 
-        // Update last_checked timestamp
         await pool.query(
           `UPDATE product 
-                    SET last_checked = current_timestamp , country = $2
-                    WHERE id = $1`,
-          [product?.rows[0]?.id, "new zealand"]
-        );
-
-        await pool.query(
-          `UPDATE product 
-                    SET sub_category = $2 
-                    WHERE id = $1`,
-          [product?.rows[0]?.id, sub_category]
+                    SET last_checked = current_timestamp, country = $2, url = $3, image_url = $4
+                    WHERE url LIKE $1 AND website = $5`,
+          [`%${urlSlug}`, "new zealand", url, img, "aelia_auckland"]
         );
       }
 
       // Promo insertion logic
       if (promo) {
         for (let i = 0; i < promo?.length; i++) {
+          // Skip promos with invalid prices
+          if (promo[i]?.price === "Invalid input" || promo[i]?.price === null || promo[i]?.price === undefined) {
+            continue;
+          }
+          
           await pool.query(
             `INSERT INTO promotion (product_id, text, price, website) 
                         VALUES ($1, $2, $3, $4)`,
