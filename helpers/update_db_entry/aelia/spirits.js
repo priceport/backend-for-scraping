@@ -106,9 +106,9 @@ const updateDBEntry = async (data) => {
 
         await pool.query(
           `UPDATE product 
-                    SET last_checked = current_timestamp, country = $2, url = $3, image_url = $4
-                    WHERE url LIKE $1 AND website = $5`,
-          [`%${urlSlug}`, "new zealand", url, img, "aelia_auckland"]
+                    SET last_checked = current_timestamp, country = $2, url = $3, image_url = $4, sub_category = $5
+                    WHERE url LIKE $1 AND website = $6`,
+          [`%${urlSlug}`, "new zealand", url, img, sub_category, "aelia_auckland"]
         );
       }
 
