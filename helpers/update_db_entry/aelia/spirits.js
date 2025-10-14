@@ -28,16 +28,23 @@ const updateDBEntry = async (data) => {
         continue;
       }
 
-      // Match by URL slug (handles domain migration)
-      // Old: https://www.aeliadutyfree.co.nz/auckland/product-name.html
-      // New: https://aucklanddutyfree.co.nz/product-name.html
-      // Both share the same slug: product-name.html
-      const urlSlug = url.split('/').pop();
       
       let product = await pool.query(
-        "SELECT * FROM product WHERE url LIKE $1 AND website = $2",
-        [`%${urlSlug}`, "aelia_auckland"]
+        "SELECT * FROM product WHERE url = $1 AND website = $2",
+        [url, "aelia_auckland"]
       );
+
+      if (product.rowCount === 0) {
+        const oldUrlPattern = url.replace(
+          'https://aucklanddutyfree.co.nz/',
+          'https://www.aeliadutyfree.co.nz/auckland/'
+        );
+        
+        product = await pool.query(
+          "SELECT * FROM product WHERE url = $1 AND website = $2",
+          [oldUrlPattern, "aelia_auckland"]
+        );
+      }
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
         quantity,
@@ -45,7 +52,6 @@ const updateDBEntry = async (data) => {
       );
 
       if (product.rowCount === 0) {
-        // If no product exists, create one
         product = await pool.query(
           `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, sub_category, website, tag, country)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12) RETURNING *`,
@@ -106,9 +112,9 @@ const updateDBEntry = async (data) => {
 
         await pool.query(
           `UPDATE product 
-                    SET last_checked = current_timestamp, country = $2, url = $3, image_url = $4
-                    WHERE url LIKE $1 AND website = $5`,
-          [`%${urlSlug}`, "new zealand", url, img, "aelia_auckland"]
+           SET last_checked = current_timestamp, country = $1, url = $2, image_url = $3, sub_category = $4
+           WHERE id = $5`,
+          ["new zealand", url, img, sub_category, product?.rows[0]?.id]
         );
       }
 
