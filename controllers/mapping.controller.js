@@ -133,67 +133,115 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
 });
 
 
-const createMapping = catchAsync(async (req, res, next) => {
-    // Validate the required fields in the request body
-    const isComplete = isBodyComplete(req, ["source_1", "source_2", "id_1", "id_2", "name"]);
-    if (!isComplete[0]) {
+const createMapping= catchAsync(async (req, res, next) => {
+    // New format only - 1 to 15 products
+    const { products, name } = req.body;
+    
+    // Validate input
+    if (!products || !Array.isArray(products) || products.length < 1) {
         return next(
-            new AppError(`${isComplete[1]} missing from request body!`, 400)
+            new AppError(`At least 1 product required for mapping!`, 400)
         );
     }
 
-    const { source_1, source_2, id_1, id_2, name } = req.body;
-
-    // Validate the provided sources
-    if (!source_1 || !source_2) {
+    if (products.length > 15) {
         return next(
-            new AppError(`Invalid source value!`, 400)
+            new AppError(`Maximum 15 products allowed per mapping!`, 400)
         );
     }
 
-    // Insert into the canonical_product table
-    const canonical = await pool.query(
-        `INSERT INTO cannonical_product(title) VALUES($1) RETURNING *`,
-        [name]
-    );
-
-    if (!canonical.rows[0]) {
+    if (!name) {
         return next(
-            new AppError(`Something went wrong while creating canonical product!`, 500)
+            new AppError(`Canonical product name is required!`, 400)
         );
     }
 
-    const canonicalId = canonical.rows[0].id;
-
-    // Update products from source_1 and source_2 to map them to the canonical product
-    const change_1 = await pool.query(
-        `UPDATE product SET canprod_id = $1 WHERE id = $2 AND website = $3 RETURNING *`,
-        [canonicalId, id_1, source_1]
-    );
-
-    const change_2 = await pool.query(
-        `UPDATE product SET canprod_id = $1 WHERE id = $2 AND website = $3 RETURNING *`,
-        [canonicalId, id_2, source_2]
-    );
-
-    // Check if updates were successful
-    if (!change_1.rows[0] || !change_2.rows[0]) {
-        return next(
-            new AppError(`Failed to update one or both source products!`, 500)
-        );
+    // Validate all products have required fields
+    for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        if (!product.id || !product.source) {
+            return next(
+                new AppError(`Product ${i + 1} missing id or source!`, 400)
+            );
+        }
     }
 
-    precomputeDailyData('lotte_melbourne',false);
+    const productsToMap = products;
+    const canonicalName = name;
 
-    // Respond with the created canonical product and updated mappings
-    return res.status(200).json({
-        status: "successful",
-        data: {
-            canonical: canonical.rows[0],
-            change_1: change_1.rows[0],
-            change_2: change_2.rows[0],
-        },
-    });
+    // Start transaction
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Insert into the canonical_product table
+        const canonical = await client.query(
+            `INSERT INTO cannonical_product(title) VALUES($1) RETURNING *`,
+            [canonicalName]
+        );
+
+        if (!canonical.rows[0]) {
+            throw new Error('Failed to create canonical product');
+        }
+
+        const canonicalId = canonical.rows[0].id;
+        const updatedProducts = [];
+
+        // Update all products to map them to the canonical product
+        for (const product of productsToMap) {
+            const updatedProduct = await client.query(
+                `UPDATE product SET canprod_id = $1 WHERE id = $2 AND website = $3 RETURNING *`,
+                [canonicalId, product.id, product.source]
+            );
+
+            if (!updatedProduct.rows[0]) {
+                throw new Error(`Failed to update product ${product.id} from ${product.source}`);
+            }
+
+            // Get latest price for the product
+            const price = await client.query(
+                `SELECT * FROM price WHERE product_id = $1 ORDER BY date DESC LIMIT 1`,
+                [updatedProduct.rows[0].id]
+            );
+
+            updatedProducts.push({
+                ...updatedProduct.rows[0],
+                latest_price: price?.rows[0]?.price || null
+            });
+        }
+
+        await client.query('COMMIT');
+
+        // Trigger data recomputation for all affected sources
+        const uniqueSources = [...new Set(productsToMap.map(p => p.source))];
+        for (const source of uniqueSources) {
+            precomputeDailyData(source, false);
+        }
+
+        // Create response in the old format with change_1, change_2, etc.
+        const responseData = {
+            canonical: canonical.rows[0]
+        };
+
+        // Add each updated product as change_1, change_2, etc.
+        updatedProducts.forEach((product, index) => {
+            responseData[`change_${index + 1}`] = product;
+        });
+
+        // Respond with the created canonical product and updated mappings
+        return res.status(200).json({
+            status: "successful",
+            data: responseData
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        return next(
+            new AppError(`Failed to create mapping: ${error.message}`, 500)
+        );
+    } finally {
+        client.release();
+    }
 });
 
 
@@ -246,11 +294,113 @@ const addProductToMapping = catchAsync(async (req, res, next) => {
     });
 });
 
+const addMultipleProductsToMapping = catchAsync(async (req, res, next) => {
+    // Validate the required fields in the request body
+    const isComplete = isBodyComplete(req, ["canprod_id", "products"]);
+    if (!isComplete[0]) {
+        return next(
+            new AppError(`${isComplete[1]} missing from request body!`, 400)
+        );
+    }
+
+    const { canprod_id, products } = req.body;
+
+    // Validate products array
+    if (!Array.isArray(products) || products.length === 0) {
+        return next(
+            new AppError("Products array is required and cannot be empty!", 400)
+        );
+    }
+
+    if (products.length > 15) {
+        return next(
+            new AppError("Maximum 15 products allowed per bulk operation!", 400)
+        );
+    }
+
+    // Validate all products have required fields
+    for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        if (!product.id || !product.source) {
+            return next(
+                new AppError(`Product ${i + 1} missing id or source!`, 400)
+            );
+        }
+    }
+
+    // Start transaction
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const updatedProducts = [];
+        const uniqueSources = new Set();
+
+        // Update all products to associate them with the canonical product
+        for (const product of products) {
+            const updatedProduct = await client.query(
+                `UPDATE product 
+                 SET canprod_id = $1 
+                 WHERE id = $2 AND website = $3 
+                 RETURNING *`,
+                [canprod_id, product.id, product.source]
+            );
+
+            if (!updatedProduct.rows[0]) {
+                throw new Error(`Failed to update product ${product.id} from ${product.source}`);
+            }
+
+            // Get latest price for the product
+            const price = await client.query(
+                `SELECT * FROM price WHERE product_id = $1 ORDER BY date DESC LIMIT 1`,
+                [updatedProduct.rows[0].id]
+            );
+
+            updatedProducts.push({
+                ...updatedProduct.rows[0],
+                latest_price: price?.rows[0]?.price || null
+            });
+
+            uniqueSources.add(product.source);
+        }
+
+        await client.query('COMMIT');
+
+        // Trigger data recomputation for all affected sources
+        for (const source of uniqueSources) {
+            precomputeDailyData(source, false);
+        }
+
+        // Create response in the old format with change_1, change_2, etc.
+        const responseData = {};
+
+        // Add each updated product as change_1, change_2, etc.
+        updatedProducts.forEach((product, index) => {
+            responseData[`change_${index + 1}`] = product;
+        });
+
+        // Respond with all updated products
+        return res.status(200).json({
+            status: "successful",
+            data: responseData
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        return next(
+            new AppError(`Failed to add multiple products to mapping: ${error.message}`, 500)
+        );
+    } finally {
+        client.release();
+    }
+});
+
 
 module.exports = {
     getAllUnmappedProductsFromSource,
     getSimilarityByTitleFromSource,
     createMapping,
     addProductToMapping,
+    addMultipleProductsToMapping,
     makeProductUnseen
 }
