@@ -753,7 +753,7 @@ async function runPrecomputes(){
 }
 
 runPrecomputes();
-
+scrapingService();
 
 // Schedule the task to run at 12 AM New Zealand Time
 cron.schedule('50 7 * * *', scrapingService, {
