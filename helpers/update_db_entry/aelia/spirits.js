@@ -7,7 +7,6 @@ const updateDBEntry = async (data) => {
   let iterator = 0;
   let db_ops = 0;
   let new_prices = 0;
-
   while (iterator < data?.length) {
     try {
       let {
@@ -35,15 +34,40 @@ const updateDBEntry = async (data) => {
       );
 
       if (product.rowCount === 0) {
-        const oldUrlPattern = url.replace(
-          'https://aucklanddutyfree.co.nz/',
-          'https://www.aeliadutyfree.co.nz/auckland/'
+        const urlNoWww = url.replace(
+          'https://www.aucklanddutyfree.co.nz/',
+          'https://aucklanddutyfree.co.nz/'
         );
         
         product = await pool.query(
           "SELECT * FROM product WHERE url = $1 AND website = $2",
-          [oldUrlPattern, "aelia_auckland"]
+          [urlNoWww, "aelia_auckland"]
         );
+        
+        if (product.rowCount === 0) {
+          const oldUrlPattern = url.replace(
+            'https://www.aucklanddutyfree.co.nz/',
+            'https://www.aeliadutyfree.co.nz/auckland/'
+          );
+          
+          product = await pool.query(
+            "SELECT * FROM product WHERE url = $1 AND website = $2",
+            [oldUrlPattern, "aelia_auckland"]
+          );
+        }
+        
+        // Try 3: Old Aelia format without www
+        if (product.rowCount === 0) {
+          const oldUrlPatternNoWww = url.replace(
+            'https://www.aucklanddutyfree.co.nz/',
+            'https://aeliadutyfree.co.nz/auckland/'
+          );
+          
+          product = await pool.query(
+            "SELECT * FROM product WHERE url = $1 AND website = $2",
+            [oldUrlPatternNoWww, "aelia_auckland"]
+          );
+        }
       }
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
@@ -52,6 +76,7 @@ const updateDBEntry = async (data) => {
       );
 
       if (product.rowCount === 0) {
+        console.log(`[NEW] Creating: ${title.substring(0, 50)}`);
         product = await pool.query(
           `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, sub_category, website, tag, country)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12) RETURNING *`,
@@ -81,7 +106,8 @@ const updateDBEntry = async (data) => {
           ]
         );
       } else {
-        // Check the most recent price for this product and website
+        // UPDATE EXISTING PRODUCT
+        console.log(`[UPDATE] Updating ID ${product.rows[0].id}: ${title.substring(0, 50)} (Canprod: ${product.rows[0].canprod_id || 'NULL'})`);
         const latestPrice = await pool.query(
           `SELECT price 
             FROM price 
@@ -146,9 +172,6 @@ const updateDBEntry = async (data) => {
 
     iterator += 1;
   }
-
-  console.log("total ops:" + db_ops);
-  console.log("new prices:" + new_prices);
 };
 
 module.exports = updateDBEntry;

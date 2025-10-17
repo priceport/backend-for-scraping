@@ -6,7 +6,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const spirits = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://www.aeliadutyfree.co.nz/auckland/spirits.html?p=';
+    const url = 'https://www.aucklanddutyfree.co.nz/spirits.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
