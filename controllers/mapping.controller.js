@@ -396,11 +396,45 @@ const addMultipleProductsToMapping = catchAsync(async (req, res, next) => {
 });
 
 
+const getProductsInGroup = catchAsync(async (req, res, next) => {
+    if (!req.query.canprod_id || !req.query.source) {
+        return next(
+            new AppError(`canprod_id and source are required!`, 400)
+        );
+    }
+
+    const { canprod_id, source } = req.query;
+    const days = 30; 
+
+    const products = await pool.query(
+        `SELECT * FROM product 
+         WHERE canprod_id = $1 
+           AND website = $2 
+           AND last_checked::date > current_date - ($3 || ' days')::INTERVAL
+         ORDER BY last_checked DESC`,
+        [canprod_id, source, days]
+    );
+
+    const shouldShowGroup = products.rows.length === 0;
+
+    return res.status(200).json({
+        status: "successful",
+        data: {
+            canprod_id: parseInt(canprod_id),
+            source: source,
+            count: products.rows.length,
+            products: products.rows,
+            has_matching_products: shouldShowGroup  
+        }
+    });
+});
+
 module.exports = {
     getAllUnmappedProductsFromSource,
     getSimilarityByTitleFromSource,
     createMapping,
     addProductToMapping,
     addMultipleProductsToMapping,
-    makeProductUnseen
+    makeProductUnseen,
+    getProductsInGroup
 }

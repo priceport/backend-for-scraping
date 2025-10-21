@@ -18,4 +18,7 @@ router.route("/add-multiple-products")
 router.route("/similarity")
 .get(UserController.isLoggedIn,MappingController.getSimilarityByTitleFromSource);
 
+router.route("/group-products")
+.get(UserController.isLoggedIn,MappingController.getProductsInGroup);
+
 module.exports = router;
