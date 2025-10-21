@@ -744,27 +744,18 @@ exports.addProduct = catchAsync(async (req, res, next) => {
 exports.getPriceChanges = catchAsync(async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
+    const sort = req.query.sort || 'difference_percentage_low_to_high';
 
     try {
-        const basicCheck = await pool.query(`
-            SELECT COUNT(*) as total_products, 
-                   COUNT(DISTINCT p.id) as products_with_prices
-            FROM product_fnb p
-            LEFT JOIN price_fnb ph ON p.id = ph.product_id
-            WHERE p.canprod_id IS NOT NULL
-        `);
+        let orderByClause;
+        if (sort === 'difference_percentage_high_to_low') {
+            orderByClause = 'ORDER BY percentage_diff DESC';
+        } else if (sort === 'difference_percentage_low_to_high') {
+            orderByClause = 'ORDER BY percentage_diff ASC';
+        } else {
+            orderByClause = 'ORDER BY new_price_date DESC';
+        }
 
-
-        // Check for products with multiple price entries
-        const multiPriceCheck = await pool.query(`
-            SELECT p.id, p.name, COUNT(ph.date) as price_count
-            FROM product_fnb p
-            JOIN price_fnb ph ON p.id = ph.product_id
-            WHERE p.canprod_id IS NOT NULL
-            GROUP BY p.id, p.name
-            HAVING COUNT(ph.date) > 1
-            LIMIT 5
-        `);
 
         const priceChangesQuery = `
             SELECT DISTINCT
@@ -774,7 +765,8 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
                 ph_old.price as old_price,
                 ph_new.price as new_price,
                 ph_old.date as old_price_date,
-                ph_new.date as new_price_date
+                ph_new.date as new_price_date,
+                ((ph_new.price - ph_old.price) / NULLIF(ph_old.price, 0)) * 100 as percentage_diff
             FROM product_fnb p
             JOIN store s ON p.store_id = s.id
             JOIN terminal t ON p.terminal_id = t.id
@@ -794,7 +786,7 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
                     WHERE ph2.product_id = p.id 
                         AND ph2.date < ph_new.date
                 )
-            ORDER BY ph_new.date DESC
+            ${orderByClause}
             OFFSET $1 LIMIT $2
         `;
 
@@ -836,16 +828,10 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
                 limit: limit,
                 offset: offset,
                 pages: Math.ceil(totalCount / limit)
-            },
-            debug: {
-                total_products: basicCheck.rows[0].total_products,
-                products_with_prices: basicCheck.rows[0].products_with_prices,
-                products_with_multiple_prices: multiPriceCheck.rows.length
             }
         });
 
     } catch (error) {
-        console.error('Error fetching price changes:', error);
         return next(new AppError("Error fetching price changes", 500));
     }
 });
