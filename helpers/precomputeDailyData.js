@@ -67,7 +67,7 @@ function isTodayOrYesterday(timestamp) {
     const inputDate = new Date(timestamp);
     const today = new Date();
     const tenDaysAgo = new Date();
-    tenDaysAgo.setDate(today.getDate() - 15);
+    tenDaysAgo.setDate(today.getDate() - 20);
 
     // Return true if the input date is between today and 10 days ago
     return inputDate >= tenDaysAgo && inputDate <= today;
