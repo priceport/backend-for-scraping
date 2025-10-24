@@ -19,7 +19,6 @@ const scrapeLotteMelbourne = require("./scrapeLotteMelbourne");
 const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeLiquorland = require("./scrapeLiquorland");
-const scrapeLiquorlandDev = require("./scrapeLiquorlandDev");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeDanMurphy = require("./scrapeDanMurphy");
@@ -373,6 +372,9 @@ doneDanMurphy=true;
       liqueurs: false,
       dark_rum: false,
       white_rum: false,
+      scotch_whisky: false,
+      irish_whiskey: false,
+      nz_whisky: false,
     },
     bigBarrel: {
       spirits: false,

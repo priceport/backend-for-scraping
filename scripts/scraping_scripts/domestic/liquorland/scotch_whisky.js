@@ -5,9 +5,9 @@ const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 const handleAgeVerification = require('../../../../helpers/ageVerificationHandler');
 
-const white_rum = async (start, end, browser) => {
+const scotch_whisky = async (start, end, browser) => {
   let pageNo = start;
-  const baseUrl = 'https://www.liquorland.co.nz/shop/spirits/rum/white-rum?FF=&InStoreOnly=false&P.StartPage=';
+  const baseUrl = 'https://www.liquorland.co.nz/shop/spirits/whiskey/scotch-whisky?FF=&InStoreOnly=false&P.StartPage=';
   const urlSuffix = '&P.LoadToPage=&CategoryId=2705&sorting=Suggested&SelectedView=0';
   
   const page = await browser.newPage();
@@ -217,7 +217,7 @@ const white_rum = async (start, end, browser) => {
                 last_check: Date.now(),
                 mapping_ref: null,
                 unit: undefined,
-                subcategory: 'white_rum',
+                subcategory: 'scotch_whisky',
                 img
               });
             }
@@ -257,6 +257,6 @@ const white_rum = async (start, end, browser) => {
   }
 }
 
-module.exports = white_rum;
+module.exports = scotch_whisky;
 
 

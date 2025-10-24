@@ -1,7 +1,7 @@
 //scraping script imports
-const spirits = require("../scripts/scraping_scripts/domestic/liquorland/spirits");
-const liqueurs = require("../scripts/scraping_scripts/domestic/liquorland/liqueurs");
 const dark_rum = require("../scripts/scraping_scripts/domestic/liquorland/dark_rum");
+const scotch_whisky = require("../scripts/scraping_scripts/domestic/liquorland/scotch_whisky");
+const white_rum = require("../scripts/scraping_scripts/domestic/liquorland/white_rum");
 
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
@@ -9,13 +9,12 @@ const processDataForSpirits = require("./data_processing/liquorland/spirits");
 //db update imports
 const updateDBEntry = require("./update_db_entry/liquorland/spirits");
 const logError = require("./logError");
-const white_rum = require("../scripts/scraping_scripts/domestic/liquorland/white_rum");
 
 const scrapeLiquorland = async (start, end, state, browser) => {
   console.log("scraping started for liquorland at:" + Date.now());
 
   //variable initialization
-  let darkRumData = [], whiteRumData = [];
+  let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] ;
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -64,8 +63,30 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
 
+  if (!state.liquorland.scotch_whisky) {
+    console.log("-----------scotch whisky------------");
+    try {
+      scotchWhiskyData = await scotch_whisky(start, end, browser);
+      console.log(`${scotchWhiskyData?.length} data items scraped for scotch whisky`);
+    } catch (err) {
+      console.log("There was an error while scraping scotch whisky");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.scotch_whisky&&scotchWhiskyData?.length==0)
+  try{
+    scotchWhiskyData = await scotch_whisky(start, end, browser);
+    if(scotchWhiskyData?.length==0){
+      state.liquorland.scotch_whisky = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping scotch whisky");
+    logError(err);
+  }
+
   //merge data
-  let allData = [...darkRumData, ...whiteRumData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData];
 
   //process data
   try {

@@ -126,10 +126,6 @@ const dark_rum = async (start, end, browser) => {
         console.log(`Skipping age verification for page ${pageNo} (only needed on first page)`);
       }
       
-      // Take a screenshot for debugging
-      await page.screenshot({ path: `liquorland_page_${pageNo}.png` });
-      console.log(`Screenshot saved as liquorland_page_${pageNo}.png`);
-      
       // Verify store selection worked by checking for actual prices (first page only)
       if (pageNo === start) {
         try {
