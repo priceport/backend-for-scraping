@@ -20,7 +20,6 @@ const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeLiquorland = require("./scrapeLiquorland");
 const scrapeLiquorlandDev = require("./scrapeLiquorlandDev");
-const developmentConfig = require("../configs/development.config");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeDanMurphy = require("./scrapeDanMurphy");
@@ -373,6 +372,7 @@ doneDanMurphy=true;
       spirits: false,
       liqueurs: false,
       dark_rum: false,
+      white_rum: false,
     },
     bigBarrel: {
       spirits: false,
