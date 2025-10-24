@@ -18,6 +18,9 @@ const scrapeLotteBrisbane = require("./scrapeLotteBrisbane");
 const scrapeLotteMelbourne = require("./scrapeLotteMelbourne");
 const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
+const scrapeLiquorland = require("./scrapeLiquorland");
+const scrapeLiquorlandDev = require("./scrapeLiquorlandDev");
+const developmentConfig = require("../configs/development.config");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeDanMurphy = require("./scrapeDanMurphy");
@@ -48,6 +51,7 @@ const scrapingService =async ()=>{
     doneCairns = false,
     doneWhiskyAndMore = false,
     doneNzLiquor = false,
+    doneLiquorland = false;
     doneBigBarrel = false,
     doneSephora = false,
     doneBeautyBliss = false,
@@ -59,7 +63,7 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
   doneAuThemall = false,
-doneDanMurphy=false;
+doneDanMurphy=true;
 
 
   let start_page = 1,
@@ -365,6 +369,11 @@ doneDanMurphy=false;
       wine: false,
       beer: false,
     },
+    liquorland: {
+      spirits: false,
+      liqueurs: false,
+      dark_rum: false,
+    },
     bigBarrel: {
       spirits: false,
       wine: false,
@@ -582,7 +591,8 @@ doneDanMurphy=false;
     !doneAuMecca ||
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
-    !doneAuThemall
+    !doneAuThemall ||
+    !doneLiquorland
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
@@ -736,6 +746,22 @@ doneDanMurphy=false;
         console.log("There was an error while scraping from nz liquor");
         logError(err);
       }
+
+    if (!doneLiquorland) {
+      try {
+       
+          console.log("Using production mode for Liquorland (real scraping)");
+          doneLiquorland = await scrapeLiquorland(
+            start_page,
+            end_page,
+            internalStates,
+            browser
+          );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland");
+        logError(err);
+      }
+    }
 
     if (!doneBigBarrel)
       try {
