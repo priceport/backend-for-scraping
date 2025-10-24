@@ -2,6 +2,7 @@
 const dark_rum = require("../scripts/scraping_scripts/domestic/liquorland/dark_rum");
 const scotch_whisky = require("../scripts/scraping_scripts/domestic/liquorland/scotch_whisky");
 const white_rum = require("../scripts/scraping_scripts/domestic/liquorland/white_rum");
+const irish_whisky = require("../scripts/scraping_scripts/domestic/liquorland/irish_whiskey");
 
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
@@ -14,79 +15,101 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   console.log("scraping started for liquorland at:" + Date.now());
 
   //variable initialization
-  let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] ;
+  let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] , irishWhiskyData = [];
 
-  if (!state.liquorland.dark_rum) {
-    console.log("-----------dark rum------------");
-    try {
-      darkRumData = await dark_rum(start, end, browser);
-      console.log(`${darkRumData?.length} data items scraped for dark rum`);
-    } catch (err) {
-      console.log("There was an error while scraping dark rum:", err.message);
-      console.log("This is likely due to regional blocking or connection issues");
-      logError(err);
-      state.liquorland.dark_rum = true;
-    }
-  }
+  // if (!state.liquorland.dark_rum) {
+  //   console.log("-----------dark rum------------");
+  //   try {
+  //     darkRumData = await dark_rum(start, end, browser);
+  //     console.log(`${darkRumData?.length} data items scraped for dark rum`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping dark rum:", err.message);
+  //     console.log("This is likely due to regional blocking or connection issues");
+  //     logError(err);
+  //     state.liquorland.dark_rum = true;
+  //   }
+  // }
 
-  if(!state.liquorland.dark_rum&&darkRumData?.length==0)
-  try{
-    darkRumData = await dark_rum(1, 1, browser);
-    if(darkRumData?.length==0){
-      state.liquorland.dark_rum = true;
-    }
-  }catch(err){
-    console.log("There was an error while scraping dark rum");
-    logError(err);
-  }
+  // if(!state.liquorland.dark_rum&&darkRumData?.length==0)
+  // try{
+  //   darkRumData = await dark_rum(1, 1, browser);
+  //   if(darkRumData?.length==0){
+  //     state.liquorland.dark_rum = true;
+  //   }
+  // }catch(err){
+  //   console.log("There was an error while scraping dark rum");
+  //   logError(err);
+  // }
 
-  if (!state.liquorland.white_rum) {
-    console.log("-----------white rum------------");
-    try {
-      whiteRumData = await white_rum(start, end, browser);
-      console.log(`${whiteRumData?.length} data items scraped for white rum`);
-    } catch (err) {
-      console.log("There was an error while scraping white rum");
-      logError(err);
-    }
-  }
+  // if (!state.liquorland.white_rum) {
+  //   console.log("-----------white rum------------");
+  //   try {
+  //     whiteRumData = await white_rum(start, end, browser);
+  //     console.log(`${whiteRumData?.length} data items scraped for white rum`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping white rum");
+  //     logError(err);
+  //   }
+  // }
 
-  if(!state.liquorland.white_rum&&whiteRumData?.length==0)
-  try{
-    whiteRumData = await white_rum(1, 1, browser);
-    if(whiteRumData?.length==0){
-      state.liquorland.white_rum = true;
-    }
-  }catch(err){
+  // if(!state.liquorland.white_rum&&whiteRumData?.length==0)
+  // try{
+  //   whiteRumData = await white_rum(1, 1, browser);
+  //   if(whiteRumData?.length==0){
+  //     state.liquorland.white_rum = true;
+  //   }
+  // }catch(err){
   
-    console.log("There was an error while scraping white rum");
-    logError(err);
-  }
+  //   console.log("There was an error while scraping white rum");
+  //   logError(err);
+  // }
 
-  if (!state.liquorland.scotch_whisky) {
-    console.log("-----------scotch whisky------------");
+  // if (!state.liquorland.scotch_whisky) {
+  //   console.log("-----------scotch whisky------------");
+  //   try {
+  //     scotchWhiskyData = await scotch_whisky(start, end, browser);
+  //     console.log(`${scotchWhiskyData?.length} data items scraped for scotch whisky`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping scotch whisky");
+  //     logError(err);
+  //   }
+  // }
+
+  // if(!state.liquorland.scotch_whisky&&scotchWhiskyData?.length==0)
+  // try{
+  //   scotchWhiskyData = await scotch_whisky(start, end, browser);
+  //   if(scotchWhiskyData?.length==0){
+  //     state.liquorland.scotch_whisky = true;
+  //   }
+  // }catch(err){
+  //   console.log("There was an error while scraping scotch whisky");
+  //   logError(err);
+  // }
+
+  if (!state.liquorland.irish_whisky) {
+    console.log("-----------irish whisky------------");
     try {
-      scotchWhiskyData = await scotch_whisky(start, end, browser);
-      console.log(`${scotchWhiskyData?.length} data items scraped for scotch whisky`);
+      irishWhiskyData = await irish_whisky(start, end, browser);
+      console.log(`${irishWhiskyData?.length} data items scraped for irish whisky`);
     } catch (err) {
-      console.log("There was an error while scraping scotch whisky");
+      console.log("There was an error while scraping irish whisky");
       logError(err);
     }
   }
 
-  if(!state.liquorland.scotch_whisky&&scotchWhiskyData?.length==0)
+  if(!state.liquorland.irish_whisky&&irishWhiskyData?.length==0)
   try{
-    scotchWhiskyData = await scotch_whisky(start, end, browser);
-    if(scotchWhiskyData?.length==0){
-      state.liquorland.scotch_whisky = true;
+    irishWhiskyData = await irish_whisky(start, end, browser);
+    if(irishWhiskyData?.length==0){
+      state.liquorland.irish_whisky = true;
     }
   }catch(err){
-    console.log("There was an error while scraping scotch whisky");
+    console.log("There was an error while scraping irish whisky");
     logError(err);
   }
 
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData];
 
   //process data
   try {
