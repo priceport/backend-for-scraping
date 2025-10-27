@@ -397,6 +397,15 @@ doneDanMurphy=true;
       international_red: false,
       other_red: false,
 
+      sauvignon_blanc: false,
+      pinot_gris: false,
+      chardonnay: false,
+      riesling: false,
+      viognier: false,
+      gewurztraminer: false,
+      dessert: false,
+      international_white: false,
+      other_white: false,
     },
     bigBarrel: {
       spirits: false,

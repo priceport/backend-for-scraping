@@ -25,6 +25,15 @@ const cabernet = require("../scripts/scraping_scripts/domestic/liquorland/cabern
 const merlot = require("../scripts/scraping_scripts/domestic/liquorland/merlot");
 const international_red = require("../scripts/scraping_scripts/domestic/liquorland/international_red");
 const other_red = require("../scripts/scraping_scripts/domestic/liquorland/other_red");
+const sauvignon_blanc = require("../scripts/scraping_scripts/domestic/liquorland/sauvignon_blanc");
+const pinot_gris = require("../scripts/scraping_scripts/domestic/liquorland/pinot_gris");
+const chardonnay = require("../scripts/scraping_scripts/domestic/liquorland/chardonnay");
+const riesling = require("../scripts/scraping_scripts/domestic/liquorland/riesling");
+const viognier = require("../scripts/scraping_scripts/domestic/liquorland/viognier");
+const gewurztraminer = require("../scripts/scraping_scripts/domestic/liquorland/gewurztraminer");
+const dessert = require("../scripts/scraping_scripts/domestic/liquorland/dessert");
+const international_white = require("../scripts/scraping_scripts/domestic/liquorland/international_white");
+const other_white = require("../scripts/scraping_scripts/domestic/liquorland/other_white");
 
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
@@ -42,6 +51,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   let premiumBeerData = [], lighterBeerData = [], mainstreamBeerData = [], budgetBeerData = [], lowCarbBeerData = [], nzBoutiqueData = [];
   let commercialBrandsData = [], australiaAsiaData = [], europeanData = [], usMexicoData = [];
   let pinotNoirData = [], shirazSyrahData = [], cabernetData = [], merlotData = [], internationalRedData = [], otherRedData = [];
+  let sauvignonBlancData = [], pinotGrisData = [], chardonnayData = [], rieslingData = [], viognierData = [], gewurztraminerData = [], dessertData = [], internationalWhiteData = [], otherWhiteData = [];
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -618,8 +628,107 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
 
+  if (!state.liquorland.sauvignon_blanc) {
+    console.log("-----------sauvignon blanc------------");
+    try {
+      sauvignonBlancData = await sauvignon_blanc(start, end, browser);
+      console.log(`${sauvignonBlancData?.length} data items scraped for sauvignon blanc`);
+    } catch (err) {
+      console.log("There was an error while scraping sauvignon blanc");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.pinot_gris) {
+    console.log("-----------pinot gris------------");
+    try {
+      pinotGrisData = await pinot_gris(start, end, browser);
+      console.log(`${pinotGrisData?.length} data items scraped for pinot gris`);
+    } catch (err) {
+      console.log("There was an error while scraping pinot gris");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.chardonnay) {
+    console.log("-----------chardonnay------------");
+    try {
+      chardonnayData = await chardonnay(start, end, browser);
+      console.log(`${chardonnayData?.length} data items scraped for chardonnay`);
+    } catch (err) {
+      console.log("There was an error while scraping chardonnay");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.riesling) {
+    console.log("-----------riesling------------");
+    try {
+      rieslingData = await riesling(start, end, browser);
+      console.log(`${rieslingData?.length} data items scraped for riesling`);
+    } catch (err) {
+      console.log("There was an error while scraping riesling");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.viognier) {
+    console.log("-----------viognier------------");
+    try {
+      viognierData = await viognier(start, end, browser);
+      console.log(`${viognierData?.length} data items scraped for viognier`);
+    } catch (err) {
+      console.log("There was an error while scraping viognier");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.gewurztraminer) {
+    console.log("-----------gewurztraminer------------");
+    try {
+      gewurztraminerData = await gewurztraminer(start, end, browser);
+      console.log(`${gewurztraminerData?.length} data items scraped for gewurztraminer`);
+    } catch (err) {
+      console.log("There was an error while scraping gewurztraminer");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.dessert) {
+    console.log("-----------dessert------------");
+    try {
+      dessertData = await dessert(start, end, browser);
+      console.log(`${dessertData?.length} data items scraped for dessert`);
+    } catch (err) {
+      console.log("There was an error while scraping dessert");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.international_white) {
+    console.log("-----------international white------------");
+    try {
+      internationalWhiteData = await international_white(start, end, browser);
+      console.log(`${internationalWhiteData?.length} data items scraped for international white`);
+    } catch (err) {
+      console.log("There was an error while scraping international white");
+      logError(err);
+    }
+  }
+
+  if (!state.liquorland.other_white) {
+    console.log("-----------other white------------");
+    try {
+      otherWhiteData = await other_white(start, end, browser);
+      console.log(`${otherWhiteData?.length} data items scraped for other white`);
+    } catch (err) {
+      console.log("There was an error while scraping other white");
+      logError(err);
+    }
+  }
+
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...nzBoutiqueData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...nzBoutiqueData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData];
 
   //process data
   try {
