@@ -390,6 +390,13 @@ doneDanMurphy=true;
       australia_asia: false,
       european: false,
       us_mexico: false,
+      pinot_noir: false,
+      shiraz_syrah: false,
+      cabernet: false,
+      merlot: false,
+      international_red: false,
+      other_red: false,
+
     },
     bigBarrel: {
       spirits: false,
