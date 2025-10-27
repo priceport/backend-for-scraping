@@ -396,7 +396,6 @@ doneDanMurphy=true;
       merlot: false,
       international_red: false,
       other_red: false,
-
       sauvignon_blanc: false,
       pinot_gris: false,
       chardonnay: false,
@@ -406,6 +405,12 @@ doneDanMurphy=true;
       dessert: false,
       international_white: false,
       other_white: false,
+      water:false,
+      juice:false,
+      carbonated:false,
+      cordials:false,
+      energy_sports:false,
+      confectionery:false
     },
     bigBarrel: {
       spirits: false,
