@@ -62,7 +62,7 @@ const spirits = async (start,end,browser)=>{
               promo, 
               url, 
               category:'liquor',
-              source:{website_base:"https://www.aeliadutyfree.co.nz/auckland",location:"auckland",tag:"duty-free"}, 
+              source:{website_base:"https://aucklanddutyfree.co.nz",location:"auckland",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
