@@ -8,6 +8,19 @@ const isBodyComplete = require("../utils/isBodyComplete");
 const precomputeDailyDataFNB = require("../helpers/precomputeDailyDataFNB");
 const { v4: uuidv4 } = require('uuid');
 
+// Month names mapping for cache keys
+const MONTH_NAMES = {
+    1: 'january', 2: 'february', 3: 'march', 4: 'april',
+    5: 'may', 6: 'june', 7: 'july', 8: 'august',
+    9: 'september', 10: 'october', 11: 'november', 12: 'december'
+};
+
+const MONTH_NAMES_CAPITALIZED = {
+    1: 'January', 2: 'February', 3: 'March', 4: 'April',
+    5: 'May', 6: 'June', 7: 'July', 8: 'August',
+    9: 'September', 10: 'October', 11: 'November', 12: 'December'
+};
+
 function looseMatch(string, search) {
     // Convert both strings to lowercase for case-insensitive comparison
     const lowerString = string.toLowerCase();
@@ -97,15 +110,26 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
     const admin = req.query.admin;
+    const month = req.query.month ? parseInt(req.query.month) : 9; 
+    const year = req.query.year ? parseInt(req.query.year) : 2025; 
 
     if (limit > 1000) {
         return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
+    // Determine cache key based on month/year
+    const cacheKey = `daily_product_data_fnb_${MONTH_NAMES[month]}_${year}`;
+
     // Fetch precomputed data from Redis
-    const cachedData = await redisClient.get('daily_product_data_fnb');
+    let cachedData = await redisClient.get(cacheKey);
+    
     if (!cachedData) {
-        return next(new AppError("Precomputed data not available. Try again later.", 500));
+        await precomputeDailyDataFNB('aelia_auckland', month, year);
+        cachedData = await redisClient.get(cacheKey);
+        
+        if (!cachedData) {
+            return next(new AppError(`Failed to generate data for ${MONTH_NAMES_CAPITALIZED[month]} ${year}. Try again later.`, 500));
+        }
     }
 
     // Parse cached data
@@ -151,6 +175,8 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
                 });
             });
         }
+
+        products_data = products_data.filter(pd => pd.latest_price && pd.latest_price > 0);
 
         return { ...p, products_data };
     });
@@ -475,9 +501,15 @@ exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     });
 
     // Send response
+    const selectedPeriod = `${MONTH_NAMES_CAPITALIZED[month]} ${year}`;
     return res.status(200).json({
         status: "success",
         message: `All products for auckland fetched successfully`,
+        period: {
+            month: month,
+            year: year,
+            label: selectedPeriod
+        },
         stats:{
             productCount: product_count,
             cheapestProducts: cheapest_count,

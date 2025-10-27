@@ -6,20 +6,12 @@ const getBackStandardQty = (qty,unit)=>{
     else return qty*1;
 }
 
-const precomputeDailyDataFNB = async (source) => {
+const precomputeDailyDataFNB = async (source, month, year) => {
     try {
+        const canprod_ids = await pool.query(`select distinct canprod_id AS id from product_fnb;`);
+        let finalData = []
 
-    const canprod_ids = await pool.query(`select distinct canprod_id AS id from product_fnb;`);
-    let finalData = []
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1); // Get yesterday's date
-
-    // Format dates to YYYY-MM-DD
-    const todayString = today.toISOString().split('T')[0];
-    const yesterdayString = yesterday.toISOString().split('T')[0];
-
-    for(let i=0;i<canprod_ids?.rows?.length;i++){
+        for(let i=0;i<canprod_ids?.rows?.length;i++){
         const products = await pool.query(`SELECT 
         p.*,
         s.name AS store_name,
@@ -33,54 +25,53 @@ const precomputeDailyDataFNB = async (source) => {
       WHERE 
         p.canprod_id = $1`,[canprod_ids?.rows[i]?.id]);
 
-        // console.log(products.rows);
         finalData.push({
             canprod_id:canprod_ids?.rows[i]?.id,
             products_data:[]
         });
-        
-        // let source_price = 0;
-        let ppuPossible = true;
 
         for(let j=0;j<products?.rows?.length;j++){
             let temp = {...products?.rows[j]};
         
-
-            let price = await pool.query(`SELECT 
-                p.product_id, 
-                p.price, 
-                p.date
-            FROM 
-                price_fnb p
-            WHERE 
-                p.date = (
-                    SELECT MAX(date)
-                    FROM price_fnb
-                    WHERE product_id = $1
-                ) AND product_id = $1;`,[temp.id]);
-            // console.log(price.rows[0].price);
+            // Build the query with conditional month/year filtering
+            const priceQuery = `
+                SELECT 
+                    p.product_id, 
+                    p.price, 
+                    p.date
+                FROM 
+                    price_fnb p
+                WHERE 
+                    p.product_id = $1
+                    ${month && year ? `
+                    AND EXTRACT(MONTH FROM p.date) = $2
+                    AND EXTRACT(YEAR FROM p.date) = $3` : `
+                    AND p.date = (
+                        SELECT MAX(date)
+                        FROM price_fnb
+                        WHERE product_id = $1
+                    )`}
+                ORDER BY p.date DESC
+                LIMIT 1;
+            `;
+            
+            // Execute query with appropriate parameters
+            const queryParams = month && year ? [temp.id, month, year] : [temp.id];
+            const price = await pool.query(priceQuery, queryParams);
 
             if(!price?.rows || price?.rows?.length == 0){
-                console.log("No prices found for:"+temp.id);
+                console.log(`No prices found for product ${temp.id} ${month && year ? `in ${month}/${year}` : ''}`);
                 continue;
             }
 
             temp.latest_price = price.rows[0].price;
-
-            // if(temp.website == source) source_price = price.rows[0].price;
-
+            temp.price_date = price.rows[0].date;
             temp.product_id = temp.id;
 
-            // if(temp.last_checked.toISOString().split('T')[0] === todayString || temp.last_checked.toISOString().split('T')[0] === yesterdayString)
             finalData[i]?.products_data?.push(temp);
         }
 
-        // finalData[i].source_price = parseInt(source_price);
-
         finalData[i].products_data.sort((a, b) => a.latest_price - b.latest_price);
-        
-        // Remove the old total_price calculation as it's not needed and causing issues
-        // The average will be calculated correctly in the final loop below
     }
 
         finalData = finalData?.filter(data=>data.products_data.length!==0);
@@ -90,7 +81,6 @@ const precomputeDailyDataFNB = async (source) => {
             // Calculate the average price of all products in this group
             const totalPrice = data.products_data.reduce((sum, product) => sum + parseFloat(product.latest_price), 0);
             const averagePrice = data.products_data.length > 0 ? totalPrice / data.products_data.length : 0;
-            
             // Debug logs
             console.log('=== DEBUG CALCULATION ===');
             console.log('canprod_id:', data.canprod_id);
@@ -105,8 +95,6 @@ const precomputeDailyDataFNB = async (source) => {
                 if(product?.terminal_name!="OTHERS"){
                     const difference = parseFloat(product?.latest_price) - averagePrice;
                     const difference_percentage = product?.latest_price > 0 ? (difference / parseFloat(product?.latest_price)) * 100 : 0;
-                    
-                    // Debug for this specific product
                     console.log(`Product: ${product.name}, Price: ${product.latest_price}, Difference: ${difference}, Percentage: ${difference_percentage}%`);
                     
                     newData.push({
@@ -125,16 +113,24 @@ const precomputeDailyDataFNB = async (source) => {
                 }
             })
         });
-
-        // newData?.forEach(data=>console.log(data));
-        // Store the result in Redis
+        
+        let cacheKey = 'daily_product_data_fnb';
+        if (month && year) {
+            const monthNames = {
+                1: 'january', 2: 'february', 3: 'march', 4: 'april',
+                5: 'may', 6: 'june', 7: 'july', 8: 'august',
+                9: 'september', 10: 'october', 11: 'november', 12: 'december'
+            };
+            cacheKey = `daily_product_data_fnb_${monthNames[month]}_${year}`;
+        }
+        
         await redisClient.set(
-            'daily_product_data_fnb', // Key to store data
+            cacheKey, // Key to store data
             JSON.stringify(newData), // Serialize data to JSON
             'EX', 86400 // Set expiry to 24 hours (in seconds)
         );
 
-        console.log('Daily product data fnb successfully precomputed and cached!');
+        console.log(`Daily product data fnb successfully precomputed and cached to: ${cacheKey}`);
     } catch (error) {
         console.error('Error during precomputing daily product data:', error);
     }
