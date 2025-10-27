@@ -375,6 +375,11 @@ doneDanMurphy=true;
       scotch_whisky: false,
       irish_whiskey: false,
       nz_whisky: false,
+      aperitifs: false,
+      cocktails_essentials: false,
+      creme_liqueurs: false,
+      schnapps: false,
+      vermouth: false,
     },
     bigBarrel: {
       spirits: false,

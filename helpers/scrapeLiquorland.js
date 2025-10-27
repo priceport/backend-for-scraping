@@ -4,6 +4,11 @@ const scotch_whisky = require("../scripts/scraping_scripts/domestic/liquorland/s
 const white_rum = require("../scripts/scraping_scripts/domestic/liquorland/white_rum");
 const irish_whisky = require("../scripts/scraping_scripts/domestic/liquorland/irish_whiskey");
 const nz_whisky = require("../scripts/scraping_scripts/domestic/liquorland/nz_whisky");
+const aperitifs = require("../scripts/scraping_scripts/domestic/liquorland/aperitifs");
+const cocktail_essentials = require("../scripts/scraping_scripts/domestic/liquorland/cocktail_essentials");
+const creme_liqueurs = require("../scripts/scraping_scripts/domestic/liquorland/creme_liqueurs");
+const schnapps = require("../scripts/scraping_scripts/domestic/liquorland/schnapps");
+const vermouth = require("../scripts/scraping_scripts/domestic/liquorland/vermouth");
 
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
@@ -17,6 +22,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
 
   //variable initialization
   let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] , irishWhiskyData = [], nzWhiskyData = [];
+  let aperitifsData = [], cocktailEssentialsData = [], cremeLiqueursData = [], schnappsData = [], vermouthData = [];
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -131,9 +137,118 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
 
+  if (!state.liquorland.aperitifs) {
+    console.log("-----------aperitifs------------");
+    try {
+      aperitifsData = await aperitifs(start, end, browser);
+      console.log(`${aperitifsData?.length} data items scraped for aperitifs`);
+    } catch (err) {
+      console.log("There was an error while scraping aperitifs");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.aperitifs&&aperitifsData?.length==0)
+  try{
+    aperitifsData = await aperitifs(start, end, browser);
+    if(aperitifsData?.length==0){
+      state.liquorland.aperitifs = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping aperitifs");
+    logError(err);
+  }
+
+  if (!state.liquorland.cocktail_essentials) {
+    console.log("-----------cocktail essentials------------");
+    try {
+      cocktailEssentialsData = await cocktail_essentials(start, end, browser);
+      console.log(`${cocktailEssentialsData?.length} data items scraped for cocktail essentials`);
+    } catch (err) {
+      console.log("There was an error while scraping cocktail essentials");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.cocktail_essentials&&cocktailEssentialsData?.length==0)
+  try{
+    cocktailEssentialsData = await cocktail_essentials(start, end, browser);
+    if(cocktailEssentialsData?.length==0){
+      state.liquorland.cocktail_essentials = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping cocktail essentials");
+    logError(err);
+  }
+
+  if (!state.liquorland.creme_liqueurs) {
+    console.log("-----------creme liqueurs------------");
+    try {
+      cremeLiqueursData = await creme_liqueurs(start, end, browser);
+      console.log(`${cremeLiqueursData?.length} data items scraped for creme liqueurs`);
+    } catch (err) {
+      console.log("There was an error while scraping creme liqueurs");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.creme_liqueurs&&cremeLiqueursData?.length==0)
+  try{
+    cremeLiqueursData = await creme_liqueurs(start, end, browser);
+    if(cremeLiqueursData?.length==0){
+      state.liquorland.creme_liqueurs = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping creme liqueurs");
+    logError(err);
+  }
+
+  if (!state.liquorland.schnapps) {
+    console.log("-----------schnapps------------");
+    try {
+      schnappsData = await schnapps(start, end, browser);
+      console.log(`${schnappsData?.length} data items scraped for schnapps`);
+    } catch (err) {
+      console.log("There was an error while scraping schnapps");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.schnapps&&schnappsData?.length==0)
+  try{
+    schnappsData = await schnapps(start, end, browser);
+    if(schnappsData?.length==0){
+      state.liquorland.schnapps = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping schnapps");
+    logError(err);
+  }
+
+  if (!state.liquorland.vermouth) {
+    console.log("-----------vermouth------------");
+    try {
+      vermouthData = await vermouth(start, end, browser);
+      console.log(`${vermouthData?.length} data items scraped for vermouth`);
+    } catch (err) {
+      console.log("There was an error while scraping vermouth");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.vermouth&&vermouthData?.length==0)
+  try{
+    vermouthData = await vermouth(start, end, browser);
+    if(vermouthData?.length==0){
+      state.liquorland.vermouth = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping vermouth");
+    logError(err);
+  }
 
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData];
 
   //process data
   try {
