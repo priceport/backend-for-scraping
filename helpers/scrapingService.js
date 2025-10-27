@@ -380,6 +380,11 @@ doneDanMurphy=true;
       creme_liqueurs: false,
       schnapps: false,
       vermouth: false,
+      premium_beer: false,
+      lighter_beer: false,
+      mainstream_beer: false,
+      budget_beer: false,
+      low_carb_beer: false,
     },
     bigBarrel: {
       spirits: false,
