@@ -385,6 +385,11 @@ doneDanMurphy=true;
       mainstream_beer: false,
       budget_beer: false,
       low_carb_beer: false,
+      nz_boutique: false,
+      commercial_brands: false,
+      australia_asia: false,
+      european: false,
+      us_mexico: false,
     },
     bigBarrel: {
       spirits: false,

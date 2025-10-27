@@ -14,6 +14,11 @@ const lighter_beer = require("../scripts/scraping_scripts/domestic/liquorland/li
 const mainstream_beer = require("../scripts/scraping_scripts/domestic/liquorland/mainstream_beer");
 const budget_beer = require("../scripts/scraping_scripts/domestic/liquorland/budget_beer");
 const low_carb_beer = require("../scripts/scraping_scripts/domestic/liquorland/low_carb_beer");
+const nz_boutique = require("../scripts/scraping_scripts/domestic/liquorland/nz_boutique");
+const commercial_brands = require("../scripts/scraping_scripts/domestic/liquorland/commercial_brands");
+const australia_asia = require("../scripts/scraping_scripts/domestic/liquorland/australia_asia");
+const european = require("../scripts/scraping_scripts/domestic/liquorland/european");
+const us_mexico = require("../scripts/scraping_scripts/domestic/liquorland/us_mexico");
 
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
@@ -28,7 +33,8 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   //variable initialization
   let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] , irishWhiskyData = [], nzWhiskyData = [];
   let aperitifsData = [], cocktailEssentialsData = [], cremeLiqueursData = [], schnappsData = [], vermouthData = [];
-  let premiumBeerData = [], lighterBeerData = [], mainstreamBeerData = [], budgetBeerData = [], lowCarbBeerData = [];
+  let premiumBeerData = [], lighterBeerData = [], mainstreamBeerData = [], budgetBeerData = [], lowCarbBeerData = [], nzBoutiqueData = [];
+  let commercialBrandsData = [], australiaAsiaData = [], europeanData = [], usMexicoData = [];
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -363,8 +369,118 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
 
+  if (!state.liquorland.nz_boutique) {
+    console.log("-----------nz boutique------------");
+    try {
+      nzBoutiqueData = await nz_boutique(start, end, browser);
+      console.log(`${nzBoutiqueData?.length} data items scraped for nz boutique`);
+    } catch (err) {
+      console.log("There was an error while scraping nz boutique");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.nz_boutique&&nzBoutiqueData?.length==0)
+  try{
+    nzBoutiqueData = await nz_boutique(start, end, browser);
+    if(nzBoutiqueData?.length==0){
+      state.liquorland.nz_boutique = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping nz boutique");
+    logError(err);
+  }
+
+  if (!state.liquorland.commercial_brands) {
+    console.log("-----------commercial brands------------");
+    try {
+      commercialBrandsData = await commercial_brands(start, end, browser);
+      console.log(`${commercialBrandsData?.length} data items scraped for commercial brands`);
+    } catch (err) {
+      console.log("There was an error while scraping commercial brands");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.commercial_brands&&commercialBrandsData?.length==0)
+  try{
+    commercialBrandsData = await commercial_brands(start, end, browser);
+    if(commercialBrandsData?.length==0){
+      state.liquorland.commercial_brands = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping commercial brands");
+    logError(err);
+  }
+
+  if (!state.liquorland.australia_asia) {
+    console.log("-----------australia asia------------");
+    try {
+      australiaAsiaData = await australia_asia(start, end, browser);
+      console.log(`${australiaAsiaData?.length} data items scraped for australia asia`);
+    } catch (err) {
+      console.log("There was an error while scraping australia asia");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.australia_asia&&australiaAsiaData?.length==0)
+  try{
+    australiaAsiaData = await australia_asia(start, end, browser);
+    if(australiaAsiaData?.length==0){
+      state.liquorland.australia_asia = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping australia asia");
+    logError(err);
+  }
+
+  if (!state.liquorland.european) {
+    console.log("-----------european------------");
+    try {
+      europeanData = await european(start, end, browser);
+      console.log(`${europeanData?.length} data items scraped for european`);
+    } catch (err) {
+      console.log("There was an error while scraping european");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.european&&europeanData?.length==0)
+  try{
+    europeanData = await european(start, end, browser);
+    if(europeanData?.length==0){
+      state.liquorland.european = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping european");
+    logError(err);
+  }
+
+  if (!state.liquorland.us_mexico) {
+    console.log("-----------us mexico------------");
+    try {
+      usMexicoData = await us_mexico(start, end, browser);
+      console.log(`${usMexicoData?.length} data items scraped for us mexico`);
+    } catch (err) {
+      console.log("There was an error while scraping us mexico");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.us_mexico&&usMexicoData?.length==0)
+  try{
+    usMexicoData = await us_mexico(start, end, browser);
+    if(usMexicoData?.length==0){
+      state.liquorland.us_mexico = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping us mexico");
+    logError(err);
+  }
+
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...nzBoutiqueData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData];
 
   //process data
   try {
