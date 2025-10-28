@@ -382,7 +382,7 @@ const processDataForSpirits = async (data)=>{
 
             finalData.img = rawData.img;
 
-            finalData.promo = rawData?.promo?.map(promotxt=>{
+            finalData.promo = rawData?.promo?.filter(promotxt => promotxt !== null)?.map(promotxt=>{
                 const regex = /Buy (\d+) for \$(\d+)/
                 const match = promotxt.match(regex);
 
