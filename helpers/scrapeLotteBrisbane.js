@@ -1,6 +1,7 @@
 //scraping script imports
 const champagne = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/champagne");
 const baijiu = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/baijiu");
+const confectionery = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/confectionery");
 const bath_shower = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/bath_shower");
 const beauty = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/beauty");
 const body_care = require("../scripts/scraping_scripts/duty_free/lotte_brisbane/body_care");
@@ -49,7 +50,7 @@ const scrapeLotteBrisbane = async (start,end,state,browser) =>{
 
     //variable initialization
     // let spiritsData=[],beautyData=[];
-    let baijiuData = [], bath_showerData = [], body_careData = [], brandyData = [], champagneData = [], cleansers_and_tonersData = [], cognacData = [], devicesData = [], eau_de_cologneData = [], eau_de_parfumData = [], eau_de_toiletteData = [], eyesData = [], faceData = [], ginData = [], home_fragranceData = [], korean_liquorData = [], lipsData = [], liqueursData = [], masksData = [], moisturisersData = [], port_and_sherryData = [], red_wineData = [], rumData = [], serums_essencesData = [], sets_packData = [], single_maltData = [], sparkling_wineData = [], sun_careData = [], tequilaData = [], treatmentsData = [], vodkaData = [], whiskeyData = [], white_wineData = [], wine_champagne_beerData = [];
+    let baijiuData = [], bath_showerData = [], body_careData = [], brandyData = [], champagneData = [], cleansers_and_tonersData = [], cognacData = [], devicesData = [], eau_de_cologneData = [], eau_de_parfumData = [], eau_de_toiletteData = [], eyesData = [], faceData = [], ginData = [], home_fragranceData = [], korean_liquorData = [], lipsData = [], liqueursData = [], masksData = [], moisturisersData = [], port_and_sherryData = [], red_wineData = [], rumData = [], serums_essencesData = [], sets_packData = [], single_maltData = [], sparkling_wineData = [], sun_careData = [], tequilaData = [], treatmentsData = [], vodkaData = [], whiskeyData = [], white_wineData = [], wine_champagne_beerData = [], confectioneryData = [];
 
 
     if(!state.brisbane.baijiu)
@@ -811,6 +812,29 @@ const scrapeLotteBrisbane = async (start,end,state,browser) =>{
         logError(err);
     }
 
+    if(!state.brisbane.confectionery)
+        try{
+            confectioneryData = await confectionery(start,end,browser);
+            console.log(`${confectioneryData?.length} data items scraped for confectionery`);
+    
+        }catch(err){
+            console.log("There was an error while scraping confectionery");
+            logError(err);
+        }
+    
+        if(!state.brisbane.confectionery&&confectioneryData?.length==0)
+        try{
+            confectioneryData = await confectionery(start,end,browser);
+            console.log(`${confectioneryData?.length} data items scraped for confectionery`);
+    
+            if(confectioneryData?.length==0){
+                state.brisbane.confectionery = true;
+            }
+        }catch(err){
+            console.log("There was an error while scraping confectionery");
+            logError(err);
+    }
+
     //scrape each category
     // if(!state.brisbane.spirits)
     // try{
@@ -858,7 +882,7 @@ const scrapeLotteBrisbane = async (start,end,state,browser) =>{
     //     logError(err);
     // }
 
-    baijiuData = [...baijiuData,...bath_showerData,...body_careData,...brandyData,...champagneData,...cleansers_and_tonersData,...cognacData,...devicesData,...eau_de_cologneData,...eau_de_parfumData,...eau_de_toiletteData,...eyesData,...faceData,...ginData,...home_fragranceData,...korean_liquorData,...lipsData,...liqueursData,...masksData,...moisturisersData,...port_and_sherryData,...red_wineData,...rumData,...serums_essencesData,...sets_packData,...single_maltData,...sparkling_wineData,...sun_careData,...tequilaData,...treatmentsData,...vodkaData,...whiskeyData,...white_wineData,...wine_champagne_beerData];
+    baijiuData = [...baijiuData,...bath_showerData,...body_careData,...brandyData,...champagneData,...cleansers_and_tonersData,...cognacData,...devicesData,...eau_de_cologneData,...eau_de_parfumData,...eau_de_toiletteData,...eyesData,...faceData,...ginData,...home_fragranceData,...korean_liquorData,...lipsData,...liqueursData,...masksData,...moisturisersData,...port_and_sherryData,...red_wineData,...rumData,...serums_essencesData,...sets_packData,...single_maltData,...sparkling_wineData,...sun_careData,...tequilaData,...treatmentsData,...vodkaData,...whiskeyData,...white_wineData,...wine_champagne_beerData,...confectioneryData];
     
     try{
         baijiuData = await processDataForSpirits(baijiuData);
