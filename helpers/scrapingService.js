@@ -88,6 +88,9 @@ doneDanMurphy=false;
       vodka: false,
       whisky: false,
       white: false,
+      lollies: false,
+      chocolates: false,
+      mints: false,
     },
     adelaide: {
       brandy: false,

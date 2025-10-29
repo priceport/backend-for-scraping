@@ -25,14 +25,16 @@ const vodka = require("../scripts/scraping_scripts/duty_free/aelia_auckland/vodk
 const whisky = require("../scripts/scraping_scripts/duty_free/aelia_auckland/whisky");
 const white = require("../scripts/scraping_scripts/duty_free/aelia_auckland/white");
 const tequila = require("../scripts/scraping_scripts/duty_free/aelia_auckland/tequila");
-
+const lollies = require("../scripts/scraping_scripts/duty_free/aelia_auckland/lollies");
+const mints = require("../scripts/scraping_scripts/duty_free/aelia_auckland/mints");
+const chocolates = require("../scripts/scraping_scripts/duty_free/aelia_auckland/chocolates");
 
 const scrapeAelia = async (start,end,state,browser) =>{
     console.log("scraping started for aelia auckland at:"+Date.now());
 
     //variable initialization
     // let spiritsData=[],giftSetData=[],fragranceData=[],makeupData=[],skincareData=[];
-    let spiritsData = [], baijiuData = [], brandyData = [], cognacData = [], fortifiedData = [], fragranceData = [], gift_setsData = [], ginData = [], liqueursData = [], makeupData = [], mini_bottlesData = [], premium_spiritsData = [], premium_wineData = [], redData = [], roseData = [], rumData = [], skin_careData = [], sparkling_champagneData = [], tequilaData = [], vodkaData = [], whiskyData = [], whiteData = [];
+    let spiritsData = [], baijiuData = [], brandyData = [], cognacData = [], fortifiedData = [], fragranceData = [], gift_setsData = [], ginData = [], liqueursData = [], makeupData = [], mini_bottlesData = [], premium_spiritsData = [], premium_wineData = [], redData = [], roseData = [], rumData = [], skin_careData = [], sparkling_champagneData = [], tequilaData = [], vodkaData = [], whiskyData = [], whiteData = [], lolliesData = [], mintsData = [], chocolatesData = [];
 
 
     if(!state.auckland.baijiu)
@@ -540,6 +542,68 @@ const scrapeAelia = async (start,end,state,browser) =>{
         logError(err);
     }
 
+    if(!state.auckland.lollies)
+    try{
+        lolliesData = await lollies(start,end,browser);
+        console.log(`${lolliesData?.length} data items scraped for lollies`);
+
+    }catch(err){
+        console.log("There was an error while scraping lollies");
+        logError(err);
+    }
+
+    if(!state.auckland.lollies&&lolliesData?.length==0)
+    try{
+        lolliesData = await lollies(start,end,browser);
+        console.log(`${lolliesData?.length} data items scraped for lollies`);
+
+    }catch(err){
+        console.log("There was an error while scraping lollies");
+        logError(err);
+    }
+
+    if(!state.auckland.mints)
+    try{
+        mintsData = await mints(start,end,browser);
+        console.log(`${mintsData?.length} data items scraped for mints`);
+
+    }catch(err){
+        console.log("There was an error while scraping mints");
+        logError(err);
+    }
+
+    if(!state.auckland.mints&&mintsData?.length==0)
+    try{
+        mintsData = await mints(start,end,browser);
+        console.log(`${mintsData?.length} data items scraped for mints`);
+        if(mintsData?.length==0){
+            state.auckland.mints = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping mints");
+        logError(err);
+    }
+
+    if(!state.auckland.chocolates)
+    try{
+        chocolatesData = await chocolates(start,end,browser);
+        console.log(`${chocolatesData?.length} data items scraped for chocolates`);
+    }catch(err){
+        console.log("There was an error while scraping chocolates");
+        logError(err);
+    }
+
+    if(!state.auckland.chocolates&&chocolatesData?.length==0)
+    try{
+        chocolatesData = await chocolates(start,end,browser);
+        console.log(`${chocolatesData?.length} data items scraped for chocolates`);
+        if(chocolatesData?.length==0){
+            state.auckland.chocolates = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping chocolates");
+        logError(err);
+    }
 
     //scrape each category
     // if(!state.auckland.spirits)
@@ -613,7 +677,7 @@ const scrapeAelia = async (start,end,state,browser) =>{
     // }
 
     //merge data
-    spiritsData = [...baijiuData,...brandyData,...cognacData,...fortifiedData,...fragranceData,...gift_setsData,...ginData,...liqueursData,...makeupData,...mini_bottlesData,...premium_spiritsData,...premium_wineData,...redData,...roseData,...rumData,...skin_careData,...sparkling_champagneData,...tequilaData,...vodkaData,...whiskyData,...whiteData];
+    spiritsData = [...baijiuData,...brandyData,...cognacData,...fortifiedData,...fragranceData,...gift_setsData,...ginData,...liqueursData,...makeupData,...mini_bottlesData,...premium_spiritsData,...premium_wineData,...redData,...roseData,...rumData,...skin_careData,...sparkling_champagneData,...tequilaData,...vodkaData,...whiskyData,...whiteData,...lolliesData,...mintsData,...chocolatesData];
 
     //process data
     try{

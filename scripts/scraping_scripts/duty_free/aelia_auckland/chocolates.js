@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const beauty = async (start,end,browser)=>{
+const chocolates = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://aucklanddutyfree.co.nz/beauty.html?p=';
+    const url = 'https://www.aucklanddutyfree.co.nz/confectionery/chocolates.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
@@ -61,13 +61,13 @@ const beauty = async (start,end,browser)=>{
               price,
               promo, 
               url, 
-              category:'beauty',
+              category:'confectionery',
               source:{website_base:"https://aucklanddutyfree.co.nz",location:"auckland",tag:"duty-free"}, 
               date:Date.now(),
               last_check:Date.now(),
               mapping_ref:null,
               unit:undefined,
-              subcategory:'beauty',
+              subcategory:'chocolates',
               img
             });
           });
@@ -76,7 +76,7 @@ const beauty = async (start,end,browser)=>{
         });
 
         if(missing > 5) {
-          await insertScrapingError("More than 5 entries missing for aelia_auckland - beauty: "+pageNo,"scraping_missing");
+          await insertScrapingError("More than 5 entries missing for aelia_auckland - baijiu: "+pageNo,"scraping_missing");
         }
 
         allProducts.push(...products);
@@ -92,7 +92,7 @@ const beauty = async (start,end,browser)=>{
       }catch(err){
         logError(err);
         try{
-          await insertScrapingError("Error in aelia_auckland - beauty: "+err.message,"scraping_trycatch");
+          await insertScrapingError("Error in aelia_auckland - baijiu: "+err.message,"scraping_trycatch");
         }catch(err){
             console.log(err);
         }
@@ -101,4 +101,4 @@ const beauty = async (start,end,browser)=>{
     }
 }
 
-module.exports = beauty;
+module.exports = chocolates;
