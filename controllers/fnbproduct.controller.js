@@ -777,7 +777,9 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
     const sort = req.query.sort || 'difference_percentage_low_to_high';
-
+    const month = req.query.month ? parseInt(req.query.month) : null; 
+    const year = req.query.year ? parseInt(req.query.year) : null; 
+ 
     try {
         let orderByClause;
         if (sort === 'difference_percentage_high_to_low') {
@@ -788,6 +790,27 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
             orderByClause = 'ORDER BY new_price_date DESC';
         }
 
+        // Build date filter conditions for main query and count query separately
+        let dateFilterCondition = '';
+        let countDateFilterCondition = '';
+        const queryParams = [offset, limit];
+        const countQueryParams = [];
+        
+        if (month && year) {
+            // Main query: $1=offset, $2=limit, so month/year are $3 and $4
+            dateFilterCondition = `
+                AND EXTRACT(MONTH FROM ph_new.date) = $3
+                AND EXTRACT(YEAR FROM ph_new.date) = $4
+            `;
+            queryParams.push(month, year);
+            
+            // Count query: no offset/limit, so month/year are $1 and $2
+            countDateFilterCondition = `
+                AND EXTRACT(MONTH FROM ph_new.date) = $1
+                AND EXTRACT(YEAR FROM ph_new.date) = $2
+            `;
+            countQueryParams.push(month, year);
+        }
 
         const priceChangesQuery = `
             SELECT DISTINCT
@@ -818,6 +841,7 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
                     WHERE ph2.product_id = p.id 
                         AND ph2.date < ph_new.date
                 )
+                ${dateFilterCondition}
             ${orderByClause}
             OFFSET $1 LIMIT $2
         `;
@@ -842,18 +866,29 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
                     WHERE ph2.product_id = p.id 
                         AND ph2.date < ph_new.date
                 )
+                ${countDateFilterCondition}
         `;
 
         const [dataResult, countResult] = await Promise.all([
-            pool.query(priceChangesQuery, [offset, limit]),
-            pool.query(countQuery)
+            pool.query(priceChangesQuery, queryParams),
+            pool.query(countQuery, countQueryParams)
         ]);
 
         const totalCount = parseInt(countResult.rows[0].total_count);
 
+        // Add period information like in getAllFnbProductsFor
+        const selectedPeriod = month && year ? 
+            `${MONTH_NAMES_CAPITALIZED[month]} ${year}` : 
+            'All Time';
+
         return res.status(200).json({
             status: "success",
             message: "Price changes fetched successfully",
+            period: month && year ? {
+                month: month,
+                year: year,
+                label: selectedPeriod
+            } : null,
             data: dataResult.rows,
             pagination: {
                 total: totalCount,
@@ -864,6 +899,7 @@ exports.getPriceChanges = catchAsync(async (req, res, next) => {
         });
 
     } catch (error) {
+        console.error('Error in getPriceChanges:', error);
         return next(new AppError("Error fetching price changes", 500));
     }
 });
