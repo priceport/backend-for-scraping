@@ -557,6 +557,9 @@ const scrapeAelia = async (start,end,state,browser) =>{
         lolliesData = await lollies(start,end,browser);
         console.log(`${lolliesData?.length} data items scraped for lollies`);
 
+        if(lolliesData?.length==0){
+            state.auckland.lollies = true;
+        }
     }catch(err){
         console.log("There was an error while scraping lollies");
         logError(err);
