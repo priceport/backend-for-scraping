@@ -103,37 +103,48 @@ function uniqueCanprodObjects(arr) {
 exports.getAllFnbProductsFor = catchAsync(async (req,res,next)=>{
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
-    const terminal = req.query.terminal?.split("|") || null;
-    const store = req.query.store?.split("|") || null;
-    const breakup = req.query.breakup?.split("|") || null;
+    const terminal = req.query.terminal && req.query.terminal.trim() ? req.query.terminal.split("|") : null;
+    const store = req.query.store && req.query.store.trim() ? req.query.store.split("|") : null;
+    const breakup = req.query.breakup && req.query.breakup.trim() ? req.query.breakup.split("|") : null;
     const sort = req.query.sort || 'price_low_to_high';
     const search = req.query.search || null;
     const pricerange = req.query.pricerange || null;
     const admin = req.query.admin;
-    const month = req.query.month ? parseInt(req.query.month) : 9; 
-    const year = req.query.year ? parseInt(req.query.year) : 2025; 
+    const month = req.query.month ? parseInt(req.query.month) : null; 
+    const year = req.query.year ? parseInt(req.query.year) : null; 
 
     if (limit > 1000) {
         return next(new AppError("Limit should be equal or less than 1000", 400));
     }
 
-    // Determine cache key based on month/year
-    const cacheKey = `daily_product_data_fnb_${MONTH_NAMES[month]}_${year}`;
+    let products;
 
-    // Fetch precomputed data from Redis
-    let cachedData = await redisClient.get(cacheKey);
-    
-    if (!cachedData) {
-        await precomputeDailyDataFNB('aelia_auckland', month, year);
-        cachedData = await redisClient.get(cacheKey);
+    if (!month || !year) {
+        await precomputeDailyDataFNB('aelia_auckland');
+        const cacheKey = 'daily_product_data_fnb';
+        let cachedData = await redisClient.get(cacheKey);
         
         if (!cachedData) {
-            return next(new AppError(`Failed to generate data for ${MONTH_NAMES_CAPITALIZED[month]} ${year}. Try again later.`, 500));
+            return next(new AppError("Failed to fetch data. Try again later.", 500));
         }
-    }
+        
+        products = JSON.parse(cachedData);
+    } else {
+        const cacheKey = `daily_product_data_fnb_${MONTH_NAMES[month]}_${year}`;
 
-    // Parse cached data
-    let products = JSON.parse(cachedData);
+        let cachedData = await redisClient.get(cacheKey);
+        
+        if (!cachedData) {
+            await precomputeDailyDataFNB('aelia_auckland', month, year);
+            cachedData = await redisClient.get(cacheKey);
+            
+            if (!cachedData) {
+                return next(new AppError(`Failed to generate data for ${MONTH_NAMES_CAPITALIZED[month]} ${year}. Try again later.`, 500));
+            }
+        }
+
+        products = JSON.parse(cachedData);
+    }
 
     // Helper function to parse store and terminal from format "store (TERMINAL)"
     const parseStoreTerminal = (input) => {
