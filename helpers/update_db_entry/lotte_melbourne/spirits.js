@@ -6,6 +6,9 @@ const updateDBEntry = async (data) => {
   let iterator = 0;
   let db_ops = 0;
   let new_prices = 0;
+  let product_created = 0;
+  let product_updated = 0;
+  
 
   while (iterator < data?.length) {
     try {
@@ -55,21 +58,17 @@ const updateDBEntry = async (data) => {
             "Australia",
           ]
         );
-      } else {
-        // Update last_checked timestamp
-        await pool.query(
-          `UPDATE product 
-                    SET last_checked = current_timestamp , country = $2
-                    WHERE id = $1`,
-          [product?.rows[0]?.id, "Australia"]
-        );
 
+        product_created++;
+      } else {
+        // Update last_checked timestamp, image_url, and other fields
         await pool.query(
           `UPDATE product 
-                    SET sub_category = $2 
+                    SET last_checked = current_timestamp, country = $2, image_url = $3, sub_category = $4
                     WHERE id = $1`,
-          [product?.rows[0]?.id, sub_category]
+          [product?.rows[0]?.id, "Australia", img, sub_category]
         );
+        product_updated++;
       }
 
       // Check the most recent price for this product and website
@@ -82,8 +81,14 @@ const updateDBEntry = async (data) => {
         [product?.rows[0]?.id, "lotte_melbourne"]
       );
 
-      // Insert new price only if it has changed
-      console.log(latestPrice.rows[0].price, price[0].price.toFixed(3));
+      // Insert new price only if it has changed and price data exists
+      if (!price || price.length === 0 || !price[0] || !price[0].price) {
+        console.log(`⚠️  No price data for product: ${title}`);
+        iterator++;
+        continue;
+      }
+      
+      console.log(latestPrice.rows[0]?.price, price[0].price.toFixed(3));
       if (
         latestPrice.rowCount === 0 ||
         latestPrice.rows[0].price != price[0].price.toFixed(3)
@@ -135,6 +140,8 @@ const updateDBEntry = async (data) => {
 
   console.log("total ops:" + db_ops);
   console.log("new prices:" + new_prices);
+  console.log("newly created " , product_created)
+  console.log("updated product" , product_updated)
 };
 
 module.exports = updateDBEntry;

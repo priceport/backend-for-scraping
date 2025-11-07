@@ -383,10 +383,37 @@ const processDataForSpirits = async (data)=>{
             finalData.img = rawData.img;
 
             finalData.promo = rawData?.promo?.filter(promotxt => promotxt !== null)?.map(promotxt=>{
-                const regex = /Buy (\d+) for \$(\d+)/
-                const match = promotxt.match(regex);
+                // Try multiple regex patterns
+                // Pattern 1: "Liquor | 2 for $99" or "Liquor | 3 for $140"
+                let regex = /(\d+)\s+for\s+\$(\d+)/;
+                let match = promotxt.match(regex);
+                
+                // Pattern 2: "Buy 2 for $99"
+                if (!match) {
+                    regex = /Buy\s+(\d+)\s+for\s+\$(\d+)/;
+                    match = promotxt.match(regex);
+                }
+                
+                // Pattern 3: "Buy 2 Save 20%"
+                if (!match) {
+                    regex = /Buy\s+(\d+)\s+Save\s+(\d+)%/;
+                    match = promotxt.match(regex);
+                    if (match) {
+                        const quantity = match[1];
+                        const discountPercent = match[2];
+                        const originalPrice = parseFloat(aud_to_usd(rawData.price.replace("$",""),"lotte melbourne"));
+                        const effective_price = originalPrice * (1 - discountPercent / 100);
+                        
+                        if(!isNaN(effective_price)){
+                            return {
+                                price: effective_price,
+                                text: promotxt
+                            }
+                        }
+                    }
+                }
 
-                if(match){
+                if(match && match[1] && match[2]){
                     const quantity = match[1];
                     const price = match[2];
 
@@ -403,7 +430,7 @@ const processDataForSpirits = async (data)=>{
                     }
                 }
                 else{
-                    console.log("match not found for:",match);
+                    console.log("match not found for:",promotxt);
                 }
             });
 

@@ -1,9 +1,12 @@
 const puppeteer = require('puppeteer');
+
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+const { fetchImageFromAPI, CONFIG } = require('../../../../utils/fetchImageFromAPI');
 
+    
 
 const korean_liquor = async (start,end,browser)=>{
     let pageNo = start;
@@ -32,10 +35,9 @@ const korean_liquor = async (start,end,browser)=>{
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
 
         // Scrape the product details
-    const [products,missing] = await page.evaluate(() => {
+    const products = await page.evaluate(() => {
         const productElements = document.querySelectorAll('.sf__col-item');
           const productList = [];
-          let missing = 0;
       
           productElements.forEach(product => {
             const titleElement = product.querySelector('h3 > a');
@@ -55,7 +57,7 @@ const korean_liquor = async (start,end,browser)=>{
             const img = imgElement ? imgElement.dataset.image : null;
             const promo2 = promo2Element ? promo2Element.innerText.trim() : null;
       
-            if(!title||!brand||!price||!url||!img){missing+=1;}
+            
 
             if(!title&&!brand&&!price&&!promo&&!url){}
             else
@@ -72,15 +74,30 @@ const korean_liquor = async (start,end,browser)=>{
               mapping_ref:null,
               unit:undefined,
               subcategory:'korean_liquor',
-              img,
+              img: null,
               promo2
             });
           });
-        return [productList,missing];
+        return productList;
     });
 
+    let missing = 0;
+    
+    for (let i = 0; i < products.length; i++) {
+      const product = products[i];
+      
+      const apiData = await fetchImageFromAPI(product.url, 'korean-liquor');
+      
+      if (apiData && apiData.img) {
+        product.img = apiData.img;
+        product.url = `${CONFIG.BASE_URL}${apiData.url}`;
+      } else {
+        missing += 1;
+      }
+    }
+    
     if(missing > 5) {
-      await insertScrapingError("More than 5 entries missing for lotte_melbourne - korean_liquor: "+pageNo,"scraping_missing");
+      await insertScrapingError("More than 5 entries missing for lotte_melbourne - korean-liquor: "+pageNo,"scraping_missing");
     }
 
     allProducts.push(...products);

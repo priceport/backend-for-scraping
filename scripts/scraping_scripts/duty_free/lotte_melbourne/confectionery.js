@@ -1,8 +1,12 @@
 const puppeteer = require('puppeteer');
+
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+const { fetchImageFromAPI, CONFIG } = require('../../../../utils/fetchImageFromAPI');
+
+    
 
 const confectionery = async (start,end,browser)=>{
     let pageNo = start;
@@ -31,17 +35,15 @@ const confectionery = async (start,end,browser)=>{
         await waitForXTime(constants.timeout);
         await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
       
-        const [products,missing] = await page.evaluate(() => {
+        const products = await page.evaluate(() => {
           const productElements = document.querySelectorAll('.sf__col-item');
           const productList = [];
-          let missing = 0;
       
           productElements.forEach(product => {
             const titleElement = product.querySelector('h3 > a');
             const brandElement = product.querySelector('.sf__pcard-vendor');
             const promoElement = product.querySelectorAll('.bundle-offers-block');
             const urlElement = product.querySelector('.sf__pcard');
-            const imgElement = product.querySelector('.sf__pcard');
             const promo2Element = product.querySelector('.collection_page_coupon_text');
       
             let priceElement = product.querySelector('.f-price__regular-container .f-price-item');
@@ -55,12 +57,9 @@ const confectionery = async (start,end,browser)=>{
             if(!price) console.log(`No price found for: ${title}, trying alternate selectors`);
             const promo = promoElement ? Array.from(promoElement)?.map(promo=> promo.querySelector(".bundle-offers-text a").innerText.trim()): null;
             const url = urlElement ? urlElement.dataset.url : null;
-            const img = imgElement ? imgElement.dataset.image : null;
             const promo2 = promo2Element ? promo2Element.innerText.trim() : null;
-      
-            if(!title||!brand||!price||!url||!img){missing+=1;}
 
-            if(!title&&!brand&&!price&&!promo&&!url){}
+            if(!title&&!brand&&!price&&!url){}
             else
             productList.push({ 
               title, 
@@ -75,14 +74,29 @@ const confectionery = async (start,end,browser)=>{
               mapping_ref:null,
               unit:undefined,
               subcategory:'confectionery',
-              img,
+              img: null,
               promo2
             });
           });
       
-          return [productList,missing];
+          return productList;
         });
 
+        let missing = 0;
+        
+        for (let i = 0; i < products.length; i++) {
+          const product = products[i];
+          
+          const apiData = await fetchImageFromAPI(product.url, 'confectionery');
+          
+          if (apiData && apiData.img) {
+            product.img = apiData.img;
+            product.url = `${CONFIG.BASE_URL}${apiData.url}`;
+          } else {
+            missing += 1;
+          }
+        }
+        
         if(missing > 5) {
           await insertScrapingError("More than 5 entries missing for lotte_melbourne - confectionery: "+pageNo,"scraping_missing");
         }
