@@ -6,7 +6,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const brandy = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://aucklanddutyfree.co.nz/spirits/brandy.html?p=';
+    const url = 'https://www.aucklanddutyfree.co.nz/spirits/brandy.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
@@ -23,7 +23,7 @@ const brandy = async (start,end,browser)=>{
          if (resourceType === 'document') {
          req.continue();
          } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
+         req.abort();
          }
     });
 

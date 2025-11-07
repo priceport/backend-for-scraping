@@ -148,9 +148,6 @@ const processDataForSpirits = async (data)=>{
             finalData.price = [{text:"",price:nzd_to_usd(rawData.price.replace("$",""),"aelia auckland")}];
 
             if(rawData?.promo&&rawData?.promo?.length>0){
-                console.log(`\n🔍 Processing promo for: ${rawData.title}`);
-                console.log(`   Promo image URLs: ${rawData.promo.length}`);
-                
                 for(let i=0;i<rawData?.promo?.length;i++){
                     let promoURL = rawData.promo[i];
                     

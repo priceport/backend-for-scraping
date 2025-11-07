@@ -11,19 +11,20 @@ const mints = async (start,end,browser)=>{
     const page = await browser.newPage();
     const allProducts = [];
     
+    
     try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
-    // Only allow 'document' (HTML) requests
+    // Allow 'document' and 'script' for pagination
     page.on('request', (req) => {
          const resourceType = req.resourceType();
 
          if (resourceType === 'document') {
          req.continue();
          } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
+         req.abort();
          }
     });
 
@@ -76,7 +77,7 @@ const mints = async (start,end,browser)=>{
         });
 
         if(missing > 5) {
-          await insertScrapingError("More than 5 entries missing for aelia_auckland - baijiu: "+pageNo,"scraping_missing");
+          await insertScrapingError("More than 5 entries missing for aelia_auckland - mints: "+pageNo,"scraping_missing");
         }
 
         allProducts.push(...products);

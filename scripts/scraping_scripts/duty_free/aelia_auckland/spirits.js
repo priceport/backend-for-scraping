@@ -11,19 +11,20 @@ const spirits = async (start,end,browser)=>{
     const page = await browser.newPage();
     const allProducts = [];
     
+    
     try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
-    // Only allow 'document' (HTML) requests
+    // Allow 'document' and 'script' for pagination
     page.on('request', (req) => {
           const resourceType = req.resourceType();
  
-          if (resourceType === 'document') {
+         if (resourceType === 'document') {
           req.continue();
           } else {
-          req.abort();  // Block other resources like JS, CSS, images, etc.
+         req.abort();
           }
     });
 
