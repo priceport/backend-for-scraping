@@ -6,10 +6,20 @@ const logInvalid = require("../../logInvalidFormat");
 //ocr
 const detectTextFromURL = require('../../ocr_tesseract/detectTextFromURL');
 
+const UNWANTED_PROMO_TEXTS = [
+    'travel exclusive',
+    'exclusive',
+    'limited edition',
+    'award winner',
+    'best seller',
+    'staff pick',
+    'popular',
+    'trending'
+];
 
 /////helper functions start//////
-//INPUT: 2 for $79
-//OUTPUT: [34.5]
+//INPUT: 2 for $79 OR 15% Off OR Buy 2 save 15%
+//OUTPUT: [{text: "...", price: 34.5}]
 function calculatePriceFromText(text, og_price) {
     const prices = [];
 
@@ -36,6 +46,26 @@ function calculatePriceFromText(text, og_price) {
             const effectivePrice = og_price * (1 - discount);
             prices.push({text:offer,price:nzd_to_usd(effectivePrice.toFixed(3))}); // Apply the discount to the original price
             return;
+        }
+
+        // Case 3: Handle simple "15% Off" or "15% Discount" type texts
+        const matchPercentOff = offer.match(/(\d+)\s*%\s*(?:off|discount|save)/i);
+        if (matchPercentOff) {
+            const discount = parseInt(matchPercentOff[1], 10) / 100;
+            const effectivePrice = og_price * (1 - discount);
+            prices.push({text:offer,price:nzd_to_usd(effectivePrice.toFixed(3))}); // Apply the discount to the original price
+            return;
+        }
+
+        // Case 4: Handle "$10 Off" or "Save $10" type texts
+        const matchDollarOff = offer.match(/(?:save\s*)?\$(\d+(?:\.\d+)?)\s*(?:off|discount)?/i);
+        if (matchDollarOff) {
+            const discount = parseFloat(matchDollarOff[1]);
+            const effectivePrice = og_price - discount;
+            if (effectivePrice > 0) { // Make sure we don't get negative prices
+                prices.push({text:offer,price:nzd_to_usd(effectivePrice.toFixed(3))}); // Subtract discount from original price
+                return;
+            }
         }
     });
 
@@ -120,8 +150,18 @@ const processDataForSpirits = async (data)=>{
             if(rawData?.promo&&rawData?.promo?.length>0){
                 for(let i=0;i<rawData?.promo?.length;i++){
                     let promoURL = rawData.promo[i];
+                    
                     let text = await detectTextFromURL(promoURL);
+                    
                     if(text){
+                        
+                        const textLower = text.trim().toLowerCase();
+                        const isUnwanted = UNWANTED_PROMO_TEXTS.some(unwanted => textLower.includes(unwanted));
+                        
+                        if (isUnwanted) {
+                            continue; 
+                        }
+                        
                         // Clean the price string (remove $ and convert to number)
                         const cleanPrice = parseFloat(rawData.price.replace("$", ""));
                         let res = calculatePriceFromText(text, cleanPrice);
@@ -129,7 +169,7 @@ const processDataForSpirits = async (data)=>{
                         if(res) {
                             finalData.promo = res;
                             break;
-                        }
+                        } 
                     }
                 }
             }

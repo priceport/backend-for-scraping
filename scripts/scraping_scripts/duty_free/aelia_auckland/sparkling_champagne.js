@@ -6,24 +6,25 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const sparkling_champagne = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://aucklanddutyfree.co.nz/wine/sparkling-champagne.html?p=';
+    const url = 'https://www.aucklanddutyfree.co.nz/wine/sparkling-champagne.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
+    
     
     try{
 
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
-    // Only allow 'document' (HTML) requests
+    // Allow 'document' and 'script' for pagination
     page.on('request', (req) => {
          const resourceType = req.resourceType();
 
          if (resourceType === 'document') {
          req.continue();
          } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
+         req.abort();
          }
     });
 

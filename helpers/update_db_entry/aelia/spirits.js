@@ -42,13 +42,6 @@ const updateDBEntry = async (data) => {
   const totalBefore = parseInt(beforeCount.rows[0]?.total || 0);
   const oldUrlsBefore = parseInt(beforeCount.rows[0]?.old_url_count || 0);
   
-  console.log(`\n========================================`);
-  console.log(`[${subcategory.toUpperCase()}] STARTING SCRAPE`);
-  console.log(`========================================`);
-  console.log(`  Total products in DB: ${totalBefore}`);
-  console.log(`  Products with old URLs: ${oldUrlsBefore}`);
-  console.log(`  Products being scraped from website: ${data.length}`);
-  
   // DEDUPLICATE: Remove duplicate URLs from scraped data
   const uniqueProducts = [];
   const seenUrls = new Set();
@@ -61,16 +54,6 @@ const updateDBEntry = async (data) => {
   }
   
   const duplicateCount = data.length - uniqueProducts.length;
-  
-  console.log(`  ✓ Unique products after dedup: ${uniqueProducts.length}`);
-  console.log(`  ✓ Removed ${duplicateCount} duplicate URLs`);
-  console.log(`  ✓ Expected new products to create: ${Math.max(0, uniqueProducts.length - totalBefore)}`);
-  
-  if (oldUrlsBefore > 0) {
-    console.log(`\n  ⚠️  ${oldUrlsBefore} products in DB have OLD URLs - will try to match and convert`);
-  }
-  
-  console.log(`\n📋 Processing ${uniqueProducts.length} unique products...`);
   
   // Use deduplicated data for processing
   const processedData = uniqueProducts;
@@ -158,10 +141,7 @@ const updateDBEntry = async (data) => {
         }
       }
       
-      // Log URL conversions for old URLs
-      if (found_match && found_url !== url) {
-        console.log(`  ✨ Variation match: ${title.substring(0, 40)} (will convert URL)`);
-      }
+      // URL variation match tracking (silent)
       
       // If not found, product is undefined
       if (!product || product.rowCount === 0) {
@@ -198,9 +178,6 @@ const updateDBEntry = async (data) => {
         
         if (isConvertingOldUrl) {
           urls_converted++;
-          console.log(`\n🔄 Converting URL for: ${title.substring(0, 50)}`);
-          console.log(`   OLD: ${oldUrl}`);
-          console.log(`   NEW: ${finalUrl}`);
         }
         
         const latestPrice = await pool.query(
@@ -248,7 +225,6 @@ const updateDBEntry = async (data) => {
       db_ops += 1;
     } catch (err) {
       errors++;
-      console.log(`  ❌ ERROR: ${title || 'UNKNOWN'} - ${err.message}`);
       logError(err);
     }
 
@@ -266,37 +242,8 @@ const updateDBEntry = async (data) => {
   const totalAfter = parseInt(afterCount.rows[0]?.total || 0);
   const oldUrlsAfter = parseInt(afterCount.rows[0]?.old_url_count || 0);
   
-  // Print summary
-  console.log("\n" + "=".repeat(80));
-  console.log(`[${subcategory.toUpperCase()}] SCRAPER SUMMARY`);
-  console.log("=".repeat(80));
-  console.log(`Products scraped from page: ${data?.length || 0} (${uniqueProducts?.length || data?.length || 0} unique)`);
-  console.log(`  → Matched by exact URL: ${exact_matches}`);
-  console.log(`  → Matched by URL variation: ${variation_matches}`);
-  console.log(`  → NOT found, creating NEW: ${products_created}`);
-  console.log(`  → Found, updating EXISTING: ${products_updated}`);
-  console.log(`  → SKIPPED (zero price): ${skipped_zero_price}`);
-  console.log(`  → SKIPPED (missing data): ${skipped_no_data}`);
-  console.log(`  → ERRORS: ${errors}`);
-  console.log(`URLs converted (old→new): ${urls_converted}`);
-  console.log(`New price records inserted: ${new_prices}`);
-  
-  // Analysis
-  const totalFound = exact_matches + variation_matches;
-  const uniqueCount = uniqueProducts?.length || data.length;
-  const alreadyInDb = uniqueCount - products_created - skipped_zero_price - skipped_no_data - errors;
-  const totalProcessed = products_created + products_updated;
-  console.log(`\nANALYSIS:`);
-  console.log(`  ${products_created} of ${uniqueCount} UNIQUE products were NEW to database`);
-  console.log(`  ${alreadyInDb} of ${uniqueCount} UNIQUE products already existed in database`);
-  console.log(`  ${skipped_zero_price + skipped_no_data + errors} products were SKIPPED`);
-  console.log(`  ${totalProcessed} products were PROCESSED (created + updated)`);
-  console.log("-".repeat(80));
-  console.log(`DATABASE STATS:`);
-  console.log(`  Total products in ${subcategory}: ${totalAfter} (was ${totalBefore})`);
-  console.log(`  Products with old URLs: ${oldUrlsAfter} (was ${oldUrlsBefore})`);
-  console.log(`  Old URLs converted: ${oldUrlsBefore - oldUrlsAfter}`);
-  console.log("=".repeat(80));
+  // Minimal summary
+  console.log(`[${subcategory}] ${uniqueProducts.length} scraped → ${products_created} new, ${products_updated} updated | URLs converted: ${urls_converted} | Old URLs: ${oldUrlsBefore}→${oldUrlsAfter}`);
 };
 
 module.exports = updateDBEntry;

@@ -6,7 +6,7 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 const cognac = async (start,end,browser)=>{
     let pageNo = start;
-    const url = 'https://aucklanddutyfree.co.nz/spirits/cognac.html?p=';
+    const url = 'https://www.aucklanddutyfree.co.nz/spirits/cognac.html?p=';
   
     const page = await browser.newPage();
     const allProducts = [];
@@ -16,20 +16,20 @@ const cognac = async (start,end,browser)=>{
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
-    // Only allow 'document' (HTML) requests
+    // Allow document and script (JavaScript needed for pagination to work)
     page.on('request', (req) => {
          const resourceType = req.resourceType();
 
          if (resourceType === 'document') {
          req.continue();
          } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
+         req.abort(); 
          }
     });
 
     while(true){
         await waitForXTime(constants.timeout);
-        await page.goto(url+pageNo, { waitUntil: 'networkidle2' });
+        await page.goto(url + pageNo, { waitUntil: 'networkidle2' });
       
         const [products,missing] = await page.evaluate(() => {
           const productElements = document.querySelectorAll('.product-item');
@@ -81,12 +81,12 @@ const cognac = async (start,end,browser)=>{
 
         allProducts.push(...products);
 
-          if(products?.length==0||pageNo==end){ 
+        if(products?.length==0||pageNo==end){ 
             await page.close();
             return allProducts;
-          }
+        }
             
-          pageNo+=1;
+        pageNo+=1;
         }
 
       }catch(err){
