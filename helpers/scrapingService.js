@@ -297,6 +297,7 @@ doneDanMurphy=false;
       whiskey: false,
       white_wine: false,
       wine_champagne_beer: false,
+      confectionery:false,
     },
     brisbane: {
       baijiu: false,
