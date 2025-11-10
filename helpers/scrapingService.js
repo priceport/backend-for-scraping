@@ -32,6 +32,7 @@ const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
 const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
+const scrapeIshopChangi = require("./scrapeIshopChangi");
 
 
 
@@ -562,7 +563,14 @@ doneDanMurphy=false;
          vodka:false,
          whisky:false,
          white_wine:false
-      }
+      },
+        ishopchangi: {
+          skin_care: false,
+          makeup: false,
+          hair_care: false,
+          fragrance: false,
+          bath_and_beauty: false,
+        },
   };
 
   while (
@@ -587,7 +595,8 @@ doneDanMurphy=false;
     !doneAuMecca ||
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
-    !doneAuThemall
+    !doneAuThemall ||
+    !doneIshopchangi
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
@@ -831,6 +840,19 @@ doneDanMurphy=false;
         );
       } catch (err) {
         console.log("There was an error while scraping from australia sephora");
+        logError(err);
+      }
+
+    if(!doneIshopchangi)
+      try{
+        doneIshopchangi = await scrapeIshopChangi(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      }catch(err){
+        console.log("There was an error while scraping from ishopchangi");
         logError(err);
       }
 
