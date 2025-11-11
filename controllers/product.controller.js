@@ -1274,19 +1274,74 @@ exports.changeProductComplainceStatus = catchAsync(async (req,res,next)=>{
 })
 
 exports.removeMapping = catchAsync(async (req,res,next)=>{
-    const data = await pool.query(`
-    update product 
-    set canprod_id = null
-    where 
-      id = $1
-    returning *;`,
-    [req.params.id]);
-
-    precomputeDailyData('aelia_auckland',false);
-
-    return res.status(200).json({
-        status:"success",
-        message:"Mapping removed succesfully",
-        data:data.rows
-    })
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Get the product being removed
+        const productToRemove = await client.query(
+            `SELECT canprod_id, website FROM product WHERE id = $1`,
+            [req.params.id]
+        );
+        
+        if (!productToRemove.rows[0]) {
+            await client.query('ROLLBACK');
+            return next(new AppError("Product not found", 404));
+        }
+        
+        const canprodId = productToRemove.rows[0].canprod_id;
+        const website = productToRemove.rows[0].website;
+        
+        // Remove the mapping for this product
+        const data = await client.query(
+            `UPDATE product 
+             SET canprod_id = NULL
+             WHERE id = $1
+             RETURNING *`,
+            [req.params.id]
+        );
+        
+        let lastProductUnmapped = null;
+        
+        if (canprodId) {
+            const remainingProducts = await client.query(
+                `SELECT COUNT(*) as count, ARRAY_AGG(id) as product_ids
+                 FROM product 
+                 WHERE canprod_id = $1`,
+                [canprodId]
+            );
+            
+            const remainingCount = parseInt(remainingProducts.rows[0].count);
+            
+            if (remainingCount === 1) {
+                const lastProductId = remainingProducts.rows[0].product_ids[0];
+                const lastProduct = await client.query(
+                    `UPDATE product 
+                     SET canprod_id = NULL
+                     WHERE id = $1
+                     RETURNING *`,
+                    [lastProductId]
+                );
+                lastProductUnmapped = lastProduct.rows[0];
+            }
+        }
+        
+        await client.query('COMMIT');
+        
+        precomputeDailyData(website, false);
+        
+        return res.status(200).json({
+            status:"success",
+            message:"Mapping removed successfully",
+            data:data.rows,
+            lastProductAutoUnmapped: lastProductUnmapped 
+        });
+        
+    } catch (error) {
+        await client.query('ROLLBACK');
+        return next(new AppError(`Failed to remove mapping: ${error.message}`, 500));
+    } finally {
+        client.release();
+    }
 })
