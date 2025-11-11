@@ -60,7 +60,8 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
   doneAuThemall = false,
-doneDanMurphy=false;
+doneDanMurphy=false,
+doneIshopchangi=false;
 
 
   let start_page = 1,
@@ -570,6 +571,10 @@ doneDanMurphy=false;
           hair_care: false,
           fragrance: false,
           bath_and_beauty: false,
+          computers_and_peripherals: false,
+          mobile_and_smart_devices: false,
+          audio_devices: false,
+          cameras_and_drones: false,
         },
   };
 
