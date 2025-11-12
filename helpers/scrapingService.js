@@ -601,6 +601,12 @@ doneIshopchangi=false;
         mens_apparels:false,
         mens_fashion_shoes:false,
         mens_fashion_jewellery:false,
+
+        kitchen_and_dining:false,
+        personal_care_home_and_living:false,
+        beauty_tools:false,
+        wellness_and_health_devices:false,
+        household_essentials:false
       },
   };
 

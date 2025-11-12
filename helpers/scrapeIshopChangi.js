@@ -33,6 +33,11 @@ const mens_fashion_jewellery = require("../scripts/scraping_scripts/domestic/ish
 const mens_fashion_accessories = require("../scripts/scraping_scripts/domestic/ishopchangi/mens_fashion_accessories");
 const mens_fashion_shoes = require("../scripts/scraping_scripts/domestic/ishopchangi/mens_fashion_shoes");
 const mens_apparels = require("../scripts/scraping_scripts/domestic/ishopchangi/mens_apparels");
+const kitchen_and_dining = require("../scripts/scraping_scripts/domestic/ishopchangi/kitchen_and_dining");
+const personal_care_home_and_living = require("../scripts/scraping_scripts/domestic/ishopchangi/personal_care_home_and_living");
+const beauty_tools = require("../scripts/scraping_scripts/domestic/ishopchangi/beauty_tools");
+const wellness_and_health_devices = require("../scripts/scraping_scripts/domestic/ishopchangi/wellness_and_health_devices");
+const household_essentials = require("../scripts/scraping_scripts/domestic/ishopchangi/household_essentials");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -40,7 +45,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -854,8 +859,124 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
-    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData];
+    // Home and Living categories
+    if(!state.ishopchangi.kitchen_and_dining)
+        try{
+            kitchenAndDiningData = await kitchen_and_dining(start,end,browser);
+            console.log(`${kitchenAndDiningData?.length} data items scraped for kitchen and dining`);
+        }
+        catch(err){
+            console.log("There was an error while scraping kitchen and dining");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.kitchen_and_dining && kitchenAndDiningData?.length==0)
+        try{
+            kitchenAndDiningData = await kitchen_and_dining(start,end,browser);
+            console.log(`${kitchenAndDiningData?.length} data items scraped for kitchen and dining`);
+            if(kitchenAndDiningData?.length==0){
+                state.ishopchangi.kitchen_and_dining = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping kitchen and dining");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.personal_care_home_and_living)
+        try{
+            personalCareHomeAndLivingData = await personal_care_home_and_living(start,end,browser);
+            console.log(`${personalCareHomeAndLivingData?.length} data items scraped for personal care home and living`);
+        }
+        catch(err){
+            console.log("There was an error while scraping personal care home and living");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.personal_care_home_and_living && personalCareHomeAndLivingData?.length==0)
+        try{
+            personalCareHomeAndLivingData = await personal_care_home_and_living(start,end,browser);
+            console.log(`${personalCareHomeAndLivingData?.length} data items scraped for personal care home and living`);
+            if(personalCareHomeAndLivingData?.length==0){
+                state.ishopchangi.personal_care_home_and_living = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping personal care home and living");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.beauty_tools)
+        try{
+            beautyToolsData = await beauty_tools(start,end,browser);
+            console.log(`${beautyToolsData?.length} data items scraped for beauty tools`);
+        }
+        catch(err){
+            console.log("There was an error while scraping beauty tools");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.beauty_tools && beautyToolsData?.length==0)
+        try{
+            beautyToolsData = await beauty_tools(start,end,browser);
+            console.log(`${beautyToolsData?.length} data items scraped for beauty tools`);
+            if(beautyToolsData?.length==0){
+                state.ishopchangi.beauty_tools = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping beauty tools");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.wellness_and_health_devices)
+        try{
+            wellnessAndHealthDevicesData = await wellness_and_health_devices(start,end,browser);
+            console.log(`${wellnessAndHealthDevicesData?.length} data items scraped for wellness and health devices`);
+        }
+        catch(err){
+            console.log("There was an error while scraping wellness and health devices");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.wellness_and_health_devices && wellnessAndHealthDevicesData?.length==0)
+        try{
+            wellnessAndHealthDevicesData = await wellness_and_health_devices(start,end,browser);
+            console.log(`${wellnessAndHealthDevicesData?.length} data items scraped for wellness and health devices`);
+            if(wellnessAndHealthDevicesData?.length==0){
+                state.ishopchangi.wellness_and_health_devices = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping wellness and health devices");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.household_essentials)
+        try{
+            householdEssentialsData = await household_essentials(start,end,browser);
+            console.log(`${householdEssentialsData?.length} data items scraped for household essentials`);
+        }
+        catch(err){
+            console.log("There was an error while scraping household essentials");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.household_essentials && householdEssentialsData?.length==0)
+        try{
+            householdEssentialsData = await household_essentials(start,end,browser);
+            console.log(`${householdEssentialsData?.length} data items scraped for household essentials`);
+            if(householdEssentialsData?.length==0){
+                state.ishopchangi.household_essentials = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping household essentials");
+            logError(err);
+        }
+
+    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living)
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData];
 
     //process data
     try{
