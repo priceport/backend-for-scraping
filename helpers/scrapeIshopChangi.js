@@ -38,6 +38,12 @@ const personal_care_home_and_living = require("../scripts/scraping_scripts/domes
 const beauty_tools = require("../scripts/scraping_scripts/domestic/ishopchangi/beauty_tools");
 const wellness_and_health_devices = require("../scripts/scraping_scripts/domestic/ishopchangi/wellness_and_health_devices");
 const household_essentials = require("../scripts/scraping_scripts/domestic/ishopchangi/household_essentials");
+const babies_and_kids_fashion = require("../scripts/scraping_scripts/domestic/ishopchangi/babies_and_kids_fashion");
+const baby_gears = require("../scripts/scraping_scripts/domestic/ishopchangi/baby_gears");
+const bath = require("../scripts/scraping_scripts/domestic/ishopchangi/bath");
+const feeding_and_nursing = require("../scripts/scraping_scripts/domestic/ishopchangi/feeding_and_nursing");
+const nursery = require("../scripts/scraping_scripts/domestic/ishopchangi/nursery");
+const toys_and_games = require("../scripts/scraping_scripts/domestic/ishopchangi/toys_and_games");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -45,7 +51,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [], babiesAndKidsFashionData = [], babyGearsData = [], bathData = [], feedingAndNursingData = [], nurseryData = [], toysAndGamesData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -975,8 +981,147 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
-    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData];
+    // Babies and Kids categories
+    if(!state.ishopchangi.babies_and_kids_fashion)
+        try{
+            babiesAndKidsFashionData = await babies_and_kids_fashion(start,end,browser);
+            console.log(`${babiesAndKidsFashionData?.length} data items scraped for babies and kids fashion`);
+        }
+        catch(err){
+            console.log("There was an error while scraping babies and kids fashion");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.babies_and_kids_fashion && babiesAndKidsFashionData?.length==0)
+        try{
+            babiesAndKidsFashionData = await babies_and_kids_fashion(start,end,browser);
+            console.log(`${babiesAndKidsFashionData?.length} data items scraped for babies and kids fashion`);
+            if(babiesAndKidsFashionData?.length==0){
+                state.ishopchangi.babies_and_kids_fashion = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping babies and kids fashion");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.baby_gears)
+        try{
+            babyGearsData = await baby_gears(start,end,browser);
+            console.log(`${babyGearsData?.length} data items scraped for baby gears`);
+        }
+        catch(err){
+            console.log("There was an error while scraping baby gears");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.baby_gears && babyGearsData?.length==0)
+        try{
+            babyGearsData = await baby_gears(start,end,browser);
+            console.log(`${babyGearsData?.length} data items scraped for baby gears`);
+            if(babyGearsData?.length==0){
+                state.ishopchangi.baby_gears = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping baby gears");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.bath)
+        try{
+            bathData = await bath(start,end,browser);
+            console.log(`${bathData?.length} data items scraped for bath`);
+        }
+        catch(err){
+            console.log("There was an error while scraping bath");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.bath && bathData?.length==0)
+        try{
+            bathData = await bath(start,end,browser);
+            console.log(`${bathData?.length} data items scraped for bath`);
+            if(bathData?.length==0){
+                state.ishopchangi.bath = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping bath");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.feeding_and_nursing)
+        try{
+            feedingAndNursingData = await feeding_and_nursing(start,end,browser);
+            console.log(`${feedingAndNursingData?.length} data items scraped for feeding and nursing`);
+        }
+        catch(err){
+            console.log("There was an error while scraping feeding and nursing");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.feeding_and_nursing && feedingAndNursingData?.length==0)
+        try{
+            feedingAndNursingData = await feeding_and_nursing(start,end,browser);
+            console.log(`${feedingAndNursingData?.length} data items scraped for feeding and nursing`);
+            if(feedingAndNursingData?.length==0){
+                state.ishopchangi.feeding_and_nursing = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping feeding and nursing");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.nursery)
+        try{
+            nurseryData = await nursery(start,end,browser);
+            console.log(`${nurseryData?.length} data items scraped for nursery`);
+        }
+        catch(err){
+            console.log("There was an error while scraping nursery");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.nursery && nurseryData?.length==0)
+        try{
+            nurseryData = await nursery(start,end,browser);
+            console.log(`${nurseryData?.length} data items scraped for nursery`);
+            if(nurseryData?.length==0){
+                state.ishopchangi.nursery = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping nursery");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.toys_and_games)
+        try{
+            toysAndGamesData = await toys_and_games(start,end,browser);
+            console.log(`${toysAndGamesData?.length} data items scraped for toys and games`);
+        }
+        catch(err){
+            console.log("There was an error while scraping toys and games");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.toys_and_games && toysAndGamesData?.length==0)
+        try{
+            toysAndGamesData = await toys_and_games(start,end,browser);
+            console.log(`${toysAndGamesData?.length} data items scraped for toys and games`);
+            if(toysAndGamesData?.length==0){
+                state.ishopchangi.toys_and_games = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping toys and games");
+            logError(err);
+        }
+
+    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living + babies and kids)
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData, ...babiesAndKidsFashionData, ...babyGearsData, ...bathData, ...feedingAndNursingData, ...nurseryData, ...toysAndGamesData];
 
     //process data
     try{

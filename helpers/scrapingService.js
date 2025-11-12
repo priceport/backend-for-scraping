@@ -580,6 +580,7 @@ doneIshopchangi=false;
         coffee_and_tea: false,
         health_food:false,
         souvenir_food:false,
+        
         personal_care:false,
         health_supplements:false,
         wellness_accessories:false,
@@ -587,6 +588,7 @@ doneIshopchangi=false;
         food_care:false,
         medical_supplies:false,
         medication:false,
+
         womens_fashion_bags:false,
         womens_small_leather_goods:false,
         womens_fashion_watches:false,
@@ -594,6 +596,7 @@ doneIshopchangi=false;
         womens_fashion_accessories:false,
         womens_fashion_shoes:false,
         womens_apparels:false,
+
         mens_fashion_accessories:false,
         mens_fashion_watches:false,
         mens_fashion_bags:false,
@@ -606,7 +609,14 @@ doneIshopchangi=false;
         personal_care_home_and_living:false,
         beauty_tools:false,
         wellness_and_health_devices:false,
-        household_essentials:false
+        household_essentials:false,
+
+        feeding_and_nursing:false,
+        baby_gears:false,
+        nursery:false,
+        toys_and_games:false,
+        babies_and_kids_fashion:false,
+        bath:false
       },
   };
 
