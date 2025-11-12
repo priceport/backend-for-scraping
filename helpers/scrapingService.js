@@ -580,6 +580,13 @@ doneIshopchangi=false;
         coffee_and_tea: false,
         health_food:false,
         souvenir_food:false,
+        personal_care:false,
+        health_supplements:false,
+        wellness_accessories:false,
+        family_planning:false,
+        food_care:false,
+        medical_supplies:false,
+        medication:false,
       },
   };
 

@@ -12,6 +12,13 @@ const coffee_and_tea = require("../scripts/scraping_scripts/domestic/ishopchangi
 const health_food = require("../scripts/scraping_scripts/domestic/ishopchangi/health_food");
 const souvenir_food = require("../scripts/scraping_scripts/domestic/ishopchangi/souvenir_food");
 const food_staples = require("../scripts/scraping_scripts/domestic/ishopchangi/food_staples");
+const family_planning = require("../scripts/scraping_scripts/domestic/ishopchangi/family_planning");
+const personal_care = require("../scripts/scraping_scripts/domestic/ishopchangi/personal_care");
+const wellness_accessories = require("../scripts/scraping_scripts/domestic/ishopchangi/wellness_accessories");
+const health_supplements = require("../scripts/scraping_scripts/domestic/ishopchangi/health_supplements");
+const medical_supplies = require("../scripts/scraping_scripts/domestic/ishopchangi/medical_supplies");
+const medication = require("../scripts/scraping_scripts/domestic/ishopchangi/medication");
+const food_care = require("../scripts/scraping_scripts/domestic/ishopchangi/food_care");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -19,7 +26,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -347,8 +354,170 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
-    //merge all data (beauty + electronics + food and beverages)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData];
+    // Health and Wellness categories
+    if(!state.ishopchangi.family_planning)
+        try{
+            familyPlanningData = await family_planning(start,end,browser);
+            console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+        }
+        catch(err){
+            console.log("There was an error while scraping family planning");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.family_planning && familyPlanningData?.length==0)
+        try{
+            familyPlanningData = await family_planning(start,end,browser);
+            console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+            if(familyPlanningData?.length==0){
+                state.ishopchangi.family_planning = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping family planning");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.personal_care)
+        try{
+            personalCareData = await personal_care(start,end,browser);
+            console.log(`${personalCareData?.length} data items scraped for personal care`);
+        }
+        catch(err){
+            console.log("There was an error while scraping personal care");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.personal_care && personalCareData?.length==0)
+        try{
+            personalCareData = await personal_care(start,end,browser);
+            console.log(`${personalCareData?.length} data items scraped for personal care`);
+            if(personalCareData?.length==0){
+                state.ishopchangi.personal_care = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping personal care");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.wellness_accessories)
+        try{
+            wellnessAccessoriesData = await wellness_accessories(start,end,browser);
+            console.log(`${wellnessAccessoriesData?.length} data items scraped for wellness accessories`);
+        }
+        catch(err){
+            console.log("There was an error while scraping wellness accessories");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.wellness_accessories && wellnessAccessoriesData?.length==0)
+        try{
+            wellnessAccessoriesData = await wellness_accessories(start,end,browser);
+            console.log(`${wellnessAccessoriesData?.length} data items scraped for wellness accessories`);
+            if(wellnessAccessoriesData?.length==0){
+                state.ishopchangi.wellness_accessories = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping wellness accessories");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.health_supplements)
+        try{
+            healthSupplementsData = await health_supplements(start,end,browser);
+            console.log(`${healthSupplementsData?.length} data items scraped for health supplements`);
+        }
+        catch(err){
+            console.log("There was an error while scraping health supplements");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.health_supplements && healthSupplementsData?.length==0)
+        try{
+            healthSupplementsData = await health_supplements(start,end,browser);
+            console.log(`${healthSupplementsData?.length} data items scraped for health supplements`);
+            if(healthSupplementsData?.length==0){
+                state.ishopchangi.health_supplements = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping health supplements");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.medical_supplies)
+        try{
+            medicalSuppliesData = await medical_supplies(start,end,browser);
+            console.log(`${medicalSuppliesData?.length} data items scraped for medical supplies`);
+        }
+        catch(err){
+            console.log("There was an error while scraping medical supplies");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.medical_supplies && medicalSuppliesData?.length==0)
+        try{
+            medicalSuppliesData = await medical_supplies(start,end,browser);
+            console.log(`${medicalSuppliesData?.length} data items scraped for medical supplies`);
+            if(medicalSuppliesData?.length==0){
+                state.ishopchangi.medical_supplies = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping medical supplies");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.medication)
+        try{
+            medicationData = await medication(start,end,browser);
+            console.log(`${medicationData?.length} data items scraped for medication`);
+        }
+        catch(err){
+            console.log("There was an error while scraping medication");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.medication && medicationData?.length==0)
+        try{
+            medicationData = await medication(start,end,browser);
+            console.log(`${medicationData?.length} data items scraped for medication`);
+            if(medicationData?.length==0){
+                state.ishopchangi.medication = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping medication");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.foodcare)
+        try{
+            foodCareData = await food_care(start,end,browser);
+            console.log(`${foodCareData?.length} data items scraped for food care`);
+        }
+        catch(err){
+            console.log("There was an error while scraping food care");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.foodcare && foodCareData?.length==0)
+        try{
+            foodCareData = await food_care(start,end,browser);
+            console.log(`${foodCareData?.length} data items scraped for food care`);
+            if(foodCareData?.length==0){
+                state.ishopchangi.foodcare = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping food care");
+            logError(err);
+        }
+
+    //merge all data (beauty + electronics + food and beverages + health and wellness)
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData];
 
     //process data
     try{
