@@ -619,7 +619,12 @@ doneIshopchangi=false;
         bath:false,
 
         souvenirs_fashion:false,
-        souvenirs_collectibles:false
+        souvenirs_collectibles:false,
+
+        luggages:false,
+        travel_bags:false,
+        electronics_travel:false,
+        travel_essentials:false
       },
   };
 
