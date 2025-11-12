@@ -587,6 +587,13 @@ doneIshopchangi=false;
         food_care:false,
         medical_supplies:false,
         medication:false,
+        womens_fashion_bags:false,
+        womens_small_leather_goods:false,
+        womens_fashion_watches:false,
+        womens_fashion_jewellery:false,
+        womens_fashion_accessories:false,
+        womens_fashion_shoes:false,
+        womens_apparels:false,
       },
   };
 

@@ -19,6 +19,13 @@ const health_supplements = require("../scripts/scraping_scripts/domestic/ishopch
 const medical_supplies = require("../scripts/scraping_scripts/domestic/ishopchangi/medical_supplies");
 const medication = require("../scripts/scraping_scripts/domestic/ishopchangi/medication");
 const food_care = require("../scripts/scraping_scripts/domestic/ishopchangi/food_care");
+const womens_fashion_bags = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_fashion_bags");
+const womens_small_leather_goods = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_small_leather_goods");
+const womens_fashion_watches = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_fashion_watches");
+const womens_fashion_jewellery = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_fashion_jewellery");
+const womens_fashion_accessories = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_fashion_accessories");
+const womens_fashion_shoes = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_fashion_shoes");
+const womens_apparels = require("../scripts/scraping_scripts/domestic/ishopchangi/womens_apparels");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -26,7 +33,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -516,8 +523,170 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
-    //merge all data (beauty + electronics + food and beverages + health and wellness)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData];
+    // Women's Fashion categories
+    if(!state.ishopchangi.womens_fashion_bags)
+        try{
+            womensFashionBagsData = await womens_fashion_bags(start,end,browser);
+            console.log(`${womensFashionBagsData?.length} data items scraped for women's fashion bags`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion bags");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_bags && womensFashionBagsData?.length==0)
+        try{
+            womensFashionBagsData = await womens_fashion_bags(start,end,browser);
+            console.log(`${womensFashionBagsData?.length} data items scraped for women's fashion bags`);
+            if(womensFashionBagsData?.length==0){
+                state.ishopchangi.womens_fashion_bags = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion bags");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_small_leather_goods)
+        try{
+            womensSmallLeatherGoodsData = await womens_small_leather_goods(start,end,browser);
+            console.log(`${womensSmallLeatherGoodsData?.length} data items scraped for women's small leather goods`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's small leather goods");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_small_leather_goods && womensSmallLeatherGoodsData?.length==0)
+        try{
+            womensSmallLeatherGoodsData = await womens_small_leather_goods(start,end,browser);
+            console.log(`${womensSmallLeatherGoodsData?.length} data items scraped for women's small leather goods`);
+            if(womensSmallLeatherGoodsData?.length==0){
+                state.ishopchangi.womens_small_leather_goods = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's small leather goods");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_watches)
+        try{
+            womensFashionWatchesData = await womens_fashion_watches(start,end,browser);
+            console.log(`${womensFashionWatchesData?.length} data items scraped for women's fashion watches`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion watches");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_watches && womensFashionWatchesData?.length==0)
+        try{
+            womensFashionWatchesData = await womens_fashion_watches(start,end,browser);
+            console.log(`${womensFashionWatchesData?.length} data items scraped for women's fashion watches`);
+            if(womensFashionWatchesData?.length==0){
+                state.ishopchangi.womens_fashion_watches = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion watches");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_jewellery)
+        try{
+            womensFashionJewelleryData = await womens_fashion_jewellery(start,end,browser);
+            console.log(`${womensFashionJewelleryData?.length} data items scraped for women's fashion jewellery`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion jewellery");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_jewellery && womensFashionJewelleryData?.length==0)
+        try{
+            womensFashionJewelleryData = await womens_fashion_jewellery(start,end,browser);
+            console.log(`${womensFashionJewelleryData?.length} data items scraped for women's fashion jewellery`);
+            if(womensFashionJewelleryData?.length==0){
+                state.ishopchangi.womens_fashion_jewellery = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion jewellery");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_accessories)
+        try{
+            womensFashionAccessoriesData = await womens_fashion_accessories(start,end,browser);
+            console.log(`${womensFashionAccessoriesData?.length} data items scraped for women's fashion accessories`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion accessories");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_accessories && womensFashionAccessoriesData?.length==0)
+        try{
+            womensFashionAccessoriesData = await womens_fashion_accessories(start,end,browser);
+            console.log(`${womensFashionAccessoriesData?.length} data items scraped for women's fashion accessories`);
+            if(womensFashionAccessoriesData?.length==0){
+                state.ishopchangi.womens_fashion_accessories = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion accessories");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_shoes)
+        try{
+            womensFashionShoesData = await womens_fashion_shoes(start,end,browser);
+            console.log(`${womensFashionShoesData?.length} data items scraped for women's fashion shoes`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion shoes");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_fashion_shoes && womensFashionShoesData?.length==0)
+        try{
+            womensFashionShoesData = await womens_fashion_shoes(start,end,browser);
+            console.log(`${womensFashionShoesData?.length} data items scraped for women's fashion shoes`);
+            if(womensFashionShoesData?.length==0){
+                state.ishopchangi.womens_fashion_shoes = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's fashion shoes");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_apparels)
+        try{
+            womensApparelsData = await womens_apparels(start,end,browser);
+            console.log(`${womensApparelsData?.length} data items scraped for women's apparels`);
+        }
+        catch(err){
+            console.log("There was an error while scraping women's apparels");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.womens_apparels && womensApparelsData?.length==0)
+        try{
+            womensApparelsData = await womens_apparels(start,end,browser);
+            console.log(`${womensApparelsData?.length} data items scraped for women's apparels`);
+            if(womensApparelsData?.length==0){
+                state.ishopchangi.womens_apparels = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping women's apparels");
+            logError(err);
+        }
+
+    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion)
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData];
 
     //process data
     try{
