@@ -616,7 +616,10 @@ doneIshopchangi=false;
         nursery:false,
         toys_and_games:false,
         babies_and_kids_fashion:false,
-        bath:false
+        bath:false,
+
+        souvenirs_fashion:false,
+        souvenirs_collectibles:false
       },
   };
 
