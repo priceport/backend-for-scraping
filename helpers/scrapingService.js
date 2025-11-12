@@ -594,6 +594,13 @@ doneIshopchangi=false;
         womens_fashion_accessories:false,
         womens_fashion_shoes:false,
         womens_apparels:false,
+        mens_fashion_accessories:false,
+        mens_fashion_watches:false,
+        mens_fashion_bags:false,
+        mens_small_leather_goods:false,
+        mens_apparels:false,
+        mens_fashion_shoes:false,
+        mens_fashion_jewellery:false,
       },
   };
 
