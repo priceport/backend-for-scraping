@@ -436,6 +436,7 @@ doneDanMurphy=true;
       whisky_rtd:false,
       rum_rtd:false,
       tequila_rtd:false,
+      cider:false,
       
     },
     bigBarrel: {
