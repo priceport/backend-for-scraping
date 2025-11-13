@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const low_carb_beer = async (start, end, browser) => {
+const low_alc_beer = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.liquorland.co.nz/beer/low-carb-beer?p=';
+  const url = 'https://www.liquorland.co.nz/beer/low-alc-beer?p=';
   
   const page = await browser.newPage();
   const allProducts = [];
@@ -131,48 +131,48 @@ const low_carb_beer = async (start, end, browser) => {
         const totalCount = productElements.length;
         const productList = [];
         let missing = 0;
-
+    
         productElements.forEach(product => {
           const titleElement = product.querySelector('.s-product__name');
           const priceElement = product.querySelector('.s-site-price, .s-price');
           const urlElement = product.querySelector('.s-product__name');
           const imgElement = product.querySelector('.s-product-gallery img');
     
-            const title = titleElement ? titleElement.innerText.trim() : null;
-            const price = priceElement ? priceElement.innerText.trim() : null;
-            const url = urlElement ? urlElement.href : null;
+          const title = titleElement ? titleElement.innerText.trim() : null;
+          const price = priceElement ? priceElement.innerText.trim() : null;
+          const url = urlElement ? urlElement.href : null;
           const img = imgElement ? (imgElement.src || imgElement.getAttribute('data-src')) : null;
     
           if (!title || !price || !url || !img) {
-              missing += 1;
-            }
-
+            missing += 1;
+          }
+    
           if (!title || !price || !url) {
           } else {
-              productList.push({
-                title,
+            productList.push({ 
+              title, 
               brand: null, 
-                price,
-                promo: null,
-                url,
+              price,
+              promo: null, 
+              url, 
               category: 'beer',
               source: { website_base: "https://www.liquorland.co.nz", location: "new-zealand", tag: "domestic" }, 
-                date: Date.now(),
-                last_check: Date.now(),
-                mapping_ref: null,
-                unit: undefined,
-                subcategory: 'low_carb_beer',
-                img
-              });
+              date: Date.now(),
+              last_check: Date.now(),
+              mapping_ref: null,
+              unit: undefined,
+              subcategory: 'low_alc_beer',
+              img
+            });
           }
         });
-
+    
         return [productList, missing, totalCount];
       });
       
 
       if (missing > 5) {
-        await insertScrapingError("More than 5 entries missing for liquorland - low_carb_beer: " + pageNo, "scraping_missing");
+        await insertScrapingError("More than 5 entries missing for liquorland - low_alc_beer: " + pageNo, "scraping_missing");
       }
 
       allProducts.push(...products);
@@ -182,14 +182,14 @@ const low_carb_beer = async (start, end, browser) => {
         await page.close();
         return allProducts;
       }
-
+        
       pageNo += 1;
     }
 
   } catch (err) {
     logError(err);
     try {
-      await insertScrapingError("Error in liquorland - low_carb_beer: " + err.message, "scraping_trycatch");
+      await insertScrapingError("Error in liquorland - low_alc_beer: " + err.message, "scraping_trycatch");
     } catch (err) {
       console.log(err);
     }
@@ -198,4 +198,5 @@ const low_carb_beer = async (start, end, browser) => {
   }
 }
 
-module.exports = low_carb_beer;
+module.exports = low_alc_beer;
+

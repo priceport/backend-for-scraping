@@ -418,7 +418,11 @@ doneDanMurphy=true;
       tequila:false,
       ready_made_cocktails:false,
       all_spirits:false,
-      standard_liqueurs:false
+      standard_liqueurs:false,
+      kiwi_classics:false,
+      international_beer:false,
+      low_alc_beer:false,
+      non_alc_beer:false
     },
     bigBarrel: {
       spirits: false,
