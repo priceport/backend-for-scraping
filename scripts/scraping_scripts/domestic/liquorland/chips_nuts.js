@@ -1,12 +1,12 @@
-const puppeteer = require('puppeteer');
+ const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const confectionery = async (start, end, browser) => {
+const chips_nuts = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.liquorland.co.nz/other/snacks/confectionery?p=';
+  const url = 'https://www.liquorland.co.nz/other/snacks/chips-nuts?p=';
   
   const page = await browser.newPage();
   const allProducts = [];
@@ -161,7 +161,7 @@ const confectionery = async (start, end, browser) => {
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'confectionery',
+              subcategory: 'chips_nuts',
               img
             });
           }
@@ -172,7 +172,7 @@ const confectionery = async (start, end, browser) => {
       
 
       if (missing > 5) {
-        await insertScrapingError("More than 5 entries missing for liquorland - confectionery: " + pageNo, "scraping_missing");
+        await insertScrapingError("More than 5 entries missing for liquorland - chips_nuts: " + pageNo, "scraping_missing");
       }
 
       allProducts.push(...products);
@@ -189,7 +189,7 @@ const confectionery = async (start, end, browser) => {
   } catch (err) {
     logError(err);
     try {
-      await insertScrapingError("Error in liquorland - confectionery: " + err.message, "scraping_trycatch");
+      await insertScrapingError("Error in liquorland - chips_nuts: " + err.message, "scraping_trycatch");
     } catch (err) {
       console.log(err);
     }
@@ -198,4 +198,5 @@ const confectionery = async (start, end, browser) => {
   }
 }
 
-module.exports = confectionery;
+module.exports = chips_nuts;
+

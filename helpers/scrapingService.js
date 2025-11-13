@@ -411,6 +411,7 @@ doneDanMurphy=true;
       cordials:false,
       energy_sports:false,
       confectionery:false,
+      chips_nuts:false,
       flavoured_whisky:false,
       bourbon:false,
       gin:false,
