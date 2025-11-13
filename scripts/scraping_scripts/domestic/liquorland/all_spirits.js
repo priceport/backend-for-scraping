@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const white_rum = async (start, end, browser) => {
+const all_spirits = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.liquorland.co.nz/spirits/rum/white-rum?p=';
+  const url = 'https://www.liquorland.co.nz/spirits/all-spirits?p=';
   
   const page = await browser.newPage();
   const allProducts = [];
@@ -161,7 +161,7 @@ const white_rum = async (start, end, browser) => {
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'white_rum',
+              subcategory: 'spirits',
               img
             });
           }
@@ -172,7 +172,7 @@ const white_rum = async (start, end, browser) => {
       
 
       if (missing > 5) {
-        await insertScrapingError("More than 5 entries missing for liquorland - white_rum: " + pageNo, "scraping_missing");
+        await insertScrapingError("More than 5 entries missing for liquorland - all_spirits: " + pageNo, "scraping_missing");
       }
 
       allProducts.push(...products);
@@ -189,7 +189,7 @@ const white_rum = async (start, end, browser) => {
   } catch (err) {
     logError(err);
     try {
-      await insertScrapingError("Error in liquorland - white_rum: " + err.message, "scraping_trycatch");
+      await insertScrapingError("Error in liquorland - all_spirits: " + err.message, "scraping_trycatch");
     } catch (err) {
       console.log(err);
     }
@@ -198,4 +198,5 @@ const white_rum = async (start, end, browser) => {
   }
 }
 
-module.exports = white_rum;
+module.exports = all_spirits;
+
