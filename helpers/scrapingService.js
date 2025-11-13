@@ -424,6 +424,12 @@ doneDanMurphy=true;
       low_alc_beer:false,
       non_alc_beer:false,
       kiwi_craft:false,
+      rose:false,
+      sparkling:false,
+      spritz:false,
+      port_and_sherry:false,
+      cask:false,
+      non_alcoholic:false,
       
     },
     bigBarrel: {
