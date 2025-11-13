@@ -417,7 +417,8 @@ doneDanMurphy=true;
       vodka:false,
       tequila:false,
       ready_made_cocktails:false,
-      all_spirits:false
+      all_spirits:false,
+      standard_liqueurs:false
     },
     bigBarrel: {
       spirits: false,
