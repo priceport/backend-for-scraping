@@ -50,6 +50,10 @@ const luggages = require("../scripts/scraping_scripts/domestic/ishopchangi/lugga
 const travel_bags = require("../scripts/scraping_scripts/domestic/ishopchangi/travel_bags");
 const electronics_travel = require("../scripts/scraping_scripts/domestic/ishopchangi/electronics_travel");
 const travel_essentials = require("../scripts/scraping_scripts/domestic/ishopchangi/travel_essentials");
+const spirits_single_malt = require("../scripts/scraping_scripts/domestic/ishopchangi/spirits_single_malt");
+const american_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/american_whiskey");
+const scotch_blended_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/scotch_blended_whiskey");
+const japanese_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/japanese_whiskey");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -57,7 +61,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [], babiesAndKidsFashionData = [], babyGearsData = [], bathData = [], feedingAndNursingData = [], nurseryData = [], toysAndGamesData = [], souvenirsFashionData = [], souvenirsCollectiblesData = [], luggagesData = [], travelBagsData = [], electronicsTravelData = [], travelEssentialsData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [], babiesAndKidsFashionData = [], babyGearsData = [], bathData = [], feedingAndNursingData = [], nurseryData = [], toysAndGamesData = [], souvenirsFashionData = [], souvenirsCollectiblesData = [], luggagesData = [], travelBagsData = [], electronicsTravelData = [], travelEssentialsData = [], spiritsSingleMaltData = [], americanWhiskeyData = [], scotchBlendedWhiskeyData = [], japaneseWhiskeyData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -1266,8 +1270,101 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
-    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living + babies and kids + souvenirs + travel and services)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData, ...babiesAndKidsFashionData, ...babyGearsData, ...bathData, ...feedingAndNursingData, ...nurseryData, ...toysAndGamesData, ...souvenirsFashionData, ...souvenirsCollectiblesData, ...luggagesData, ...travelBagsData, ...electronicsTravelData, ...travelEssentialsData];
+    // Liquor categories
+    if(!state.ishopchangi.spirits_single_malt)
+        try{
+            spiritsSingleMaltData = await spirits_single_malt(start,end,browser);
+            console.log(`${spiritsSingleMaltData?.length} data items scraped for spirits single malt`);
+        }
+        catch(err){
+            console.log("There was an error while scraping spirits single malt");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.spirits_single_malt && spiritsSingleMaltData?.length==0)
+        try{
+            spiritsSingleMaltData = await spirits_single_malt(start,end,browser);
+            console.log(`${spiritsSingleMaltData?.length} data items scraped for spirits single malt`);
+            if(spiritsSingleMaltData?.length==0){
+                state.ishopchangi.spirits_single_malt = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping spirits single malt");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.american_whiskey)
+        try{
+            americanWhiskeyData = await american_whiskey(start,end,browser);
+            console.log(`${americanWhiskeyData?.length} data items scraped for american whiskey`);
+        }
+        catch(err){
+            console.log("There was an error while scraping american whiskey");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.american_whiskey && americanWhiskeyData?.length==0)
+        try{
+            americanWhiskeyData = await american_whiskey(start,end,browser);
+            console.log(`${americanWhiskeyData?.length} data items scraped for american whiskey`);
+            if(americanWhiskeyData?.length==0){
+                state.ishopchangi.american_whiskey = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping american whiskey");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.scotch_blended_whiskey)
+        try{
+            scotchBlendedWhiskeyData = await scotch_blended_whiskey(start,end,browser);
+            console.log(`${scotchBlendedWhiskeyData?.length} data items scraped for scotch blended whiskey`);
+        }
+        catch(err){
+            console.log("There was an error while scraping scotch blended whiskey");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.scotch_blended_whiskey && scotchBlendedWhiskeyData?.length==0)
+        try{
+            scotchBlendedWhiskeyData = await scotch_blended_whiskey(start,end,browser);
+            console.log(`${scotchBlendedWhiskeyData?.length} data items scraped for scotch blended whiskey`);
+            if(scotchBlendedWhiskeyData?.length==0){
+                state.ishopchangi.scotch_blended_whiskey = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping scotch blended whiskey");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.japanese_whiskey)
+        try{
+            japaneseWhiskeyData = await japanese_whiskey(start,end,browser);
+            console.log(`${japaneseWhiskeyData?.length} data items scraped for japanese whiskey`);
+        }
+        catch(err){
+            console.log("There was an error while scraping japanese whiskey");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.japanese_whiskey && japaneseWhiskeyData?.length==0)
+        try{
+            japaneseWhiskeyData = await japanese_whiskey(start,end,browser);
+            console.log(`${japaneseWhiskeyData?.length} data items scraped for japanese whiskey`);
+            if(japaneseWhiskeyData?.length==0){
+                state.ishopchangi.japanese_whiskey = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping japanese whiskey");
+            logError(err);
+        }
+
+    //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living + babies and kids + souvenirs + travel and services + liquor)
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData, ...babiesAndKidsFashionData, ...babyGearsData, ...bathData, ...feedingAndNursingData, ...nurseryData, ...toysAndGamesData, ...souvenirsFashionData, ...souvenirsCollectiblesData, ...luggagesData, ...travelBagsData, ...electronicsTravelData, ...travelEssentialsData, ...spiritsSingleMaltData, ...americanWhiskeyData, ...scotchBlendedWhiskeyData, ...japaneseWhiskeyData];
 
     //process data
     try{

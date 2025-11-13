@@ -624,7 +624,12 @@ doneIshopchangi=false;
         luggages:false,
         travel_bags:false,
         electronics_travel:false,
-        travel_essentials:false
+        travel_essentials:false,
+
+        spirits_single_malt:false,
+        american_whiskey:false,
+        scotch_blended_whiskey:false,
+        japanese_whiskey:false
       },
   };
 
