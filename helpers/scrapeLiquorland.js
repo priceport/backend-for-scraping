@@ -59,6 +59,12 @@ const spritz = require("../scripts/scraping_scripts/domestic/liquorland/spritz")
 const port_and_sherry = require("../scripts/scraping_scripts/domestic/liquorland/port_and_sherry");
 const cask = require("../scripts/scraping_scripts/domestic/liquorland/cask");
 const non_alcoholic = require("../scripts/scraping_scripts/domestic/liquorland/non_alcoholic");
+const vodka_rtd = require("../scripts/scraping_scripts/domestic/liquorland/vodka_rtd");
+const gin_rtd = require("../scripts/scraping_scripts/domestic/liquorland/gin_rtd");
+const bourbon_rtd = require("../scripts/scraping_scripts/domestic/liquorland/bourbon_rtd");
+const whisky_rtd = require("../scripts/scraping_scripts/domestic/liquorland/whisky_rtd");
+const rum_rtd = require("../scripts/scraping_scripts/domestic/liquorland/rum_rtd");
+const tequila_rtd = require("../scripts/scraping_scripts/domestic/liquorland/tequila_rtd");
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
 
@@ -80,6 +86,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   let waterData = [], juiceData = [], carbonatedData = [], cordialsData = [], energySportsData = [];
   let confectioneryData = [], flavouredWhiskyData = [];
   let bourbonData = [], ginData = [], vodkaData = [], tequilaData = [], readyMadeCocktailsData = [], allSpiritsData = [];
+  let vodkaRtdData = [], ginRtdData = [], bourbonRtdData = [], whiskyRtdData = [], rumRtdData = [], tequilaRtdData = [];
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -1402,8 +1409,140 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     console.log("There was an error while scraping non alcoholic");
     logError(err);
   }
+
+  if (!state.liquorland.vodka_rtd) {
+    console.log("-----------vodka rtd------------");
+    try {
+      vodkaRtdData = await vodka_rtd(start, end, browser);
+      console.log(`${vodkaRtdData?.length} data items scraped for vodka rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping vodka rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.vodka_rtd&&vodkaRtdData?.length==0)
+  try{
+    vodkaRtdData = await vodka_rtd(start, end, browser);
+    if(vodkaRtdData?.length==0){
+      state.liquorland.vodka_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping vodka rtd");
+    logError(err);
+  }
+
+  if (!state.liquorland.gin_rtd) {
+    console.log("-----------gin rtd------------");
+    try {
+      ginRtdData = await gin_rtd(start, end, browser);
+      console.log(`${ginRtdData?.length} data items scraped for gin rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping gin rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.gin_rtd&&ginRtdData?.length==0)
+  try{
+    ginRtdData = await gin_rtd(start, end, browser);
+    if(ginRtdData?.length==0){
+      state.liquorland.gin_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping gin rtd");
+    logError(err);
+  }
+
+  if (!state.liquorland.bourbon_rtd) {
+    console.log("-----------bourbon rtd------------");
+    try {
+      bourbonRtdData = await bourbon_rtd(start, end, browser);
+      console.log(`${bourbonRtdData?.length} data items scraped for bourbon rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping bourbon rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.bourbon_rtd&&bourbonRtdData?.length==0)
+  try{
+    bourbonRtdData = await bourbon_rtd(start, end, browser);
+    if(bourbonRtdData?.length==0){
+      state.liquorland.bourbon_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping bourbon rtd");
+    logError(err);
+  }
+
+  if (!state.liquorland.whisky_rtd) {
+    console.log("-----------whisky rtd------------");
+    try {
+      whiskyRtdData = await whisky_rtd(start, end, browser);
+      console.log(`${whiskyRtdData?.length} data items scraped for whisky rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping whisky rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.whisky_rtd&&whiskyRtdData?.length==0)
+  try{
+    whiskyRtdData = await whisky_rtd(start, end, browser);
+    if(whiskyRtdData?.length==0){
+      state.liquorland.whisky_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping whisky rtd");
+    logError(err);
+  }
+
+  if (!state.liquorland.rum_rtd) {
+    console.log("-----------rum rtd------------");
+    try {
+      rumRtdData = await rum_rtd(start, end, browser);
+      console.log(`${rumRtdData?.length} data items scraped for rum rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping rum rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.rum_rtd&&rumRtdData?.length==0)
+  try{
+    rumRtdData = await rum_rtd(start, end, browser);
+    if(rumRtdData?.length==0){
+      state.liquorland.rum_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping rum rtd");
+    logError(err);
+  }
+
+  if (!state.liquorland.tequila_rtd) {
+    console.log("-----------tequila rtd------------");
+    try {
+      tequilaRtdData = await tequila_rtd(start, end, browser);
+      console.log(`${tequilaRtdData?.length} data items scraped for tequila rtd`);
+    } catch (err) {
+      console.log("There was an error while scraping tequila rtd");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.tequila_rtd&&tequilaRtdData?.length==0)
+  try{
+    tequilaRtdData = await tequila_rtd(start, end, browser);
+    if(tequilaRtdData?.length==0){
+      state.liquorland.tequila_rtd = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping tequila rtd");
+    logError(err);
+  }
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...standardLiqueursData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...kiwiClassicsData, ...internationalBeerData, ...lowAlcBeerData, ...nonAlcBeerData, ...nzBoutiqueData, ...kiwiCraftData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData, ...waterData, ...juiceData, ...carbonatedData, ...cordialsData, ...energySportsData, ...confectioneryData, ...flavouredWhiskyData, ...bourbonData, ...ginData, ...vodkaData, ...tequilaData, ...readyMadeCocktailsData, ...allSpiritsData, ...roseData, ...sparklingData, ...spritzData, ...portAndSherryData, ...caskData, ...nonAlcoholicData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...standardLiqueursData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...kiwiClassicsData, ...internationalBeerData, ...lowAlcBeerData, ...nonAlcBeerData, ...nzBoutiqueData, ...kiwiCraftData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData, ...waterData, ...juiceData, ...carbonatedData, ...cordialsData, ...energySportsData, ...confectioneryData, ...flavouredWhiskyData, ...bourbonData, ...ginData, ...vodkaData, ...tequilaData, ...readyMadeCocktailsData, ...allSpiritsData, ...roseData, ...sparklingData, ...spritzData, ...portAndSherryData, ...caskData, ...nonAlcoholicData, ...vodkaRtdData, ...ginRtdData, ...bourbonRtdData, ...whiskyRtdData, ...rumRtdData, ...tequilaRtdData];
 
   //process data
   try {

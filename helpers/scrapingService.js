@@ -430,6 +430,12 @@ doneDanMurphy=true;
       port_and_sherry:false,
       cask:false,
       non_alcoholic:false,
+      vodka_rtd:false,
+      gin_rtd:false,
+      bourbon_rtd:false,
+      whisky_rtd:false,
+      rum_rtd:false,
+      tequila_rtd:false,
       
     },
     bigBarrel: {
