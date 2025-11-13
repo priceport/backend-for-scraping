@@ -96,8 +96,8 @@ const updateDBEntry = async (data) => {
                     WHERE id = $1`,
           [product?.rows[0]?.id, "new zealand"]
         );
+        product_updated += 1;
       }
-      product_updated += 1;
       db_ops += 1;
     } catch (err) {
       logError(err);
