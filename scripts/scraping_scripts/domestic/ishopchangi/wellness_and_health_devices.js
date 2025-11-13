@@ -17,9 +17,11 @@ const wellness_and_health_devices = async (start, end, browser) => {
       console.log(`[Wellness and Health Devices] Loading page ${pageNo}...`);
       await page.goto(url + pageNo, { waitUntil: "networkidle2" });
 
-      // Wait and scroll to load all products
+      // Wait and check for products
+      let hasProducts = false;
       try {
-        await page.waitForSelector('a[data-test-id="products"]');
+        await page.waitForSelector('a[data-test-id="products"]', { timeout: 5000 });
+        hasProducts = true;
         
         // Scroll to trigger lazy loading
         await page.evaluate(async () => {
@@ -34,8 +36,14 @@ const wellness_and_health_devices = async (start, end, browser) => {
         
         await waitForXTime(1000);
       } catch (err) {
-        console.log("No products found");
-        break;
+        console.log("No products found on page " + pageNo);
+        await page.close();
+        return allProducts;
+      }
+
+      if (!hasProducts) {
+        await page.close();
+        return allProducts;
       }
 
       const [products,missing] = await page.evaluate(() => {
@@ -133,9 +141,16 @@ const wellness_and_health_devices = async (start, end, browser) => {
         await insertScrapingError("More than 5 entries missing for ishopchangi - wellness_and_health_devices: "+pageNo,"scraping_missing");
       }
 
+      // Check if products is valid array before pushing
+      if (!products || !Array.isArray(products) || products.length === 0) {
+        console.log("No products found on page " + pageNo + ", stopping pagination");
+        await page.close();
+        return allProducts;
+      }
+
       allProducts.push(...products);
 
-      if (products.length==0 || pageNo==end) {
+      if (pageNo == end) {
         await page.close();
         return allProducts;
       }

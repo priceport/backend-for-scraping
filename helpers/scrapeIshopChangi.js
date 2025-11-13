@@ -54,6 +54,19 @@ const spirits_single_malt = require("../scripts/scraping_scripts/domestic/ishopc
 const american_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/american_whiskey");
 const scotch_blended_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/scotch_blended_whiskey");
 const japanese_whiskey = require("../scripts/scraping_scripts/domestic/ishopchangi/japanese_whiskey");
+const tequila = require("../scripts/scraping_scripts/domestic/ishopchangi/tequila");
+const vodka = require("../scripts/scraping_scripts/domestic/ishopchangi/vodka");
+const rum = require("../scripts/scraping_scripts/domestic/ishopchangi/rum");
+const baijiu = require("../scripts/scraping_scripts/domestic/ishopchangi/baijiu");
+const gin = require("../scripts/scraping_scripts/domestic/ishopchangi/gin");
+const cognac = require("../scripts/scraping_scripts/domestic/ishopchangi/cognac");
+const brandy = require("../scripts/scraping_scripts/domestic/ishopchangi/brandy");
+const stout = require("../scripts/scraping_scripts/domestic/ishopchangi/stout");
+const craft_beer = require("../scripts/scraping_scripts/domestic/ishopchangi/craft_beer");
+const red_wines = require("../scripts/scraping_scripts/domestic/ishopchangi/red_wines");
+const white_wines = require("../scripts/scraping_scripts/domestic/ishopchangi/white_wines");
+const sparkling_wine = require("../scripts/scraping_scripts/domestic/ishopchangi/sparkling_wine");
+const champagnes = require("../scripts/scraping_scripts/domestic/ishopchangi/champagnes");
 const logError = require("./logError");
 const processDataForBeauty = require("./data_processing/ishopchangi/beauty");
 const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
@@ -61,7 +74,7 @@ const updateDBEntry = require("./update_db_entry/ishopchangi/beauty");
 const scrapeIshopChangi = async (start,end,state,browser) =>{
     console.log("scraping started for ishop changi at:"+Date.now());
 
-    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [], babiesAndKidsFashionData = [], babyGearsData = [], bathData = [], feedingAndNursingData = [], nurseryData = [], toysAndGamesData = [], souvenirsFashionData = [], souvenirsCollectiblesData = [], luggagesData = [], travelBagsData = [], electronicsTravelData = [], travelEssentialsData = [], spiritsSingleMaltData = [], americanWhiskeyData = [], scotchBlendedWhiskeyData = [], japaneseWhiskeyData = [];
+    let allData = [], skinCareData = [], makeupData = [], hairCareData = [], fragranceData = [], bathAndBeautyData = [], computersData = [], mobileDevicesData = [], audioDevicesData = [], camerasData = [], snacksData = [], coffeeTeaData = [], healthFoodData = [], souvenirFoodData = [], foodStaplesData = [], familyPlanningData = [], personalCareData = [], wellnessAccessoriesData = [], healthSupplementsData = [], medicalSuppliesData = [], medicationData = [], foodCareData = [], womensFashionBagsData = [], womensSmallLeatherGoodsData = [], womensFashionWatchesData = [], womensFashionJewelleryData = [], womensFashionAccessoriesData = [], womensFashionShoesData = [], womensApparelsData = [], mensFashionBagsData = [], mensSmallLeatherGoodsData = [], mensFashionWatchesData = [], mensFashionJewelleryData = [], mensFashionAccessoriesData = [], mensFashionShoesData = [], mensApparelsData = [], kitchenAndDiningData = [], personalCareHomeAndLivingData = [], beautyToolsData = [], wellnessAndHealthDevicesData = [], householdEssentialsData = [], babiesAndKidsFashionData = [], babyGearsData = [], bathData = [], feedingAndNursingData = [], nurseryData = [], toysAndGamesData = [], souvenirsFashionData = [], souvenirsCollectiblesData = [], luggagesData = [], travelBagsData = [], electronicsTravelData = [], travelEssentialsData = [], spiritsSingleMaltData = [], americanWhiskeyData = [], scotchBlendedWhiskeyData = [], japaneseWhiskeyData = [], tequilaData = [], vodkaData = [], rumData = [], baijiuData = [], ginData = [], cognacData = [], brandyData = [], stoutData = [], craftBeerData = [], redWinesData = [], whiteWinesData = [], sparklingWineData = [], champagnesData = [];
 
     // Beauty categories
     if(!state.ishopchangi.skin_care)
@@ -1363,8 +1376,308 @@ const scrapeIshopChangi = async (start,end,state,browser) =>{
             logError(err);
         }
 
+    // Additional Liquor categories
+    if(!state.ishopchangi.tequila)
+        try{
+            tequilaData = await tequila(start,end,browser);
+            console.log(`${tequilaData?.length} data items scraped for tequila`);
+        }
+        catch(err){
+            console.log("There was an error while scraping tequila");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.tequila && tequilaData?.length==0)
+        try{
+            tequilaData = await tequila(start,end,browser);
+            console.log(`${tequilaData?.length} data items scraped for tequila`);
+            if(tequilaData?.length==0){
+                state.ishopchangi.tequila = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping tequila");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.vodka)
+        try{
+            vodkaData = await vodka(start,end,browser);
+            console.log(`${vodkaData?.length} data items scraped for vodka`);
+        }
+        catch(err){
+            console.log("There was an error while scraping vodka");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.vodka && vodkaData?.length==0)
+        try{
+            vodkaData = await vodka(start,end,browser);
+            console.log(`${vodkaData?.length} data items scraped for vodka`);
+            if(vodkaData?.length==0){
+                state.ishopchangi.vodka = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping vodka");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.rum)
+        try{
+            rumData = await rum(start,end,browser);
+            console.log(`${rumData?.length} data items scraped for rum`);
+        }
+        catch(err){
+            console.log("There was an error while scraping rum");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.rum && rumData?.length==0)
+        try{
+            rumData = await rum(start,end,browser);
+            console.log(`${rumData?.length} data items scraped for rum`);
+            if(rumData?.length==0){
+                state.ishopchangi.rum = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping rum");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.baijiu)
+        try{
+            baijiuData = await baijiu(start,end,browser);
+            console.log(`${baijiuData?.length} data items scraped for baijiu`);
+        }
+        catch(err){
+            console.log("There was an error while scraping baijiu");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.baijiu && baijiuData?.length==0)
+        try{
+            baijiuData = await baijiu(start,end,browser);
+            console.log(`${baijiuData?.length} data items scraped for baijiu`);
+            if(baijiuData?.length==0){
+                state.ishopchangi.baijiu = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping baijiu");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.gin)
+        try{
+            ginData = await gin(start,end,browser);
+            console.log(`${ginData?.length} data items scraped for gin`);
+        }
+        catch(err){
+            console.log("There was an error while scraping gin");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.gin && ginData?.length==0)
+        try{
+            ginData = await gin(start,end,browser);
+            console.log(`${ginData?.length} data items scraped for gin`);
+            if(ginData?.length==0){
+                state.ishopchangi.gin = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping gin");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.cognac)
+        try{
+            cognacData = await cognac(start,end,browser);
+            console.log(`${cognacData?.length} data items scraped for cognac`);
+        }
+        catch(err){
+            console.log("There was an error while scraping cognac");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.cognac && cognacData?.length==0)
+        try{
+            cognacData = await cognac(start,end,browser);
+            console.log(`${cognacData?.length} data items scraped for cognac`);
+            if(cognacData?.length==0){
+                state.ishopchangi.cognac = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping cognac");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.brandy)
+        try{
+            brandyData = await brandy(start,end,browser);
+            console.log(`${brandyData?.length} data items scraped for brandy`);
+        }
+        catch(err){
+            console.log("There was an error while scraping brandy");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.brandy && brandyData?.length==0)
+        try{
+            brandyData = await brandy(start,end,browser);
+            console.log(`${brandyData?.length} data items scraped for brandy`);
+            if(brandyData?.length==0){
+                state.ishopchangi.brandy = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping brandy");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.stout)
+        try{
+            stoutData = await stout(start,end,browser);
+            console.log(`${stoutData?.length} data items scraped for stout`);
+        }
+        catch(err){
+            console.log("There was an error while scraping stout");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.stout && stoutData?.length==0)
+        try{
+            stoutData = await stout(start,end,browser);
+            console.log(`${stoutData?.length} data items scraped for stout`);
+            if(stoutData?.length==0){
+                state.ishopchangi.stout = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping stout");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.craft_beer)
+        try{
+            craftBeerData = await craft_beer(start,end,browser);
+            console.log(`${craftBeerData?.length} data items scraped for craft beer`);
+        }
+        catch(err){
+            console.log("There was an error while scraping craft beer");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.craft_beer && craftBeerData?.length==0)
+        try{
+            craftBeerData = await craft_beer(start,end,browser);
+            console.log(`${craftBeerData?.length} data items scraped for craft beer`);
+            if(craftBeerData?.length==0){
+                state.ishopchangi.craft_beer = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping craft beer");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.red_wines)
+        try{
+            redWinesData = await red_wines(start,end,browser);
+            console.log(`${redWinesData?.length} data items scraped for red wines`);
+        }
+        catch(err){
+            console.log("There was an error while scraping red wines");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.red_wines && redWinesData?.length==0)
+        try{
+            redWinesData = await red_wines(start,end,browser);
+            console.log(`${redWinesData?.length} data items scraped for red wines`);
+            if(redWinesData?.length==0){
+                state.ishopchangi.red_wines = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping red wines");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.white_wines)
+        try{
+            whiteWinesData = await white_wines(start,end,browser);
+            console.log(`${whiteWinesData?.length} data items scraped for white wines`);
+        }
+        catch(err){
+            console.log("There was an error while scraping white wines");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.white_wines && whiteWinesData?.length==0)
+        try{
+            whiteWinesData = await white_wines(start,end,browser);
+            console.log(`${whiteWinesData?.length} data items scraped for white wines`);
+            if(whiteWinesData?.length==0){
+                state.ishopchangi.white_wines = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping white wines");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.sparkling_wine)
+        try{
+            sparklingWineData = await sparkling_wine(start,end,browser);
+            console.log(`${sparklingWineData?.length} data items scraped for sparkling wine`);
+        }
+        catch(err){
+            console.log("There was an error while scraping sparkling wine");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.sparkling_wine && sparklingWineData?.length==0)
+        try{
+            sparklingWineData = await sparkling_wine(start,end,browser);
+            console.log(`${sparklingWineData?.length} data items scraped for sparkling wine`);
+            if(sparklingWineData?.length==0){
+                state.ishopchangi.sparkling_wine = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping sparkling wine");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.champagnes)
+        try{
+            champagnesData = await champagnes(start,end,browser);
+            console.log(`${champagnesData?.length} data items scraped for champagnes`);
+        }
+        catch(err){
+            console.log("There was an error while scraping champagnes");
+            logError(err);
+        }
+
+    if(!state.ishopchangi.champagnes && champagnesData?.length==0)
+        try{
+            champagnesData = await champagnes(start,end,browser);
+            console.log(`${champagnesData?.length} data items scraped for champagnes`);
+            if(champagnesData?.length==0){
+                state.ishopchangi.champagnes = true;
+            }
+        }
+        catch(err){
+            console.log("There was an error while scraping champagnes");
+            logError(err);
+        }
+
     //merge all data (beauty + electronics + food and beverages + health and wellness + fashion + home and living + babies and kids + souvenirs + travel and services + liquor)
-    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData, ...babiesAndKidsFashionData, ...babyGearsData, ...bathData, ...feedingAndNursingData, ...nurseryData, ...toysAndGamesData, ...souvenirsFashionData, ...souvenirsCollectiblesData, ...luggagesData, ...travelBagsData, ...electronicsTravelData, ...travelEssentialsData, ...spiritsSingleMaltData, ...americanWhiskeyData, ...scotchBlendedWhiskeyData, ...japaneseWhiskeyData];
+    allData = [...skinCareData, ...makeupData, ...hairCareData, ...fragranceData, ...bathAndBeautyData, ...computersData, ...mobileDevicesData, ...audioDevicesData, ...camerasData, ...snacksData, ...coffeeTeaData, ...healthFoodData, ...souvenirFoodData, ...foodStaplesData, ...familyPlanningData, ...personalCareData, ...wellnessAccessoriesData, ...healthSupplementsData, ...medicalSuppliesData, ...medicationData, ...foodCareData, ...womensFashionBagsData, ...womensSmallLeatherGoodsData, ...womensFashionWatchesData, ...womensFashionJewelleryData, ...womensFashionAccessoriesData, ...womensFashionShoesData, ...womensApparelsData, ...mensFashionBagsData, ...mensSmallLeatherGoodsData, ...mensFashionWatchesData, ...mensFashionJewelleryData, ...mensFashionAccessoriesData, ...mensFashionShoesData, ...mensApparelsData, ...kitchenAndDiningData, ...personalCareHomeAndLivingData, ...beautyToolsData, ...wellnessAndHealthDevicesData, ...householdEssentialsData, ...babiesAndKidsFashionData, ...babyGearsData, ...bathData, ...feedingAndNursingData, ...nurseryData, ...toysAndGamesData, ...souvenirsFashionData, ...souvenirsCollectiblesData, ...luggagesData, ...travelBagsData, ...electronicsTravelData, ...travelEssentialsData, ...spiritsSingleMaltData, ...americanWhiskeyData, ...scotchBlendedWhiskeyData, ...japaneseWhiskeyData, ...tequilaData, ...vodkaData, ...rumData, ...baijiuData, ...ginData, ...cognacData, ...brandyData, ...stoutData, ...craftBeerData, ...redWinesData, ...whiteWinesData, ...sparklingWineData, ...champagnesData];
 
     //process data
     try{
