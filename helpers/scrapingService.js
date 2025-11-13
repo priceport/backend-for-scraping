@@ -629,7 +629,20 @@ doneIshopchangi=false;
         spirits_single_malt:false,
         american_whiskey:false,
         scotch_blended_whiskey:false,
-        japanese_whiskey:false
+        japanese_whiskey:false,
+        tequila:false,
+        vodka:false,
+        rum:false,
+        baijiu:false,
+        gin:false,
+        cognac:false,
+        brandy:false,
+        stout:false,
+        craft_beer:false,
+        red_wines:false,
+        white_wines:false,
+        sparkling_wine:false,
+        champagnes:false
       },
   };
 
