@@ -422,7 +422,8 @@ doneDanMurphy=true;
       kiwi_classics:false,
       international_beer:false,
       low_alc_beer:false,
-      non_alc_beer:false
+      non_alc_beer:false,
+      kiwi_craft:false
     },
     bigBarrel: {
       spirits: false,

@@ -20,6 +20,7 @@ const international_beer = require("../scripts/scraping_scripts/domestic/liquorl
 const low_alc_beer = require("../scripts/scraping_scripts/domestic/liquorland/low_alc_beer");
 const non_alc_beer = require("../scripts/scraping_scripts/domestic/liquorland/non_alc_beer");
 const nz_boutique = require("../scripts/scraping_scripts/domestic/liquorland/nz_boutique");
+const kiwi_craft = require("../scripts/scraping_scripts/domestic/liquorland/kiwi_craft");
 const commercial_brands = require("../scripts/scraping_scripts/domestic/liquorland/commercial_brands");
 const australia_asia = require("../scripts/scraping_scripts/domestic/liquorland/australia_asia");
 const european = require("../scripts/scraping_scripts/domestic/liquorland/european");
@@ -65,7 +66,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   //variable initialization
   let darkRumData = [], whiteRumData = [], scotchWhiskyData = [] , irishWhiskyData = [], nzWhiskyData = [];
   let aperitifsData = [], cocktailEssentialsData = [], cremeLiqueursData = [], schnappsData = [], vermouthData = [], standardLiqueursData = [];
-  let premiumBeerData = [], lighterBeerData = [], mainstreamBeerData = [], budgetBeerData = [], lowCarbBeerData = [], kiwiClassicsData = [], internationalBeerData = [], lowAlcBeerData = [], nonAlcBeerData = [], nzBoutiqueData = [];
+  let premiumBeerData = [], lighterBeerData = [], mainstreamBeerData = [], budgetBeerData = [], lowCarbBeerData = [], kiwiClassicsData = [], internationalBeerData = [], lowAlcBeerData = [], nonAlcBeerData = [], nzBoutiqueData = [], kiwiCraftData = [];
   let commercialBrandsData = [], australiaAsiaData = [], europeanData = [], usMexicoData = [];
   let pinotNoirData = [], shirazSyrahData = [], cabernetData = [], merlotData = [], internationalRedData = [], otherRedData = [];
   let sauvignonBlancData = [], pinotGrisData = [], chardonnayData = [], rieslingData = [], viognierData = [], gewurztraminerData = [], dessertData = [], internationalWhiteData = [], otherWhiteData = [];
@@ -534,6 +535,28 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     }
   }catch(err){
     console.log("There was an error while scraping nz boutique");
+    logError(err);
+  }
+
+  if (!state.liquorland.kiwi_craft) {
+    console.log("-----------kiwi craft------------");
+    try {
+      kiwiCraftData = await kiwi_craft(start, end, browser);
+      console.log(`${kiwiCraftData?.length} data items scraped for kiwi craft`);
+    } catch (err) {
+      console.log("There was an error while scraping kiwi craft");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.kiwi_craft&&kiwiCraftData?.length==0)
+  try{
+    kiwiCraftData = await kiwi_craft(start, end, browser);
+    if(kiwiCraftData?.length==0){
+      state.liquorland.kiwi_craft = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping kiwi craft");
     logError(err);
   }
 
@@ -1241,7 +1264,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
   //merge data
-  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...standardLiqueursData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...kiwiClassicsData, ...internationalBeerData, ...lowAlcBeerData, ...nonAlcBeerData, ...nzBoutiqueData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData, ...waterData, ...juiceData, ...carbonatedData, ...cordialsData, ...energySportsData, ...confectioneryData, ...flavouredWhiskyData, ...bourbonData, ...ginData, ...vodkaData, ...tequilaData, ...readyMadeCocktailsData, ...allSpiritsData];
+  let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...standardLiqueursData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...kiwiClassicsData, ...internationalBeerData, ...lowAlcBeerData, ...nonAlcBeerData, ...nzBoutiqueData, ...kiwiCraftData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData, ...waterData, ...juiceData, ...carbonatedData, ...cordialsData, ...energySportsData, ...confectioneryData, ...flavouredWhiskyData, ...bourbonData, ...ginData, ...vodkaData, ...tequilaData, ...readyMadeCocktailsData, ...allSpiritsData];
 
   //process data
   try {
