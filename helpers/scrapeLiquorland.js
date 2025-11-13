@@ -40,7 +40,7 @@ const carbonated = require("../scripts/scraping_scripts/domestic/liquorland/carb
 const cordials = require("../scripts/scraping_scripts/domestic/liquorland/cordials");
 const energy_sports = require("../scripts/scraping_scripts/domestic/liquorland/energy_sports");
 const confectionery = require("../scripts/scraping_scripts/domestic/liquorland/confectionery");
-
+const flavoured_whisky = require("../scripts/scraping_scripts/domestic/liquorland/flavoured_whisky");
 //processing script imports
 const processDataForSpirits = require("./data_processing/liquorland/spirits");
 
@@ -59,7 +59,7 @@ const scrapeLiquorland = async (start, end, state, browser) => {
   let pinotNoirData = [], shirazSyrahData = [], cabernetData = [], merlotData = [], internationalRedData = [], otherRedData = [];
   let sauvignonBlancData = [], pinotGrisData = [], chardonnayData = [], rieslingData = [], viognierData = [], gewurztraminerData = [], dessertData = [], internationalWhiteData = [], otherWhiteData = [];
   let waterData = [], juiceData = [], carbonatedData = [], cordialsData = [], energySportsData = [];
-  let confectioneryData = [];
+  let confectioneryData = [], flavouredWhiskyData = [];
 
   if (!state.liquorland.dark_rum) {
     console.log("-----------dark rum------------");
@@ -68,7 +68,6 @@ const scrapeLiquorland = async (start, end, state, browser) => {
       console.log(`${darkRumData?.length} data items scraped for dark rum`);
     } catch (err) {
       console.log("There was an error while scraping dark rum:", err.message);
-      console.log("This is likely due to regional blocking or connection issues");
       logError(err);
       state.liquorland.dark_rum = true;
     }
@@ -966,6 +965,27 @@ const scrapeLiquorland = async (start, end, state, browser) => {
     logError(err);
   }
 
+  if (!state.liquorland.flavoured_whisky) {
+    console.log("-----------flavoured whisky------------");
+    try {
+      flavouredWhiskyData = await flavoured_whisky(start, end, browser);
+      console.log(`${flavouredWhiskyData?.length} data items scraped for flavoured whisky`);
+    } catch (err) {
+      console.log("There was an error while scraping flavoured whisky");
+      logError(err);
+    }
+  }
+
+  if(!state.liquorland.flavoured_whisky&&flavouredWhiskyData?.length==0)
+  try{
+    flavouredWhiskyData = await flavoured_whisky(start, end, browser);
+    if(flavouredWhiskyData?.length==0){
+      state.liquorland.flavoured_whisky = true;
+    }
+  }catch(err){
+    console.log("There was an error while scraping flavoured whisky");
+    logError(err);
+  }
   //merge data
   let allData = [...darkRumData, ...whiteRumData, ...scotchWhiskyData, ...irishWhiskyData, ...nzWhiskyData, ...aperitifsData, ...cocktailEssentialsData, ...cremeLiqueursData, ...schnappsData, ...vermouthData, ...premiumBeerData, ...lighterBeerData, ...mainstreamBeerData, ...budgetBeerData, ...lowCarbBeerData, ...nzBoutiqueData, ...commercialBrandsData, ...australiaAsiaData, ...europeanData, ...usMexicoData, ...pinotNoirData, ...shirazSyrahData, ...cabernetData, ...merlotData, ...internationalRedData, ...otherRedData, ...sauvignonBlancData, ...pinotGrisData, ...chardonnayData, ...rieslingData, ...viognierData, ...gewurztraminerData, ...dessertData, ...internationalWhiteData, ...otherWhiteData, ...waterData, ...juiceData, ...carbonatedData, ...cordialsData, ...energySportsData, ...confectioneryData];
 

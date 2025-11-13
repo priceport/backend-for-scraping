@@ -3,216 +3,160 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
-const handleAgeVerification = require('../../../../helpers/ageVerificationHandler');
 
 const scotch_whisky = async (start, end, browser) => {
   let pageNo = start;
-  const baseUrl = 'https://www.liquorland.co.nz/shop/spirits/whiskey/scotch-whisky?FF=&InStoreOnly=false&P.StartPage=';
-  const urlSuffix = '&P.LoadToPage=&CategoryId=2705&sorting=Suggested&SelectedView=0';
+  const url = 'https://www.liquorland.co.nz/spirits/whisky/scotch-whisky?p=';
   
   const page = await browser.newPage();
   const allProducts = [];
   
   try {
-    // Simple setup like baijiu.js
+    // Set viewport and user agent for headless mode compatibility
+    await page.setViewport({ width: 1920, height: 1080 });
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     
-    await page.setRequestInterception(true);
-    page.on('request', (req) => {
-      const resourceType = req.resourceType();
-      
-      // Allow document, script, stylesheet, and XHR/fetch (needed for store selection)
-      if (resourceType === 'document' || resourceType === 'script' || resourceType === 'stylesheet' || resourceType === 'xhr' || resourceType === 'fetch') {
-        req.continue();
-      } 
-      // Block images, fonts, and other resources to speed up loading
-      else if (resourceType === 'image' || resourceType === 'font' || resourceType === 'media') {
-        req.abort();
-      }
-      // Allow everything else for now to ensure store selection works
-      else {
-        req.continue();
-      }
-    });
-
-    console.log('Setting store selection cookies before navigation...');
-    try {
-      await page.setCookie(
-        {
-          name: 'lq-store-selection',
-          value: '2024',
-          domain: '.liquorland.co.nz',
-          path: '/'
-        }
-      );
-      console.log('Store selection cookie set: lq-store-selection=2024');
-    } catch (cookieErr) {
-      console.log('Pre-navigation cookie setting failed:', cookieErr.message);
-    }
+    // Enable request interception to block unnecessary resources
+    await page.setRequestInterception(false);
 
     while (true) {
       await waitForXTime(constants.timeout);
+      await page.goto(url + pageNo + '&s%5Brelevance%5D=desc', { waitUntil: 'networkidle2' });
       
-      let fullUrl = baseUrl + pageNo + urlSuffix;
-      
+      // Handle modals only on first page (they persist via cookies)
       if (pageNo === start) {
-        fullUrl += '&storeId=2024';
-        console.log(`Adding store parameter to URL for first page`);
-      }
-      
-      console.log(`Navigating to page ${pageNo}...`);
-      console.log(`URL: ${fullUrl}`);
-      
-      await page.goto(fullUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      console.log(`Successfully loaded page ${pageNo}`);
-      
-      // Handle age verification and store selection on first page only
-      if (pageNo === start) {
-        console.log('Handling age verification (first page only)...');
-        const ageVerificationSuccess = await handleAgeVerification(page);
-        if (!ageVerificationSuccess) {
-          console.log('Warning: Age verification might not have been handled properly');
+        // Handle age verification modal
+        try {
+          await page.waitForSelector('.ps-popup.popup-ageGate');
+          const yesButton = await page.$('.age-gate-buttons__button[aria-label*="Yes"]');
+          if (yesButton) {
+            await yesButton.click();
+            await waitForXTime(1000);
+          }
+        } catch (err) {
+          // Age gate might not appear
         }
         
-        // Verify store selection and try API call if needed
+        // Handle welcome popup modal (press ESC to close)
         try {
-          console.log('Verifying store selection...');
+          await page.waitForSelector('.popup-welcome__form');
+          await page.keyboard.press('Escape');
+          await waitForXTime(500);
+        } catch (err) {
+          // Welcome popup might not appear
+        }
+      }
+      
+      // Set store preference on EVERY page (required to get prices)
+      try {
+        const storeResult = await page.evaluate(async () => {
+          const formdata = new FormData();
+          formdata.append("storeid", "37");
           
-          // Check if prices are already showing (cookie might have worked)
-          const initialPriceCheck = await page.evaluate(() => {
-            const priceElements = document.querySelectorAll('.current-price, .list-price, [class*="price"]');
-            let actualPrices = 0;
-            priceElements.forEach(el => {
-              const text = el.innerText?.trim();
-              if (text && text.includes('$') && !text.includes('Choose')) {
-                actualPrices++;
-              }
-            });
-            return actualPrices;
+          const response = await fetch('/api/stores/preferred', {
+            method: 'POST',
+            headers: {
+              'Accept': '*/*',
+              'Sec-Fetch-Site': 'same-origin',
+              'Sec-Fetch-Mode': 'cors',
+              'Sec-Fetch-Dest': 'empty'
+            },
+            body: formdata,
+            credentials: 'include'
           });
+          return { success: response.ok, status: response.status };
+        });
+        
+        if (storeResult.success) {
+          // Reload page to ensure prices are loaded with store preference
+          await page.reload({ waitUntil: 'networkidle2' });
           
-          if (initialPriceCheck > 0) {
-            console.log('✅ Store selection already working - prices found!');
-          } else {
-            console.log('⚠️ No prices found, trying API store selection...');
+          // Wait for products and prices to appear
+          try {
+            await page.waitForSelector('.ps-category-item');
             
-            // Try API store selection
-            const storeResult = await page.evaluate(async () => {
-              try {
-                const response = await fetch('/LLStoreInfo/SetStoreId?selectedStoreId=2024&X-Requested-With=XMLHttpRequest', {
-                  method: 'GET',
-                  headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                  credentials: 'include'
-                });
-                return { success: response.ok, status: response.status };
-              } catch (e) {
-                return { success: false, error: e.message };
+            // Wait for prices to appear
+            let pricesFound = false;
+            const maxWaitTime = 10000;
+            const checkInterval = 500;
+            let elapsedTime = 0;
+            
+            while (!pricesFound && elapsedTime < maxWaitTime) {
+              const priceCount = await page.evaluate(() => {
+                return document.querySelectorAll('.s-site-price, .s-price').length;
+              });
+              
+              if (priceCount > 0) {
+                pricesFound = true;
+                break;
               }
-            });
-            
-            console.log('Store API result:', storeResult);
-            
-            if (storeResult.success) {
-              console.log('Store API successful, reloading page...');
-              await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-              await waitForXTime(3000);
+              
+              await waitForXTime(checkInterval);
+              elapsedTime += checkInterval;
             }
+          } catch (err) {
+            // Products did not appear
           }
-          
-        } catch (err) {
-          console.log('Store verification failed:', err.message);
         }
-      } else {
-        console.log(`Skipping age verification for page ${pageNo} (only needed on first page)`);
+      } catch (err) {
+        // Store preference setting failed
       }
       
-      // Verify store selection worked by checking for actual prices (first page only)
-      if (pageNo === start) {
-        try {
-          const priceCheck = await page.evaluate(() => {
-            const priceElements = document.querySelectorAll('.current-price, .list-price, [class*="price"]');
-            let actualPrices = 0;
-            let storeSelectionText = 0;
-            
-            priceElements.forEach(el => {
-              const text = el.innerText?.trim();
-              if (text && text.includes('$') && !text.includes('Choose')) {
-                actualPrices++;
-              } else if (text && text.includes('Choose a store')) {
-                storeSelectionText++;
-              }
-            });
-            
-            console.log("actual prices", actualPrices);
-            console.log("store selection text", storeSelectionText);
-            // console.log("total price elements", priceElements.length);
-
-            return { actualPrices, storeSelectionText, total: priceElements.length };
-          });
+      // Scroll to load all products (lazy loading)
+      await page.evaluate(async () => {
+        let lastHeight = document.body.scrollHeight;
+        let currentHeight = lastHeight;
+        let scrollAttempts = 0;
+        const maxScrollAttempts = 10;
+        
+        do {
+          // Scroll to bottom
+          window.scrollTo(0, document.body.scrollHeight);
+          await new Promise(r => setTimeout(r, 300));
           
-          console.log(`Store selection verification: ${priceCheck.actualPrices} actual prices, ${priceCheck.storeSelectionText} "Choose store" texts, ${priceCheck.total} total price elements`);
-          
-          if (priceCheck.actualPrices > 0) {
-            console.log('✅ Store selection successful - actual prices found!');
-          } else {
-            console.log('⚠️ Store selection may not have worked - no actual prices found');
-          }
-        } catch (err) {
-          console.log('Could not verify store selection:', err.message);
-        }
-      }
+          // Check if new content loaded
+          currentHeight = document.body.scrollHeight;
+          scrollAttempts++;
+        } while (currentHeight > lastHeight && scrollAttempts < maxScrollAttempts);
+        
+        // Final scroll to ensure we're at the bottom
+        window.scrollTo(0, document.body.scrollHeight);
+        await new Promise(r => setTimeout(r, 500));
+      });
       
-      const [products, missing] = await page.evaluate(() => {
+      await waitForXTime(1500);
+      
+      const [products, missing, totalElements] = await page.evaluate(() => {
+        const productElements = document.querySelectorAll('.ps-category-item');
+        const totalCount = productElements.length;
         const productList = [];
         let missing = 0;
 
-        // Simple product extraction like baijiu.js - use specific selector to avoid duplicates
-        const productElements = document.querySelectorAll('.list-item');
-        console.log(`Found ${productElements.length} product elements`);
-
-        productElements.forEach((product, index) => {
-          try {
-            // Extract title - simple approach
-            const titleElement = product.querySelector('.list-title-link, .list-title span, h1, h2, h3, h4, h5, h6, [class*="title"], [class*="name"]');
+        productElements.forEach(product => {
+          const titleElement = product.querySelector('.s-product__name');
+          const priceElement = product.querySelector('.s-site-price, .s-price');
+          const urlElement = product.querySelector('.s-product__name');
+          const imgElement = product.querySelector('.s-product-gallery img');
+    
             const title = titleElement ? titleElement.innerText.trim() : null;
-            
-            // Extract price - simple approach
-            const priceElement = product.querySelector('.current-price, .list-price, [class*="price"]');
             const price = priceElement ? priceElement.innerText.trim() : null;
-            
-            // Extract URL
-            const urlElement = product.querySelector('a[href]');
             const url = urlElement ? urlElement.href : null;
-            
-            // Extract image
-            const imgElement = product.querySelector('img');
-            const img = imgElement ? (imgElement.src || imgElement.getAttribute('data-src') || imgElement.getAttribute('data-main-src')) : null;
-            
-            // Extract brand (if available)
-            const brandElement = product.querySelector('[class*="brand"], .brand');
-            const brand = brandElement ? brandElement.innerText.trim() : null;
-
-            // Check if required fields are missing
-            if (!title || !price || !url) {
+          const img = imgElement ? (imgElement.src || imgElement.getAttribute('data-src')) : null;
+    
+          if (!title || !price || !url || !img) {
               missing += 1;
             }
 
-            // Only add if we have title and price
-            if (title && price) {
-              console.log(`Product ${index + 1}: ${title} - ${price}`);
-              
+          if (!title || !price || !url) {
+          } else {
               productList.push({
                 title,
-                brand,
+              brand: null, 
                 price,
                 promo: null,
                 url,
                 category: 'liquor',
-                source: { 
-                  website_base: "https://www.liquorland.co.nz", 
-                  location: "new-zealand", 
-                  tag: "domestic" 
-                },
+              source: { website_base: "https://www.liquorland.co.nz", location: "new-zealand", tag: "domestic" }, 
                 date: Date.now(),
                 last_check: Date.now(),
                 mapping_ref: null,
@@ -220,24 +164,20 @@ const scotch_whisky = async (start, end, browser) => {
                 subcategory: 'scotch_whisky',
                 img
               });
-            }
-            
-          } catch (err) {
-            console.log('Error parsing product:', err);
-            missing += 1;
           }
         });
 
-        return [productList, missing];
+        return [productList, missing, totalCount];
       });
 
       if (missing > 5) {
-        await insertScrapingError("More than 5 entries missing for liquorland - dark_rum: " + pageNo, "scraping_missing");
+        await insertScrapingError("More than 5 entries missing for liquorland - scotch_whisky: " + pageNo, "scraping_missing");
       }
 
       allProducts.push(...products);
 
-      if (products?.length == 0 || pageNo == end) {
+      // Check if we should stop: no products found OR reached the end page
+      if (pageNo === end) {
         await page.close();
         return allProducts;
       }
@@ -248,7 +188,7 @@ const scotch_whisky = async (start, end, browser) => {
   } catch (err) {
     logError(err);
     try {
-      await insertScrapingError("Error in liquorland - dark_rum: " + err.message, "scraping_trycatch");
+      await insertScrapingError("Error in liquorland - scotch_whisky: " + err.message, "scraping_trycatch");
     } catch (err) {
       console.log(err);
     }
@@ -258,5 +198,3 @@ const scotch_whisky = async (start, end, browser) => {
 }
 
 module.exports = scotch_whisky;
-
-

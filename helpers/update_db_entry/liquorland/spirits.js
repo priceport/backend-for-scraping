@@ -7,6 +7,8 @@ const updateDBEntry = async (data) => {
   let iterator = 0;
   let db_ops = 0;
   let new_prices = 0;
+  let product_created = 0;
+  let product_updated = 0;
 
   while (iterator < data?.length) {
     try {
@@ -59,6 +61,7 @@ const updateDBEntry = async (data) => {
           [product?.rows[0]?.id, price[0].price, "liquorland", price_per_unit]
         );
         new_prices += 1;
+        product_created += 1;
       } else {
         // Check the most recent price for this product and website
         const latestPrice = await pool.query(
@@ -72,7 +75,7 @@ const updateDBEntry = async (data) => {
 
         const existingPrice = latestPrice.rows[0]?.price || 'No existing price';
         const newPrice = price[0].price.toFixed(3);
-        console.log(`Price comparison: ${existingPrice} vs ${newPrice}`);
+        // console.log(`Price comparison: ${existingPrice} vs ${newPrice}`);
         
         if (
           latestPrice.rowCount === 0 ||
@@ -94,7 +97,7 @@ const updateDBEntry = async (data) => {
           [product?.rows[0]?.id, "new zealand"]
         );
       }
-
+      product_updated += 1;
       db_ops += 1;
     } catch (err) {
       logError(err);
@@ -105,6 +108,8 @@ const updateDBEntry = async (data) => {
 
   console.log("total ops:" + db_ops);
   console.log("new prices:" + new_prices);
+  console.log("product created:" + product_created);
+  console.log("product updated:" + product_updated);
 };
 
 module.exports = updateDBEntry;

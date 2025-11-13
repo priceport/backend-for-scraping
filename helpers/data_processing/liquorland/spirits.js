@@ -55,7 +55,6 @@ const processDataForSpirits = async (data)=>{
         // Clean price - remove $ or NZ$ prefix
         let cleanPrice = rawData.price.replace(/^\$/, "").replace("NZ$","");
         
-        console.log(`Processing product: "${rawData.title}" with price: "${rawData.price}" -> cleaned: "${cleanPrice}"`);
         
         // Check if price is valid (contains numbers and is not a placeholder)
         if (!cleanPrice || 
@@ -69,10 +68,9 @@ const processDataForSpirits = async (data)=>{
         }
         
         const convertedPrice = nzd_to_usd(cleanPrice,"liquorland");
-        console.log(`Price conversion: "${cleanPrice}" -> "${convertedPrice}"`);
         
         if(convertedPrice == "Invalid input" || convertedPrice == null || convertedPrice == undefined){
-            console.log(`Skipping product with invalid price conversion: "${rawData.title}" - "${rawData.price}" -> converted: "${convertedPrice}"`);
+            // console.log(`Skipping product with invalid price conversion: "${rawData.title}" - "${rawData.price}" -> converted: "${convertedPrice}"`);
             iterator+=1;
             continue;
         } 

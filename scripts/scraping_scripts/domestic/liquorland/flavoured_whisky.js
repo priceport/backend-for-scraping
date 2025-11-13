@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const dark_rum = async (start, end, browser) => {
+const flavoured_whisky = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.liquorland.co.nz/spirits/rum/dark-rum?p=';
+  const url = 'https://www.liquorland.co.nz/spirits/whisky/flavoured-whisky?p=';
   
   const page = await browser.newPage();
   const allProducts = [];
@@ -161,7 +161,7 @@ const dark_rum = async (start, end, browser) => {
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'dark_rum',
+              subcategory: 'flavoured_whisky',
               img
             });
           }
@@ -172,7 +172,7 @@ const dark_rum = async (start, end, browser) => {
       
 
       if (missing > 5) {
-        await insertScrapingError("More than 5 entries missing for liquorland - dark_rum: " + pageNo, "scraping_missing");
+        await insertScrapingError("More than 5 entries missing for liquorland - flavoured_whisky: " + pageNo, "scraping_missing");
       }
 
       allProducts.push(...products);
@@ -189,7 +189,7 @@ const dark_rum = async (start, end, browser) => {
   } catch (err) {
     logError(err);
     try {
-      await insertScrapingError("Error in liquorland - dark_rum: " + err.message, "scraping_trycatch");
+      await insertScrapingError("Error in liquorland - flavoured_whisky: " + err.message, "scraping_trycatch");
     } catch (err) {
       console.log(err);
     }
@@ -198,6 +198,5 @@ const dark_rum = async (start, end, browser) => {
   }
 }
 
-module.exports = dark_rum;
-
+module.exports = flavoured_whisky;
 

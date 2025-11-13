@@ -410,7 +410,8 @@ doneDanMurphy=true;
       carbonated:false,
       cordials:false,
       energy_sports:false,
-      confectionery:false
+      confectionery:false,
+      flavoured_whisky:false
     },
     bigBarrel: {
       spirits: false,
