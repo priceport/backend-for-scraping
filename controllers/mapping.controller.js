@@ -429,6 +429,31 @@ const getProductsInGroup = catchAsync(async (req, res, next) => {
     });
 });
 
+const getMappedSourcesByCanprodId = catchAsync(async (req, res, next) => {
+    const { canprod_id } = req.query;
+
+    if (!canprod_id) {
+        return next(new AppError("canprod_id is required", 400));
+    }
+
+    const result = await pool.query(
+        `SELECT DISTINCT website 
+         FROM product 
+         WHERE canprod_id = $1
+           AND last_checked::date > current_date - INTERVAL '35 days'`,
+        [canprod_id]
+    );
+
+    const sources = result.rows.map(row => row.website);
+
+    return res.status(200).json({
+        status: "successful",
+        data: {
+            sources: sources
+        }
+    });
+});
+
 module.exports = {
     getAllUnmappedProductsFromSource,
     getSimilarityByTitleFromSource,
@@ -436,5 +461,6 @@ module.exports = {
     addProductToMapping,
     addMultipleProductsToMapping,
     makeProductUnseen,
-    getProductsInGroup
+    getProductsInGroup,
+    getMappedSourcesByCanprodId
 }
