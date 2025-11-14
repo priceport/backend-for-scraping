@@ -404,15 +404,15 @@ const getProductsInGroup = catchAsync(async (req, res, next) => {
     }
 
     const { canprod_id, source } = req.query;
-    const days = 30; 
+    const days = 35; 
 
     const products = await pool.query(
         `SELECT * FROM product 
          WHERE canprod_id = $1 
            AND website = $2 
-           AND last_checked::date > current_date - ($3 || ' days')::INTERVAL
+           AND last_checked::date > current_date - INTERVAL '35 days'
          ORDER BY last_checked DESC`,
-        [canprod_id, source, days]
+        [canprod_id, source]
     );
 
     const shouldShowGroup = products.rows.length === 0;
