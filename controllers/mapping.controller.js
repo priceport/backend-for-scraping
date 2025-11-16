@@ -85,41 +85,79 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
     `,[req.query.title,req.query.source]);
 
     const { title, source } = req.query;
+    const unmapped = req.query.unmapped === 'true';
 
     let result, matches = {}, similarity = 0.3;
+    const seenProductIds = new Set(); 
+    const seenCanprodIds = new Set(); 
 
-    console.log("fetching similar products");
+    const allProductsForOpenAI = [];
+    
     while (similarity > 0.2) {
         // Query all other websites except the source
         result = await pool.query(
-            `SELECT 
-                source.*,
+            `SELECT DISTINCT ON (destination.id)
                 destination.*
              FROM 
                 product AS source
              JOIN 
                 product AS destination
              ON 
-                source.title = $1 
-                
-                AND SIMILARITY(source.title, destination.title) > $2
+                source.title = $1
+                AND SIMILARITY(LOWER(source.title), LOWER(destination.title)) > $2
                 AND destination.website != $3
+                AND (
+                    $4 = true OR destination.canprod_id IS NULL
+                )
              WHERE 
                 source.website = $3
                 AND source.id != destination.id`,
-            [title, similarity, source]
+            [title, similarity, source, unmapped]
         );
 
         if (result?.rows?.length > 0) {
             if (!matches[similarity]) matches[similarity] = [];
-            matches[similarity].push(...result.rows);
+            
+            for (const row of result.rows) {
+                if (seenProductIds.has(row.id)) continue;
+                seenProductIds.add(row.id);
+                
+                if (row.canprod_id && unmapped && !seenCanprodIds.has(row.canprod_id)) {
+                    seenCanprodIds.add(row.canprod_id);
+                    console.log(`  Found product in group ${row.canprod_id}: "${row.title}" (${row.website})`);
+                    
+                    const groupProducts = await pool.query(
+                        `SELECT * FROM product 
+                         WHERE canprod_id = $1 
+                           AND website != $2
+                           AND last_checked::date > current_date - INTERVAL '35 days'
+                         ORDER BY last_checked DESC`,
+                        [row.canprod_id, source]
+                    );
+                    
+                    console.log(`  Expanding group ${row.canprod_id}: found ${groupProducts.rows.length} products`);
+                    
+                    for (const groupProduct of groupProducts.rows) {
+                        if (!seenProductIds.has(groupProduct.id)) {
+                            seenProductIds.add(groupProduct.id);
+                            matches[similarity].push(groupProduct);
+                            allProductsForOpenAI.push(groupProduct);
+                            console.log(`    Added: "${groupProduct.title}" (${groupProduct.website})`);
+                        }
+                    }
+                } else if (!row.canprod_id) {
+                    matches[similarity].push(row);
+                    allProductsForOpenAI.push(row);
+                    console.log(`  Added unmapped product: "${row.title}" (${row.website})`);
+                }
+            }
         }
 
         similarity = (parseFloat(similarity) - 0.1).toFixed(1);
     }
 
-    console.log("filtering similar products using openai from "+matches["0.3"]?.length+" products");
-    let newData = await filterCandidates({title:req.query.title},matches["0.3"]?matches["0.3"]:[]);
+    console.log("filtering similar products using openai from "+allProductsForOpenAI.length+" products");
+    let newData = await filterCandidates({title:req.query.title}, allProductsForOpenAI);
     console.log(newData);
     
     return res.status(200).json({
@@ -404,7 +442,6 @@ const getProductsInGroup = catchAsync(async (req, res, next) => {
     }
 
     const { canprod_id, source } = req.query;
-    const days = 35; 
 
     const products = await pool.query(
         `SELECT * FROM product 
