@@ -1,5 +1,5 @@
 //processing script imports
-const medicines = require("../scripts/scraping_scripts/domestic/lifepharmacy/medicines");
+const medicines = require("../scripts/scraping_scripts/duty_free/lifepharmacy/medicines");
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
 const logError = require("./logError");
 
