@@ -632,6 +632,9 @@ const scrapingService =async ()=>{
         first_aid: false,
         hair_care: false,
         home_health_devices: false,
+        mens_fragrance: false,
+        womens_fragrance: false,
+        home_fragrance: false
       }
   };
 

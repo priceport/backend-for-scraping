@@ -5,6 +5,9 @@ const hair_care = require("../scripts/scraping_scripts/duty_free/lifepharmacy/ha
 const home_health_devices = require("../scripts/scraping_scripts/duty_free/lifepharmacy/home_health_devices");
 const medicines = require("../scripts/scraping_scripts/duty_free/lifepharmacy/medicines");
 const skincare_treatments = require("../scripts/scraping_scripts/duty_free/lifepharmacy/skincare_treatments");
+const men_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/men_fragrance");
+const womens_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/womens_fragrance");
+const home_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/home_fragrance");
 
 
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
@@ -18,7 +21,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
     console.log("scraping started for life pharmacy at:"+Date.now());
 
     //variable initialization
-    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [];
+    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [];
     
 
     if(!state.lifepharmacy.medicines)
@@ -147,7 +150,70 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData];
+    if(!state.lifepharmacy.mens_fragrance)
+    try{
+        menFragranceData = await men_fragrance(start,end,browser);
+        console.log(`${menFragranceData?.length} data items scraped for mens fragrance`);
+    }catch(err){
+        console.log("There was an error while scraping mens fragrance");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.mens_fragrance&&menFragranceData?.length==0)
+    try{
+        menFragranceData = await men_fragrance(start,end,browser);
+        console.log(`${menFragranceData?.length} data items scraped for mens fragrance`);
+        if(menFragranceData?.length==0){
+            state.lifepharmacy.mens_fragrance = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping mens fragrance");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.womens_fragrance)
+    try{
+        womensFragranceData = await womens_fragrance(start,end,browser);
+        console.log(`${womensFragranceData?.length} data items scraped for womens fragrance`);
+    }catch(err){
+        console.log("There was an error while scraping womens fragrance");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.womens_fragrance&&womensFragranceData?.length==0)
+    try{
+        womensFragranceData = await womens_fragrance(start,end,browser);
+        console.log(`${womensFragranceData?.length} data items scraped for womens fragrance`);
+        if(womensFragranceData?.length==0){
+            state.lifepharmacy.womens_fragrance = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping womens fragrance");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.home_fragrance)
+    try{
+        homeFragranceData = await home_fragrance(start,end,browser);
+        console.log(`${homeFragranceData?.length} data items scraped for home fragrance`);
+    }catch(err){
+        console.log("There was an error while scraping home fragrance");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.home_fragrance&&homeFragranceData?.length==0)
+    try{
+        homeFragranceData = await home_fragrance(start,end,browser);
+        console.log(`${homeFragranceData?.length} data items scraped for home fragrance`);
+        if(homeFragranceData?.length==0){
+            state.lifepharmacy.home_fragrance = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping home fragrance");
+        logError(err);
+    }
+
+    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData];
 
 
     // process data
