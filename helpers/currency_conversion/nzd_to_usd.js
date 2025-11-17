@@ -16,6 +16,7 @@ const nzd_to_usd = (nzd, source) => {
   } catch (err) {
     console.log("cant convert for value:" + nzd);
     logError(err);
+    return "Invalid input";
   }
 };
 

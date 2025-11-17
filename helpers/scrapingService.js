@@ -18,6 +18,7 @@ const scrapeLotteBrisbane = require("./scrapeLotteBrisbane");
 const scrapeLotteMelbourne = require("./scrapeLotteMelbourne");
 const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
+const scrapeLiquorland = require("./scrapeLiquorland");
 const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeDanMurphy = require("./scrapeDanMurphy");
@@ -48,6 +49,7 @@ const scrapingService =async ()=>{
     doneCairns = false,
     doneWhiskyAndMore = false,
     doneNzLiquor = false,
+    doneLiquorland = false;
     doneBigBarrel = false,
     doneSephora = false,
     doneBeautyBliss = false,
@@ -59,7 +61,7 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
   doneAuThemall = false,
-doneDanMurphy=false;
+doneDanMurphy=true;
 
 
   let start_page = 1,
@@ -370,6 +372,69 @@ doneDanMurphy=false;
       wine: false,
       beer: false,
     },
+    liquorland: {
+      spirits: false,
+      liqueurs: false,
+      dark_rum: false,
+      white_rum: false,
+      scotch_whisky: false,
+      irish_whiskey: false,
+      nz_whisky: false,
+      aperitifs: false,
+      creme_liqueurs: false,
+      schnapps: false,
+      vermouth: false,
+      budget_beer: false,
+      low_carb_beer: false,
+      nz_boutique: false,
+      pinot_noir: false,
+      shiraz_syrah: false,
+      cabernet: false,
+      merlot: false,
+      international_red: false,
+      sauvignon_blanc: false,
+      pinot_gris: false,
+      chardonnay: false,
+      riesling: false,
+      viognier: false,
+      gewurztraminer: false,
+      dessert: false,
+      international_white: false,
+      water:false,
+      juice:false,
+      carbonated:false,
+      cordials:false,
+      energy_sports:false,
+      confectionery:false,
+      chips_nuts:false,
+      flavoured_whisky:false,
+      bourbon:false,
+      gin:false,
+      vodka:false,
+      tequila:false,
+      ready_made_cocktails:false,
+      all_spirits:false,
+      standard_liqueurs:false,
+      kiwi_classics:false,
+      international_beer:false,
+      low_alc_beer:false,
+      non_alc_beer:false,
+      kiwi_craft:false,
+      rose:false,
+      sparkling:false,
+      spritz:false,
+      port_and_sherry:false,
+      cask:false,
+      non_alcoholic:false,
+      vodka_rtd:false,
+      gin_rtd:false,
+      bourbon_rtd:false,
+      whisky_rtd:false,
+      rum_rtd:false,
+      tequila_rtd:false,
+      cider:false,
+      
+    },
     bigBarrel: {
       spirits: false,
       wine: false,
@@ -587,7 +652,8 @@ doneDanMurphy=false;
     !doneAuMecca ||
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
-    !doneAuThemall
+    !doneAuThemall ||
+    !doneLiquorland
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
@@ -741,6 +807,22 @@ doneDanMurphy=false;
         console.log("There was an error while scraping from nz liquor");
         logError(err);
       }
+
+    if (!doneLiquorland) {
+      try {
+       
+          console.log("Using production mode for Liquorland (real scraping)");
+          doneLiquorland = await scrapeLiquorland(
+            start_page,
+            end_page,
+            internalStates,
+            browser
+          );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland");
+        logError(err);
+      }
+    }
 
     if (!doneBigBarrel)
       try {
