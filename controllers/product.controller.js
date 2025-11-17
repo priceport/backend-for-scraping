@@ -604,48 +604,50 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
 
         // Location, compliant, ai_check filters
         if (show_unmapped !== "true") {
-            // Define country mappings for sources
-            const countryMappings = {
-                // New Zealand sources
-                "aelia_auckland": "new zealand",
-                "aelia_queenstown": "new zealand", 
-                "aelia_christchurch": "new zealand",
-                
-                // Australia sources
-                "lotte_melbourne": "Australia",
-                "lotte_brisbane": "Australia",
-                "heinemann_sydney": "Australia",
-                "heinemann_goldcoast": "Australia",
-                "aelia_cairns": "Australia",
-                "aelia_adelaide": "Australia"
-            };
+            const isAdminRequest = req.system === 'admin';
+            
+            if (!isAdminRequest) {
+                const countryMappings = {
+                    // New Zealand sources
+                    "aelia_auckland": "new zealand",
+                    "aelia_queenstown": "new zealand", 
+                    "aelia_christchurch": "new zealand",
+                    
+                    // Australia sources
+                    "lotte_melbourne": "Australia",
+                    "lotte_brisbane": "Australia",
+                    "heinemann_sydney": "Australia",
+                    "heinemann_goldcoast": "Australia",
+                    "aelia_cairns": "Australia",
+                    "aelia_adelaide": "Australia"
+                };
 
-            // Define domestic players by country
-            const domesticPlayers = {
-                "new zealand": ["sephora", "beauty_bliss", "farmers", "nz_liquor", "big_barrel", "chemist_warehouse", "whisky_and_more", "mecca"],
-                "Australia": ["au_chemist_warehouse", "au_mecca", "au_sephora", "the_iconic", "danmurphy"]
-            };
+                // Define domestic players by country
+                const domesticPlayers = {
+                    "new zealand": ["sephora", "beauty_bliss", "farmers", "nz_liquor", "big_barrel", "chemist_warehouse", "whisky_and_more", "mecca"],
+                    "Australia": ["au_chemist_warehouse", "au_mecca", "au_sephora", "the_iconic", "danmurphy"]
+                };
 
-            // Get source's country
-            const sourceCountry = countryMappings[source];
-            const validDomesticPlayers = sourceCountry ? domesticPlayers[sourceCountry] || [] : [];
+                // Get source's country
+                const sourceCountry = countryMappings[source];
+                const validDomesticPlayers = sourceCountry ? domesticPlayers[sourceCountry] || [] : [];
 
-            // Filter out domestic locations that don't belong to source's country
-            filteredProductsData = filteredProductsData.filter(pd => {
-                // Always include duty-free locations (tag = 'duty-free')
-                if (pd.tag === 'duty-free') return true;
-                
-                // For domestic locations, only include those from the same country as source
-                if (pd.tag === 'domestic') {
-                    return validDomesticPlayers.includes(pd.website);
-                }
-                
-                // Include the source itself
-                if (pd.website === source) return true;
-                
-                // For any other cases, include by default
-                return true;
-            });
+                // Filter out domestic locations that don't belong to source's country (only for regular frontend)
+                filteredProductsData = filteredProductsData.filter(pd => {
+                    if (pd.tag === 'duty-free') return true;
+                    
+                    // Include the source itself
+                    if (pd.website === source) return true;
+                    
+                    // For domestic locations, only include those from the same country as source
+                    if (pd.tag === 'domestic') {
+                        return validDomesticPlayers.includes(pd.website);
+                    }
+                      // For any other cases, include by default
+                    return true;
+                });
+            }
+            // For admin frontend, skip country filtering - show all products
 
             if (location) filteredProductsData = filteredProductsData.filter(pd => location.includes(pd.website));
             if (compliant !== null) filteredProductsData = filteredProductsData.filter(pd => ((pd.compliant + "") == compliant) || pd.website == source);

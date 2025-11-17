@@ -21,4 +21,7 @@ router.route("/similarity")
 router.route("/group-products")
 .get(UserController.isLoggedIn,MappingController.getProductsInGroup);
 
+router.route("/mapped-sources")
+.get(UserController.isLoggedIn,MappingController.getMappedSourcesByCanprodId);
+
 module.exports = router;
