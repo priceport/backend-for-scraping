@@ -8,6 +8,12 @@ const skincare_treatments = require("../scripts/scraping_scripts/duty_free/lifep
 const men_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/men_fragrance");
 const womens_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/womens_fragrance");
 const home_fragrance = require("../scripts/scraping_scripts/duty_free/lifepharmacy/home_fragrance");
+const face = require("../scripts/scraping_scripts/duty_free/lifepharmacy/face");
+const eyes = require("../scripts/scraping_scripts/duty_free/lifepharmacy/eyes");
+const lips = require("../scripts/scraping_scripts/duty_free/lifepharmacy/lips");
+const nails = require("../scripts/scraping_scripts/duty_free/lifepharmacy/nails");
+const make_up_sets = require("../scripts/scraping_scripts/duty_free/lifepharmacy/make_up_sets");
+const make_up_accessories = require("../scripts/scraping_scripts/duty_free/lifepharmacy/make_up_accessories");
 
 
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
@@ -21,7 +27,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
     console.log("scraping started for life pharmacy at:"+Date.now());
 
     //variable initialization
-    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [];
+    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [],faceData = [],eyesData = [],lipsData = [],nailsData = [],makeUpSetsData = [],makeUpAccessoriesData = [];
     
 
     if(!state.lifepharmacy.medicines)
@@ -213,7 +219,133 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData];
+    if(!state.lifepharmacy.face)
+    try{
+        faceData = await face(start,end,browser);
+        console.log(`${faceData?.length} data items scraped for face`);
+    }catch(err){
+        console.log("There was an error while scraping face");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.face&&faceData?.length==0)
+    try{
+        faceData = await face(start,end,browser);
+        console.log(`${faceData?.length} data items scraped for face`);
+        if(faceData?.length==0){
+            state.lifepharmacy.face = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping face");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.eyes)
+    try{
+        eyesData = await eyes(start,end,browser);
+        console.log(`${eyesData?.length} data items scraped for eyes`);
+    }catch(err){
+        console.log("There was an error while scraping eyes");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.eyes&&eyesData?.length==0)
+    try{
+        eyesData = await eyes(start,end,browser);
+        console.log(`${eyesData?.length} data items scraped for eyes`);
+        if(eyesData?.length==0){
+            state.lifepharmacy.eyes = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping eyes");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lips)
+    try{
+        lipsData = await lips(start,end,browser);
+        console.log(`${lipsData?.length} data items scraped for lips`);
+    }catch(err){
+        console.log("There was an error while scraping lips");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lips&&lipsData?.length==0)
+    try{
+        lipsData = await lips(start,end,browser);
+        console.log(`${lipsData?.length} data items scraped for lips`);
+        if(lipsData?.length==0){
+            state.lifepharmacy.lips = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping lips");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.nails)
+    try{
+        nailsData = await nails(start,end,browser);
+        console.log(`${nailsData?.length} data items scraped for nails`);
+    }catch(err){
+        console.log("There was an error while scraping nails");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.nails&&nailsData?.length==0)
+    try{
+        nailsData = await nails(start,end,browser);
+        console.log(`${nailsData?.length} data items scraped for nails`);
+        if(nailsData?.length==0){
+            state.lifepharmacy.nails = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping nails");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.make_up_sets)
+    try{
+        makeUpSetsData = await make_up_sets(start,end,browser);
+        console.log(`${makeUpSetsData?.length} data items scraped for make up sets`);
+    }catch(err){
+        console.log("There was an error while scraping make up sets");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.make_up_sets&&makeUpSetsData?.length==0)
+    try{
+        makeUpSetsData = await make_up_sets(start,end,browser);
+        console.log(`${makeUpSetsData?.length} data items scraped for make up sets`);
+        if(makeUpSetsData?.length==0){
+            state.lifepharmacy.make_up_sets = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping make up sets");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.make_up_accessories)
+    try{
+        makeUpAccessoriesData = await make_up_accessories(start,end,browser);
+        console.log(`${makeUpAccessoriesData?.length} data items scraped for make up accessories`);
+    }catch(err){
+        console.log("There was an error while scraping make up accessories");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.make_up_accessories&&makeUpAccessoriesData?.length==0)
+    try{
+        makeUpAccessoriesData = await make_up_accessories(start,end,browser);
+        console.log(`${makeUpAccessoriesData?.length} data items scraped for make up accessories`);
+        if(makeUpAccessoriesData?.length==0){
+            state.lifepharmacy.make_up_accessories = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping make up accessories");
+        logError(err);
+    }
+
+    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData,...faceData,...eyesData,...lipsData,...nailsData,...makeUpSetsData,...makeUpAccessoriesData];
 
 
     // process data

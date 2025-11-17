@@ -634,7 +634,13 @@ const scrapingService =async ()=>{
         home_health_devices: false,
         mens_fragrance: false,
         womens_fragrance: false,
-        home_fragrance: false
+        home_fragrance: false,
+        face: false,
+        eyes: false,
+        lips: false,
+        nails: false,
+        make_up_sets: false,
+        make_up_accessories: false
       }
   };
 
