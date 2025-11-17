@@ -626,7 +626,12 @@ const scrapingService =async ()=>{
          white_wine:false
       },
       lifepharmacy : {
-        medicines:false
+        medicines:false,
+        skincare_treatments: false,
+        family_planning: false,
+        first_aid: false,
+        hair_care: false,
+        home_health_devices: false,
       }
   };
 

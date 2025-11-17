@@ -1,5 +1,12 @@
 //processing script imports
+const family_planning = require("../scripts/scraping_scripts/duty_free/lifepharmacy/family_planning");
+const first_aid = require("../scripts/scraping_scripts/duty_free/lifepharmacy/first_aid");
+const hair_care = require("../scripts/scraping_scripts/duty_free/lifepharmacy/hair_care");
+const home_health_devices = require("../scripts/scraping_scripts/duty_free/lifepharmacy/home_health_devices");
 const medicines = require("../scripts/scraping_scripts/duty_free/lifepharmacy/medicines");
+const skincare_treatments = require("../scripts/scraping_scripts/duty_free/lifepharmacy/skincare_treatments");
+
+
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
 const logError = require("./logError");
 
@@ -11,7 +18,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
     console.log("scraping started for life pharmacy at:"+Date.now());
 
     //variable initialization
-    let medicinesData = [];
+    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [];
     
 
     if(!state.lifepharmacy.medicines)
@@ -35,7 +42,112 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    let allData = [...medicinesData];
+    if(!state.lifepharmacy.skincare_treatments)
+    try{
+        skincareTreatmentsData = await skincare_treatments(start,end,browser);
+        console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
+    }catch(err){
+        console.log("There was an error while scraping skincare treatments");
+        logError(err);
+    }
+
+    if (!state.lifepharmacy.skincare_treatments&&skincareTreatmentsData?.length==0)
+    try{
+        skincareTreatmentsData = await skincare_treatments(start,end,browser);
+        console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
+        if(skincareTreatmentsData?.length==0){
+            state.lifepharmacy.skincare_treatments = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping skincare treatments");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.family_planning)
+    try{
+        familyPlanningData = await family_planning(start,end,browser);
+        console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+    }catch(err){
+        console.log("There was an error while scraping family planning");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.family_planning&&familyPlanningData?.length==0)
+    try{
+        familyPlanningData = await family_planning(start,end,browser);
+        console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+        if(familyPlanningData?.length==0){
+            state.lifepharmacy.family_planning = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping family planning");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.first_aid)
+    try{
+        firstAidData = await first_aid(start,end,browser);
+        console.log(`${firstAidData?.length} data items scraped for first aid`);
+    }catch(err){
+        console.log("There was an error while scraping first aid");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.first_aid&&firstAidData?.length==0)
+    try{
+        firstAidData = await first_aid(start,end,browser);
+        console.log(`${firstAidData?.length} data items scraped for first aid`);
+        if(firstAidData?.length==0){
+            state.lifepharmacy.first_aid = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping first aid");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.hair_care)
+    try{
+        hairCareData = await hair_care(start,end,browser);
+        console.log(`${hairCareData?.length} data items scraped for hair care`);
+    }catch(err){
+        console.log("There was an error while scraping hair care");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.hair_care&&hairCareData?.length==0)
+    try{
+        hairCareData = await hair_care(start,end,browser);
+        console.log(`${hairCareData?.length} data items scraped for hair care`);
+        if(hairCareData?.length==0){
+            state.lifepharmacy.hair_care = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping hair care");
+        logError(err);
+    }
+
+    if (!state.lifepharmacy.home_health_devices)
+    try{
+        homeHealthDevicesData = await home_health_devices(start,end,browser);
+        console.log(`${homeHealthDevicesData?.length} data items scraped for home health devices`);
+    }catch(err){
+        console.log("There was an error while scraping home health devices");
+        logError(err);
+    }
+
+    if (!state.lifepharmacy.home_health_devices&&homeHealthDevicesData?.length==0)
+    try{
+        homeHealthDevicesData = await home_health_devices(start,end,browser);
+        console.log(`${homeHealthDevicesData?.length} data items scraped for home health devices`);
+        if(homeHealthDevicesData?.length==0){
+            state.lifepharmacy.home_health_devices = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping home health devices");
+        logError(err);
+    }
+
+    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData];
 
 
     // process data
