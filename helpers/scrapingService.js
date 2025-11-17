@@ -33,6 +33,7 @@ const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
 const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
+const scrapeLifepharmacy = require("./scrapeLifepharmacy");
 
 
 
@@ -49,7 +50,7 @@ const scrapingService =async ()=>{
     doneCairns = false,
     doneWhiskyAndMore = false,
     doneNzLiquor = false,
-    doneLiquorland = false;
+    doneLiquorland = false,
     doneBigBarrel = false,
     doneSephora = false,
     doneBeautyBliss = false,
@@ -60,8 +61,9 @@ const scrapingService =async ()=>{
     doneAuMecca = false,
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
-  doneAuThemall = false,
-doneDanMurphy=true;
+    doneAuThemall = false,
+    doneDanMurphy = false,
+    doneLifepharmacy = false
 
 
   let start_page = 1,
@@ -622,6 +624,9 @@ doneDanMurphy=true;
          vodka:false,
          whisky:false,
          white_wine:false
+      },
+      lifepharmacy : {
+        medicines:false
       }
   };
 
@@ -648,13 +653,22 @@ doneDanMurphy=true;
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
     !doneAuThemall ||
-    !doneLiquorland
+    !doneLiquorland || 
+    !doneLifepharmacy
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
+    if (!doneLifepharmacy)
+      try {
+        doneLifepharmacy = await scrapeLifepharmacy(start_page,end_page,internalStates,browser);
+      } catch (err) {
+        console.log("There was an error while scraping from lifepharmacy");
+        logError(err);
+      }
 
     if (!doneAuckland)
       try {
