@@ -14,6 +14,18 @@ const lips = require("../scripts/scraping_scripts/duty_free/lifepharmacy/lips");
 const nails = require("../scripts/scraping_scripts/duty_free/lifepharmacy/nails");
 const make_up_sets = require("../scripts/scraping_scripts/duty_free/lifepharmacy/make_up_sets");
 const make_up_accessories = require("../scripts/scraping_scripts/duty_free/lifepharmacy/make_up_accessories");
+const moisturisers = require("../scripts/scraping_scripts/duty_free/lifepharmacy/moisturisers");
+const cleansers_scrubs = require("../scripts/scraping_scripts/duty_free/lifepharmacy/cleansers_scrubs");
+const toners = require("../scripts/scraping_scripts/duty_free/lifepharmacy/toners");
+const serums_treatments = require("../scripts/scraping_scripts/duty_free/lifepharmacy/serums_treatments");
+const eye_treatments = require("../scripts/scraping_scripts/duty_free/lifepharmacy/eye_treatments");
+const masks_peels = require("../scripts/scraping_scripts/duty_free/lifepharmacy/masks_peels");
+const medicated_skincare = require("../scripts/scraping_scripts/duty_free/lifepharmacy/medicated_skincare");
+const lip_care = require("../scripts/scraping_scripts/duty_free/lifepharmacy/lip_care");
+const skincare_gift_sets = require("../scripts/scraping_scripts/duty_free/lifepharmacy/skincare_gift_sets");
+const skincare_supplements = require("../scripts/scraping_scripts/duty_free/lifepharmacy/skincare_supplements");
+const facial_wipes = require("../scripts/scraping_scripts/duty_free/lifepharmacy/facial_wipes");
+const lash_brow_serums = require("../scripts/scraping_scripts/duty_free/lifepharmacy/lash_brow_serums");
 
 
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
@@ -27,7 +39,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
     console.log("scraping started for life pharmacy at:"+Date.now());
 
     //variable initialization
-    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [],faceData = [],eyesData = [],lipsData = [],nailsData = [],makeUpSetsData = [],makeUpAccessoriesData = [];
+    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [],faceData = [],eyesData = [],lipsData = [],nailsData = [],makeUpSetsData = [],makeUpAccessoriesData = [],moisturisersData = [],cleansersScrubsData = [],tonersData = [],serumsTreatmentsData = [],eyeTreatmentsData = [],masksPeelsData = [],medicatedSkincareData = [],lipCareData = [],skincareGiftSetsData = [],skincareSupplementsData = [],facialWipesData = [],lashBrowSerumsData = [];
     
 
     if(!state.lifepharmacy.medicines)
@@ -345,7 +357,259 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData,...faceData,...eyesData,...lipsData,...nailsData,...makeUpSetsData,...makeUpAccessoriesData];
+    if(!state.lifepharmacy.moisturisers)
+    try{
+        moisturisersData = await moisturisers(start,end,browser);
+        console.log(`${moisturisersData?.length} data items scraped for moisturisers`);
+    }catch(err){
+        console.log("There was an error while scraping moisturisers");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.moisturisers&&moisturisersData?.length==0)
+    try{
+        moisturisersData = await moisturisers(start,end,browser);
+        console.log(`${moisturisersData?.length} data items scraped for moisturisers`);
+        if(moisturisersData?.length==0){
+            state.lifepharmacy.moisturisers = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping moisturisers");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.cleansers_scrubs)
+    try{
+        cleansersScrubsData = await cleansers_scrubs(start,end,browser);
+        console.log(`${cleansersScrubsData?.length} data items scraped for cleansers scrubs`);
+    }catch(err){
+        console.log("There was an error while scraping cleansers scrubs");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.cleansers_scrubs&&cleansersScrubsData?.length==0)
+    try{
+        cleansersScrubsData = await cleansers_scrubs(start,end,browser);
+        console.log(`${cleansersScrubsData?.length} data items scraped for cleansers scrubs`);
+        if(cleansersScrubsData?.length==0){
+            state.lifepharmacy.cleansers_scrubs = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping cleansers scrubs");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.toners)
+    try{
+        tonersData = await toners(start,end,browser);
+        console.log(`${tonersData?.length} data items scraped for toners`);
+    }catch(err){
+        console.log("There was an error while scraping toners");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.toners&&tonersData?.length==0)
+    try{
+        tonersData = await toners(start,end,browser);
+        console.log(`${tonersData?.length} data items scraped for toners`);
+        if(tonersData?.length==0){
+            state.lifepharmacy.toners = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping toners");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.serums_treatments)
+    try{
+        serumsTreatmentsData = await serums_treatments(start,end,browser);
+        console.log(`${serumsTreatmentsData?.length} data items scraped for serums treatments`);
+    }catch(err){
+        console.log("There was an error while scraping serums treatments");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.serums_treatments&&serumsTreatmentsData?.length==0)
+    try{
+        serumsTreatmentsData = await serums_treatments(start,end,browser);
+        console.log(`${serumsTreatmentsData?.length} data items scraped for serums treatments`);
+        if(serumsTreatmentsData?.length==0){
+            state.lifepharmacy.serums_treatments = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping serums treatments");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.eye_treatments)
+    try{
+        eyeTreatmentsData = await eye_treatments(start,end,browser);
+        console.log(`${eyeTreatmentsData?.length} data items scraped for eye treatments`);
+    }catch(err){
+        console.log("There was an error while scraping eye treatments");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.eye_treatments&&eyeTreatmentsData?.length==0)
+    try{
+        eyeTreatmentsData = await eye_treatments(start,end,browser);
+        console.log(`${eyeTreatmentsData?.length} data items scraped for eye treatments`);
+        if(eyeTreatmentsData?.length==0){
+            state.lifepharmacy.eye_treatments = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping eye treatments");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.masks_peels)
+    try{
+        masksPeelsData = await masks_peels(start,end,browser);
+        console.log(`${masksPeelsData?.length} data items scraped for masks peels`);
+    }catch(err){
+        console.log("There was an error while scraping masks peels");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.masks_peels&&masksPeelsData?.length==0)
+    try{
+        masksPeelsData = await masks_peels(start,end,browser);
+        console.log(`${masksPeelsData?.length} data items scraped for masks peels`);
+        if(masksPeelsData?.length==0){
+            state.lifepharmacy.masks_peels = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping masks peels");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.medicated_skincare)
+    try{
+        medicatedSkincareData = await medicated_skincare(start,end,browser);
+        console.log(`${medicatedSkincareData?.length} data items scraped for medicated skincare`);
+    }catch(err){
+        console.log("There was an error while scraping medicated skincare");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.medicated_skincare&&medicatedSkincareData?.length==0)
+    try{
+        medicatedSkincareData = await medicated_skincare(start,end,browser);
+        console.log(`${medicatedSkincareData?.length} data items scraped for medicated skincare`);
+        if(medicatedSkincareData?.length==0){
+            state.lifepharmacy.medicated_skincare = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping medicated skincare");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lip_care)
+    try{
+        lipCareData = await lip_care(start,end,browser);
+        console.log(`${lipCareData?.length} data items scraped for lip care`);
+    }catch(err){
+        console.log("There was an error while scraping lip care");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lip_care&&lipCareData?.length==0)
+    try{
+        lipCareData = await lip_care(start,end,browser);
+        console.log(`${lipCareData?.length} data items scraped for lip care`);
+        if(lipCareData?.length==0){
+            state.lifepharmacy.lip_care = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping lip care");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.skincare_gift_sets)
+    try{
+        skincareGiftSetsData = await skincare_gift_sets(start,end,browser);
+        console.log(`${skincareGiftSetsData?.length} data items scraped for skincare gift sets`);
+    }catch(err){
+        console.log("There was an error while scraping skincare gift sets");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.skincare_gift_sets&&skincareGiftSetsData?.length==0)
+    try{
+        skincareGiftSetsData = await skincare_gift_sets(start,end,browser);
+        console.log(`${skincareGiftSetsData?.length} data items scraped for skincare gift sets`);
+        if(skincareGiftSetsData?.length==0){
+            state.lifepharmacy.skincare_gift_sets = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping skincare gift sets");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.skincare_supplements)
+    try{
+        skincareSupplementsData = await skincare_supplements(start,end,browser);
+        console.log(`${skincareSupplementsData?.length} data items scraped for skincare supplements`);
+    }catch(err){
+        console.log("There was an error while scraping skincare supplements");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.skincare_supplements&&skincareSupplementsData?.length==0)
+    try{
+        skincareSupplementsData = await skincare_supplements(start,end,browser);
+        console.log(`${skincareSupplementsData?.length} data items scraped for skincare supplements`);
+        if(skincareSupplementsData?.length==0){
+            state.lifepharmacy.skincare_supplements = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping skincare supplements");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.facial_wipes)
+    try{
+        facialWipesData = await facial_wipes(start,end,browser);
+        console.log(`${facialWipesData?.length} data items scraped for facial wipes`);
+    }catch(err){
+        console.log("There was an error while scraping facial wipes");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.facial_wipes&&facialWipesData?.length==0)
+    try{
+        facialWipesData = await facial_wipes(start,end,browser);
+        console.log(`${facialWipesData?.length} data items scraped for facial wipes`);
+        if(facialWipesData?.length==0){
+            state.lifepharmacy.facial_wipes = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping facial wipes");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lash_brow_serums)
+    try{
+        lashBrowSerumsData = await lash_brow_serums(start,end,browser);
+        console.log(`${lashBrowSerumsData?.length} data items scraped for lash brow serums`);
+    }catch(err){
+        console.log("There was an error while scraping lash brow serums");
+        logError(err);
+    }
+
+    if(!state.lifepharmacy.lash_brow_serums&&lashBrowSerumsData?.length==0)
+    try{
+        lashBrowSerumsData = await lash_brow_serums(start,end,browser);
+        console.log(`${lashBrowSerumsData?.length} data items scraped for lash brow serums`);
+        if(lashBrowSerumsData?.length==0){
+            state.lifepharmacy.lash_brow_serums = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping lash brow serums");
+        logError(err);
+    }
+
+    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData,...faceData,...eyesData,...lipsData,...nailsData,...makeUpSetsData,...makeUpAccessoriesData,...moisturisersData,...cleansersScrubsData,...tonersData,...serumsTreatmentsData,...eyeTreatmentsData,...masksPeelsData,...medicatedSkincareData,...lipCareData,...skincareGiftSetsData,...skincareSupplementsData,...facialWipesData,...lashBrowSerumsData];
 
 
     // process data

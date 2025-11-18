@@ -640,7 +640,19 @@ const scrapingService =async ()=>{
         lips: false,
         nails: false,
         make_up_sets: false,
-        make_up_accessories: false
+        make_up_accessories: false,
+        moisturisers: false,
+        cleansers_scrubs: false,
+        toners: false,
+        serums_treatments: false,
+        eye_treatments: false,
+        masks_peels: false,
+        medicated_skincare: false,
+        lip_care: false,
+        skincare_gift_sets: false,
+        skincare_supplements: false,
+        facial_wipes: false,
+        lash_brow_serums: false
       }
   };
 
