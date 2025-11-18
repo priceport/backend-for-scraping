@@ -111,6 +111,19 @@ function sanitizePrice(price){
     return Number.isNaN(parsed) ? null : parsed;
 }
 
+// Check if promo text should be skipped (generic labels like SALE, GIFT WITH PURCHASE)
+function shouldSkipPromo(promoText){
+    if(!promoText || typeof promoText !== "string") return false;
+    
+    const upperPromo = promoText.toUpperCase().trim();
+    const skipPatterns = [
+        /^SALE$/,
+        /^GIFT WITH PURCHASE$/
+    ];
+    
+    return skipPatterns.some(pattern => pattern.test(upperPromo));
+}
+
 /////helper functions end//////
 
 
@@ -152,11 +165,14 @@ const processDataForSpirits = async (data)=>{
 
             finalData.price = sanitizedPrice;
 
+            // Initialize promo as null
+            finalData.promo = null;
+
             if(Array.isArray(rawData?.promo) && rawData.promo.length > 0){
                 for(let i=0;i<rawData.promo.length;i++){
                     let promoURL = rawData.promo[i];
                     let text = await detectTextFromURL(promoURL);
-                    if(text){
+                    if(text && !shouldSkipPromo(text)){
                         const cleanPrice = sanitizedPrice;
                         let res = calculatePriceFromText(text, cleanPrice);
                         if(res) {
@@ -166,7 +182,10 @@ const processDataForSpirits = async (data)=>{
                     }
                 }
             }else if(typeof rawData?.promo === "string" && rawData.promo.trim().length > 0){
-                finalData.promo = [{ text: rawData.promo.trim(), price: null }];
+                const promoText = rawData.promo.trim();
+                if(!shouldSkipPromo(promoText)){
+                    finalData.promo = [{ text: promoText, price: null }];
+                }
             }
 
             // Apply URL conversion here

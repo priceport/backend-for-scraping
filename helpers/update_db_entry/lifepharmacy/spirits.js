@@ -113,6 +113,31 @@ const updateDBEntry = async (data) => {
         );
         product_updated += 1;
       }
+
+      // Promo insertion logic
+      if (promo && Array.isArray(promo) && promo.length > 0) {
+        // Delete existing promos for this product and website to avoid duplicates
+       
+
+        for (let i = 0; i < promo.length; i++) {
+          // Skip promos with invalid price values (but allow null)
+          if (promo[i]?.price === "Invalid input" || promo[i]?.price === null || promo[i]?.price === undefined) {
+            continue;
+          }
+          
+          
+          await pool.query(
+            `INSERT INTO promotion (product_id, text, price, website) 
+                        VALUES ($1, $2, $3, $4)`,
+            [
+              product?.rows[0]?.id,
+              promo[i]?.text,
+              promo[i]?.price,
+              "lifepharmacy",
+            ]
+          );
+        }
+      }
       db_ops += 1;
     } catch (err) {
       logError(err);
