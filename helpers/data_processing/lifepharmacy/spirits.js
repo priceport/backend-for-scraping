@@ -118,7 +118,8 @@ function shouldSkipPromo(promoText){
     const upperPromo = promoText.toUpperCase().trim();
     const skipPatterns = [
         /^SALE$/,
-        /^GIFT WITH PURCHASE$/
+        /^GIFT WITH PURCHASE$/,
+        /^OFFER$/
     ];
     
     return skipPatterns.some(pattern => pattern.test(upperPromo));

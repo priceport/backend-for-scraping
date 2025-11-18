@@ -33,7 +33,8 @@ const eye_treatments = async (start, end, browser) => {
 
           const title = product.querySelector('.boost-sd__product-title')?.innerText.trim() || null;
           const price = product.querySelector('.boost-sd__format-currency')?.innerText.trim() || null;
-          const promo = product.querySelector('.boost-sd__product-price--sale, .boost-sd__product-price-sale')?.innerText.trim() || null;
+          const promoElement = product.querySelector('.boost-sd__product-label-text');
+          const promo = promoElement?.innerText.trim() || null;
 
           const url = product.querySelector('.boost-sd__product-info a')?.href || null;
 
