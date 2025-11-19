@@ -34,13 +34,14 @@ const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
 const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
 const scrapeIshopChangi = require("./scrapeIshopChangi");
+const scrapeLifepharmacy = require("./scrapeLifepharmacy");
 
 
 
 const scrapingService =async ()=>{
 
   let doneAuckland = false,
-    doneAdelaide = false,
+    doneAdelaide =  false,
     doneQueensland = false,
     doneSydney = false,
     doneGoldcoast = false,
@@ -61,11 +62,10 @@ const scrapingService =async ()=>{
     doneAuMecca = false,
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
-  doneAuThemall = false,
-
-  doneDanMurphy=false,
-doneIshopchangi=false;
-
+    doneAuThemall = false,
+    doneDanMurphy=false,
+    doneIshopchangi=false,
+    doneLifepharmacy = false
 
 
   let start_page = 1,
@@ -711,6 +711,37 @@ doneIshopchangi=false;
         sparkling_wine:false,
         champagnes:false
       },
+      lifepharmacy : {
+        medicines:false,
+        skincare_treatments: false,
+        family_planning: false,
+        first_aid: false,
+        hair_care: false,
+        hair_colour: false,
+        hair_styling: false,
+        home_health_devices: false,
+        mens_fragrance: false,
+        womens_fragrance: false,
+        home_fragrance: false,
+        face: false,
+        eyes: false,
+        lips: false,
+        nails: false,
+        make_up_sets: false,
+        make_up_accessories: false,
+        moisturisers: false,
+        cleansers_scrubs: false,
+        toners: false,
+        serums_treatments: false,
+        eye_treatments: false,
+        masks_peels: false,
+        medicated_skincare: false,
+        lip_care: false,
+        skincare_gift_sets: false,
+        skincare_supplements: false,
+        facial_wipes: false,
+        lash_brow_serums: false
+      }
   };
 
   while (
@@ -738,13 +769,22 @@ doneIshopchangi=false;
     !doneAuThemall ||
     !doneDanMurphy ||
     !doneIshopchangi ||
-    !doneLiquorland
+    !doneLiquorland || 
+    !doneLifepharmacy
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
+    if (!doneLifepharmacy)
+      try {
+        doneLifepharmacy = await scrapeLifepharmacy(start_page,end_page,internalStates,browser);
+      } catch (err) {
+        console.log("There was an error while scraping from lifepharmacy");
+        logError(err);
+      }
 
     if (!doneAuckland)
       try {
@@ -862,7 +902,7 @@ doneIshopchangi=false;
         );
       } catch (err) {
         console.log(
-          "There was an error while scraping from aelia christchruch"
+          "There was an error while scraping from aelia christchurch"
         );
         logError(err);
       }
@@ -895,9 +935,7 @@ doneIshopchangi=false;
 
     if (!doneLiquorland) {
       try {
-       
-          console.log("Using production mode for Liquorland (real scraping)");
-          doneLiquorland = await scrapeLiquorland(
+        doneLiquorland = await scrapeLiquorland(
             start_page,
             end_page,
             internalStates,
