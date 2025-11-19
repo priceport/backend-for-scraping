@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const make_up_accessories = async (start, end, browser) => {
+const cleansers_scrubs = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/make-up-accessories?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/cleansers-scrubs?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -59,13 +59,13 @@ const make_up_accessories = async (start, end, browser) => {
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'make_up_accessories',
+              subcategory: 'cleansers_scrubs',
               img
             });
           }
@@ -77,7 +77,7 @@ const make_up_accessories = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - make_up_accessories: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - cleansers_scrubs: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,10 +94,10 @@ const make_up_accessories = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - make_up_accessories: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - cleansers_scrubs: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = make_up_accessories;
+module.exports = cleansers_scrubs;

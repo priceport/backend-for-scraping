@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const skincare_gift_sets = async (start, end, browser) => {
+const lash_brow_serums = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/skincare-gift-sets?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/lash-brow-serums?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -59,13 +59,13 @@ const skincare_gift_sets = async (start, end, browser) => {
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'skincare_gift_sets',
+              subcategory: 'lash_brow_serums',
               img
             });
           }
@@ -77,7 +77,7 @@ const skincare_gift_sets = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - skincare_gift_sets: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - lash_brow_serums: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,11 +94,10 @@ const skincare_gift_sets = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - skincare_gift_sets: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - lash_brow_serums: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = skincare_gift_sets;
-
+module.exports = lash_brow_serums;

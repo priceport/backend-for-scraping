@@ -1,11 +1,12 @@
+const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const family_planning = async (start, end, browser) => {
+const hair_styling = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/family-planning?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/hair-styling?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -54,17 +55,17 @@ const family_planning = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: 'health',
+              category: 'beauty',
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'family_planning',
+              subcategory: 'hair_styling',
               img
             });
           }
@@ -76,10 +77,11 @@ const family_planning = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - family_planning: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - hair_styling: " + pageNo,
           "scraping_missing"
         );
       }
+  
 
       allProducts.push(...products);
 
@@ -93,10 +95,10 @@ const family_planning = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - family_planning: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - hair_styling: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = family_planning;
+module.exports = hair_styling;

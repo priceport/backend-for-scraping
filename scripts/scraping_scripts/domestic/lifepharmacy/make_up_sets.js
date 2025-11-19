@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const lip_care = async (start, end, browser) => {
+const make_up_sets = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/lip-care?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/make-up-sets?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -59,13 +59,13 @@ const lip_care = async (start, end, browser) => {
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'lip_care',
+              subcategory: 'make_up_sets',
               img
             });
           }
@@ -77,7 +77,7 @@ const lip_care = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - lip_care: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - make_up_sets: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,10 +94,10 @@ const lip_care = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - lip_care: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - make_up_sets: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = lip_care;
+module.exports = make_up_sets;

@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const moisturisers = async (start, end, browser) => {
+const masks_peels = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/moisturisers?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/masks-peels?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -59,13 +59,13 @@ const moisturisers = async (start, end, browser) => {
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'moisturisers',
+              subcategory: 'masks_peels',
               img
             });
           }
@@ -77,7 +77,7 @@ const moisturisers = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - moisturisers: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - masks_peels: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,10 +94,10 @@ const moisturisers = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - moisturisers: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - masks_peels: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = moisturisers;
+module.exports = masks_peels;

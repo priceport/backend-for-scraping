@@ -4,9 +4,9 @@ const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const facial_wipes = async (start, end, browser) => {
+const medicines = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/facial-wipes?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/medicines?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -55,17 +55,17 @@ const facial_wipes = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: 'beauty',
+              category: 'health',
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'facial_wipes',
+              subcategory: 'medicines',
               img
             });
           }
@@ -77,7 +77,7 @@ const facial_wipes = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - facial_wipes: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - medicines: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,10 +94,10 @@ const facial_wipes = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - facial_wipes: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - medicines: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = facial_wipes;
+module.exports = medicines;

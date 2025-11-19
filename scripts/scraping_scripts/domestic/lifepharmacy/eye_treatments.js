@@ -1,11 +1,12 @@
+const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const home_health_devices = async (start, end, browser) => {
+const eye_treatments = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/home-health-devices?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/eye-treatments?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -54,17 +55,17 @@ const home_health_devices = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: 'health',
+              category: 'beauty',
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'home_health_devices',
+              subcategory: 'eye_treatments',
               img
             });
           }
@@ -76,7 +77,7 @@ const home_health_devices = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - home_health_devices: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - eye_treatments: " + pageNo,
           "scraping_missing"
         );
       }
@@ -93,10 +94,10 @@ const home_health_devices = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - home_health_devices: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - eye_treatments: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = home_health_devices;
+module.exports = eye_treatments;

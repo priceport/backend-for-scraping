@@ -1,12 +1,11 @@
-const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const hair_care = async (start, end, browser) => {
+const home_health_devices = async (start, end, browser) => {
   let pageNo = start;
-  const url = 'https://www.lifepharmacy.co.nz/collections/hair-care?page=';
+  const url = 'https://www.lifepharmacy.co.nz/collections/home-health-devices?page=';
 
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(40000);
@@ -55,17 +54,17 @@ const hair_care = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: 'beauty',
+              category: 'health',
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 
-                tag: "duty-free" 
+                tag: "domestic" 
               },
               date: Date.now(),
               last_check: Date.now(),
               mapping_ref: null,
               unit: undefined,
-              subcategory: 'hair_care',
+              subcategory: 'home_health_devices',
               img
             });
           }
@@ -77,7 +76,7 @@ const hair_care = async (start, end, browser) => {
 
       if (missing > 5) {
         await insertScrapingError(
-          "More than 5 entries missing for lifepharmacy - hair_care: " + pageNo,
+          "More than 5 entries missing for lifepharmacy - home_health_devices: " + pageNo,
           "scraping_missing"
         );
       }
@@ -94,11 +93,10 @@ const hair_care = async (start, end, browser) => {
 
   } catch (err) {
     logError(err);
-    await insertScrapingError("Error in lifepharmacy - hair_care: " + err.message, "scraping_trycatch");
+    await insertScrapingError("Error in lifepharmacy - home_health_devices: " + err.message, "scraping_trycatch");
     await page.close();
     return allProducts;
   }
 };
 
-module.exports = hair_care;
-
+module.exports = home_health_devices;
