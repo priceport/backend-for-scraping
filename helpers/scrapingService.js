@@ -49,7 +49,7 @@ const scrapingService =async ()=>{
     doneCairns = false,
     doneWhiskyAndMore = false,
     doneNzLiquor = false,
-    doneLiquorland = false;
+    doneLiquorland = false,
     doneBigBarrel = false,
     doneSephora = false,
     doneBeautyBliss = false,
