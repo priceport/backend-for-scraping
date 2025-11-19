@@ -33,6 +33,7 @@ const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
 const scrapeAuThemall = require("./scrapeAuThemall");
 const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
+const scrapeIshopChangi = require("./scrapeIshopChangi");
 const scrapeLifepharmacy = require("./scrapeLifepharmacy");
 
 
@@ -62,7 +63,8 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
     doneAuThemall = false,
-    doneDanMurphy = false,
+    doneDanMurphy=false,
+    doneIshopchangi=false,
     doneLifepharmacy = false
 
 
@@ -630,6 +632,85 @@ const scrapingService =async ()=>{
          whisky:false,
          white_wine:false
       },
+      ishopchangi: {
+        skin_care: false,
+        makeup: false,
+        hair_care: false,
+        fragrance: false,
+        bath_and_beauty: false,
+        computers_and_peripherals: false,
+        mobile_and_smart_devices: false,
+        audio_devices: false,
+        cameras_and_drones: false,
+        food_staples: false,
+        snacks_and_sweets: false,
+        coffee_and_tea: false,
+        health_food:false,
+        souvenir_food:false,
+        
+        personal_care:false,
+        health_supplements:false,
+        wellness_accessories:false,
+        family_planning:false,
+        food_care:false,
+        medical_supplies:false,
+        medication:false,
+
+        womens_fashion_bags:false,
+        womens_small_leather_goods:false,
+        womens_fashion_watches:false,
+        womens_fashion_jewellery:false,
+        womens_fashion_accessories:false,
+        womens_fashion_shoes:false,
+        womens_apparels:false,
+
+        mens_fashion_accessories:false,
+        mens_fashion_watches:false,
+        mens_fashion_bags:false,
+        mens_small_leather_goods:false,
+        mens_apparels:false,
+        mens_fashion_shoes:false,
+        mens_fashion_jewellery:false,
+
+        kitchen_and_dining:false,
+        personal_care_home_and_living:false,
+        beauty_tools:false,
+        wellness_and_health_devices:false,
+        household_essentials:false,
+
+        feeding_and_nursing:false,
+        baby_gears:false,
+        nursery:false,
+        toys_and_games:false,
+        babies_and_kids_fashion:false,
+        bath:false,
+
+        souvenirs_fashion:false,
+        souvenirs_collectibles:false,
+
+        luggages:false,
+        travel_bags:false,
+        electronics_travel:false,
+        travel_essentials:false,
+
+        spirits_single_malt:false,
+        american_whiskey:false,
+        scotch_blended_whiskey:false,
+        japanese_whiskey:false,
+        tequila:false,
+        vodka:false,
+        rum:false,
+        baijiu:false,
+        gin:false,
+        cognac:false,
+        brandy:false,
+        stout:false,
+        craft_beer:false,
+        red_wines:false,
+        white_wines:false,
+        sparkling_wine:false,
+        champagnes:false
+      },
       lifepharmacy : {
         medicines:false,
         skincare_treatments: false,
@@ -686,6 +767,8 @@ const scrapingService =async ()=>{
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
     !doneAuThemall ||
+    !doneDanMurphy ||
+    !doneIshopchangi ||
     !doneLiquorland || 
     !doneLifepharmacy
   ) {
@@ -819,7 +902,7 @@ const scrapingService =async ()=>{
         );
       } catch (err) {
         console.log(
-          "There was an error while scraping from aelia christchruch"
+          "There was an error while scraping from aelia christchurch"
         );
         logError(err);
       }
@@ -852,9 +935,7 @@ const scrapingService =async ()=>{
 
     if (!doneLiquorland) {
       try {
-       
-          console.log("Using production mode for Liquorland (real scraping)");
-          doneLiquorland = await scrapeLiquorland(
+        doneLiquorland = await scrapeLiquorland(
             start_page,
             end_page,
             internalStates,
@@ -955,6 +1036,19 @@ const scrapingService =async ()=>{
         );
       } catch (err) {
         console.log("There was an error while scraping from australia sephora");
+        logError(err);
+      }
+
+    if(!doneIshopchangi)
+      try{
+        doneIshopchangi = await scrapeIshopChangi(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      }catch(err){
+        console.log("There was an error while scraping from ishopchangi");
         logError(err);
       }
 
