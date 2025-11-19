@@ -66,7 +66,7 @@ const updateDBEntry = async (data) => {
             category,
             sub_category,
             "lifepharmacy",
-            "duty_free",
+            "domestic",
             "new zealand",
           ]
         );

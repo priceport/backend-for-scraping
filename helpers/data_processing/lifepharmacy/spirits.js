@@ -23,7 +23,7 @@ function toLifePharmacyImageStr(src){
 const LIFE_PHARMACY_SOURCE_FALLBACK = {
     website_base: "https://www.lifepharmacy.co.nz",
     location: "new_zealand",
-    tag: "duty free"
+    tag: "domestic"
 };
 const LIFE_PHARMACY_CATEGORY = "health";
 const LIFE_PHARMACY_SUBCATEGORY = "medicines";
