@@ -624,7 +624,7 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
 
                 // Define domestic players by country
                 const domesticPlayers = {
-                    "new zealand": ["sephora", "beauty_bliss", "farmers", "nz_liquor", "big_barrel", "chemist_warehouse", "whisky_and_more", "mecca"],
+                    "new zealand": ["sephora", "beauty_bliss", "farmers", "nz_liquor", "big_barrel", "chemist_warehouse", "whisky_and_more", "mecca", "liquorland", "lifepharmacy"],
                     "Australia": ["au_chemist_warehouse", "au_mecca", "au_sephora", "the_iconic", "danmurphy"]
                 };
 
