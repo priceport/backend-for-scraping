@@ -669,6 +669,7 @@ doneIshopchangi=false;
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
     !doneAuThemall ||
+    !doneDanMurphy ||
     !doneIshopchangi
   ) {
     console.log("current page",start_page);
