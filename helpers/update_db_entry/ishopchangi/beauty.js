@@ -49,7 +49,7 @@ const updateDBEntry = async (data) => {
             category,
             sub_category,
             "ishopchangi",
-            "domestic",
+            "duty-free",
             "singapore",
           ]
         );
