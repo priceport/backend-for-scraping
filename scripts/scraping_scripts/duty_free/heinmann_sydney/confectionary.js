@@ -75,10 +75,6 @@ const confectionary = async (start,end,browser)=>{
             await insertScrapingError("More than 5 entries missing for heinemann_sydney - accessories: "+pageNo,"scraping_missing");
         }
 
-        products.forEach(product => {
-            console.log({title : product.title});
-        });
-        
         allProducts.push(...products);
 
         if(products?.length==0||pageNo==(end-1)){ 
