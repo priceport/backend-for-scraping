@@ -66,13 +66,14 @@ const logError = require("./logError");
 
 //db update imports
 const updateDBEntry = require("./update_db_entry/heinemann/spirits");
+const confectionary = require("../scripts/scraping_scripts/duty_free/heinmann_sydney/confectionary");
 
 const scrapeHeinemannSydney = async (start,end,state,browser) =>{
     console.log("scraping started for heinemann sydney at:"+Date.now());
 
     //variable initialization
     // let spiritsData=[],wineData=[],fragranceData=[],makeupData=[],skincareData=[];
-    let accessoriesData = [], american_whiskyData = [], australian_whiskyData = [], bath_and_showerData = [], bitter_aperitifData = [], blended_whiskyData = [], blusherData = [],  body_careData = [], bodycare_careData = [], canadian_whiskyData = [], careData = [], champagneData = [], cleansingData = [], cognac_brandyData = [], concealerData = [], eye_careData = [], eye_shadowData = [], eyebrowsData = [], eyelinerData = [], foot_careData = [], fortified_wineData = [], foundationData = [], ginData = [], hair_careData = [], hand_careData = [], home_fragrance_candleData = [], irish_whiskyData = [], japanese_whiskyData = [], lipstick_and_liplinerData = [], liqueurData = [], makeup_setsData = [], mascaraData = [], masksData = [], men_bath_and_showerData = [], men_fragrance_setData = [],men_fragranceData = [], men_skincareData = [], powdersData = [], red_wineData = [], rose_wineData = [], rumData = [], scotch_whiskyData = [], serumData = [], sherry_portData = [], single_malt_whiskyData = [],skin_care_setsData = [], sparkling_wineData = [], sun_careData = [], tequilaData = [], toiletriesData = [], vodkaData = [], white_wineData = [], women_fragrance_setData = [], women_fragranceData = [];
+    let confectionaryData = [],accessoriesData = [], american_whiskyData = [], australian_whiskyData = [], bath_and_showerData = [], bitter_aperitifData = [], blended_whiskyData = [], blusherData = [],  body_careData = [], bodycare_careData = [], canadian_whiskyData = [], careData = [], champagneData = [], cleansingData = [], cognac_brandyData = [], concealerData = [], eye_careData = [], eye_shadowData = [], eyebrowsData = [], eyelinerData = [], foot_careData = [], fortified_wineData = [], foundationData = [], ginData = [], hair_careData = [], hand_careData = [], home_fragrance_candleData = [], irish_whiskyData = [], japanese_whiskyData = [], lipstick_and_liplinerData = [], liqueurData = [], makeup_setsData = [], mascaraData = [], masksData = [], men_bath_and_showerData = [], men_fragrance_setData = [],men_fragranceData = [], men_skincareData = [], powdersData = [], red_wineData = [], rose_wineData = [], rumData = [], scotch_whiskyData = [], serumData = [], sherry_portData = [], single_malt_whiskyData = [],skin_care_setsData = [], sparkling_wineData = [], sun_careData = [], tequilaData = [], toiletriesData = [], vodkaData = [], white_wineData = [], women_fragrance_setData = [], women_fragranceData = [];
 
     if(!state.sydney.accessories)
     try{
@@ -1261,6 +1262,26 @@ const scrapeHeinemannSydney = async (start,end,state,browser) =>{
         console.log("There was an error while scraping women_fragrance");
         logError(err);
     }
+    
+    if(!state.sydney.confectionary)
+    try{
+        confectionaryData = await confectionary(start,end,browser);
+        console.log(`${confectionaryData?.length} data items scraped for confectionary`);
+    }catch(err){
+        console.log("There was an error while scraping confectionary");
+        logError(err);
+    }
+    if(!state.sydney.confectionary&&confectionaryData?.length==0)
+    try{
+        confectionaryData = await confectionary(start,end,browser);
+        console.log(`${confectionaryData?.length} data items scraped for confectionary`);
+        if(confectionaryData?.length==0){
+            state.sydney.confectionary = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping confectionary");
+        logError(err);
+    }
     //scrape each category
     // if(!state.sydney.spirits)
     // try{
@@ -1387,7 +1408,7 @@ const scrapeHeinemannSydney = async (start,end,state,browser) =>{
 
     //merge data
     // spiritsData = [...spiritsData,...wineData,...fragranceData,...makeupData,...skincareData];
-    accessoriesData = [...accessoriesData,...american_whiskyData,...australian_whiskyData,...bath_and_showerData,...bitter_aperitifData,...blended_whiskyData,...blusherData,...body_careData,...bodycare_careData,...canadian_whiskyData,...careData,...champagneData,...cleansingData,...cognac_brandyData,...concealerData,...eye_careData,...eye_shadowData,...eyebrowsData,...eyelinerData,...foot_careData,...fortified_wineData,...foundationData,...ginData,...hair_careData,...hand_careData,...home_fragrance_candleData,...irish_whiskyData,...japanese_whiskyData,...lipstick_and_liplinerData,...liqueurData,...makeup_setsData,...mascaraData,...masksData,...men_bath_and_showerData,...men_fragrance_setData,...men_fragranceData,...men_skincareData,...powdersData,...red_wineData,...rose_wineData,...rumData,...scotch_whiskyData,...serumData,...sherry_portData,...single_malt_whiskyData,...skin_care_setsData,...sparkling_wineData,...sun_careData,...tequilaData,...toiletriesData,...vodkaData,...white_wineData,...women_fragrance_setData,...women_fragranceData];
+    accessoriesData = [...accessoriesData,...confectionaryData,...american_whiskyData,...australian_whiskyData,...bath_and_showerData,...bitter_aperitifData,...blended_whiskyData,...blusherData,...body_careData,...bodycare_careData,...canadian_whiskyData,...careData,...champagneData,...cleansingData,...cognac_brandyData,...concealerData,...eye_careData,...eye_shadowData,...eyebrowsData,...eyelinerData,...foot_careData,...fortified_wineData,...foundationData,...ginData,...hair_careData,...hand_careData,...home_fragrance_candleData,...irish_whiskyData,...japanese_whiskyData,...lipstick_and_liplinerData,...liqueurData,...makeup_setsData,...mascaraData,...masksData,...men_bath_and_showerData,...men_fragrance_setData,...men_fragranceData,...men_skincareData,...powdersData,...red_wineData,...rose_wineData,...rumData,...scotch_whiskyData,...serumData,...sherry_portData,...single_malt_whiskyData,...skin_care_setsData,...sparkling_wineData,...sun_careData,...tequilaData,...toiletriesData,...vodkaData,...white_wineData,...women_fragrance_setData,...women_fragranceData];
 
     try{
         accessoriesData = await spiritsMultibuy(accessoriesData);
