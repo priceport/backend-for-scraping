@@ -211,6 +211,7 @@ const scrapingService =async ()=>{
       white_wine: false,
       women_fragrance_set: false,
       women_fragrance: false,
+      confectionary: false,
     },
     goldcoast: {
       accessories: false,
