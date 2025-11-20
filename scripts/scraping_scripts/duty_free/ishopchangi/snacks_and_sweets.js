@@ -118,7 +118,7 @@ const snacks_and_sweets = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: "food",
+              category: "confectionery",
               source: {
                 website_base: "https://www.ishopchangi.com",
                 location: "singapore",
