@@ -1030,25 +1030,37 @@ exports.getPriceRankFor = catchAsync(async (req,res,next)=>{
 
 exports.getAllBrands = catchAsync(async (req, res, next) => {
     const { source } = req.query;
+    const show_unmapped = req.query.show_unmapped === "true";
 
-    // Fetch precomputed data from Redis
-    const cachedData = await redisClient.get('daily_product_data'+source);
-    if (!cachedData) {
-        return next(new AppError("Precomputed data not available. Try again later.", 500));
-    }
-
-    // Parse cached data
-    let products = JSON.parse(cachedData);
-
-    // Extract unique brands from precomputed data
     const brandSet = new Set();
-    
-    products.forEach(product => {
-        const sourceProduct = product.products_data.find(pd => pd.website === source);
-        if (sourceProduct && sourceProduct.brand) {
-            brandSet.add(sourceProduct.brand);
+
+    if (show_unmapped) {
+        // For unmapped products, fetch brands directly from database
+        const unmappedProducts = await pool.query(
+            `SELECT DISTINCT brand FROM product WHERE canprod_id IS NULL AND website = $1 AND brand IS NOT NULL ORDER BY brand`,
+            [source]
+        );
+        unmappedProducts.rows.forEach(row => {
+            if (row.brand) brandSet.add(row.brand);
+        });
+    } else {
+        // For mapped products, fetch from Redis cache
+        const cachedData = await redisClient.get('daily_product_data'+source);
+        if (!cachedData) {
+            return next(new AppError("Precomputed data not available. Try again later.", 500));
         }
-    });
+
+        // Parse cached data
+        let products = JSON.parse(cachedData);
+
+        // Extract unique brands from precomputed data
+        products.forEach(product => {
+            const sourceProduct = product.products_data.find(pd => pd.website === source);
+            if (sourceProduct && sourceProduct.brand) {
+                brandSet.add(sourceProduct.brand);
+            }
+        });
+    }
 
     // Convert Set to Array and sort alphabetically
     const brands = Array.from(brandSet).sort();
