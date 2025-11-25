@@ -383,8 +383,10 @@ const processDataForSpirits = async (data)=>{
             finalData.img = rawData.img;
 
             finalData.promo = rawData?.promo?.filter(promotxt => promotxt !== null)?.map(promotxt=>{
-                const regex = /Buy (\d+) for \$(\d+)/
-                const match = promotxt.match(regex);
+                // Handle "X for $Y" format (with optional prefix like "Liquor |")
+                // Matches: "3 for $115", "Liquor | 3 for $115", "Buy 3 for $115"
+                let regex = /(?:.*\|\s*)?(\d+)\s+for\s+\$(\d+)/i;
+                let match = promotxt.match(regex);
 
                 if(match){
                     const quantity = match[1];
@@ -399,13 +401,73 @@ const processDataForSpirits = async (data)=>{
                         }
                     }
                     else{
-                        console.log("Nan for: quantity="+quantity+" price="+price);
+                        console.log("NaN for: quantity="+quantity+" price="+price);
+                        // Still return the text even if price calculation fails
+                        return {
+                            price: null,
+                            text: promotxt
+                        };
                     }
                 }
-                else{
-                    console.log("match not found for:",promotxt);
+                
+                // Handle "Buy X Save Y%" format (e.g., "Liquor | Buy 2 Save 20%")
+                // This means if you buy X items, you save Y% on each item
+                regex = /(?:.*\|\s*)?buy\s+(\d+)\s+save\s+(\d+)%/i;
+                match = promotxt.match(regex);
+                
+                if(match){
+                    const buyQuantity = parseFloat(match[1]);
+                    const savePercent = parseFloat(match[2]);
+                    const basePrice = parseFloat(aud_to_usd(rawData.price.replace("$",""),"lotte brisbane"));
+                    
+                    if(!isNaN(buyQuantity) && !isNaN(savePercent) && !isNaN(basePrice)){
+                        // Calculate discounted price per unit (save Y% means price is reduced by Y%)
+                        const discountedPrice = basePrice * ((100 - savePercent) / 100);
+                        return {
+                            price: discountedPrice,
+                            text: promotxt
+                        };
+                    }
+                    else{
+                        console.log("NaN for Buy X Save Y%: buyQuantity="+buyQuantity+" savePercent="+savePercent+" basePrice="+basePrice);
+                        return {
+                            price: null,
+                            text: promotxt
+                        };
+                    }
                 }
-            });
+                
+                // Handle percentage discount like "20% Off Black Friday Sale"
+                regex = /(\d+)%\s+off/i;
+                match = promotxt.match(regex);
+                
+                if(match){
+                    const discountPercent = parseFloat(match[1]);
+                    const basePrice = parseFloat(aud_to_usd(rawData.price.replace("$",""),"lotte brisbane"));
+                    
+                    if(!isNaN(discountPercent) && !isNaN(basePrice)){
+                        const discountedPrice = basePrice * ((100 - discountPercent) / 100);
+                        return {
+                            price: discountedPrice,
+                            text: promotxt
+                        };
+                    }
+                    else{
+                        // Return text even if we can't calculate price
+                        return {
+                            price: null,
+                            text: promotxt
+                        };
+                    }
+                }
+                
+                // If no pattern matches, still return the text (price will be null)
+                console.log("No pattern matched for:",promotxt);
+                return {
+                    price: null,
+                    text: promotxt
+                };
+            }).filter(p => p !== null && p !== undefined); // Filter out any null/undefined entries
 
             if(rawData?.promo2){
                 finalData.promo2 = {
