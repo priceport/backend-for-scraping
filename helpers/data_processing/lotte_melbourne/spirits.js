@@ -382,38 +382,20 @@ const processDataForSpirits = async (data)=>{
 
             finalData.img = rawData.img;
 
-            finalData.promo = rawData?.promo?.filter(promotxt => promotxt !== null)?.map(promotxt=>{
-                // Try multiple regex patterns
-                // Pattern 1: "Liquor | 2 for $99" or "Liquor | 3 for $140"
-                let regex = /(\d+)\s+for\s+\$(\d+)/;
-                let match = promotxt.match(regex);
-                
-                // Pattern 2: "Buy 2 for $99"
-                if (!match) {
-                    regex = /Buy\s+(\d+)\s+for\s+\$(\d+)/;
-                    match = promotxt.match(regex);
+            finalData.promo = rawData?.promo?.filter(promotxt => promotxt !== null && promotxt !== undefined && String(promotxt).trim().length > 0)?.map(promotxt=>{
+                // Ensure promotxt is a string
+                const promoText = String(promotxt).trim();
+                if(!promoText || promoText.length === 0){
+                    console.log("Empty promo text, skipping");
+                    return null;
                 }
                 
-                // Pattern 3: "Buy 2 Save 20%"
-                if (!match) {
-                    regex = /Buy\s+(\d+)\s+Save\s+(\d+)%/;
-                    match = promotxt.match(regex);
-                    if (match) {
-                        const quantity = match[1];
-                        const discountPercent = match[2];
-                        const originalPrice = parseFloat(aud_to_usd(rawData.price.replace("$",""),"lotte melbourne"));
-                        const effective_price = originalPrice * (1 - discountPercent / 100);
-                        
-                        if(!isNaN(effective_price)){
-                            return {
-                                price: effective_price,
-                                text: promotxt
-                            }
-                        }
-                    }
-                }
+                // Handle "X for $Y" format (with optional prefix like "Liquor |")
+                // Matches: "3 for $115", "Liquor | 3 for $115", "Buy 3 for $115"
+                let regex = /(?:.*\|\s*)?(\d+)\s+for\s+\$(\d+)/i;
+                let match = promoText.match(regex);
 
-                if(match && match[1] && match[2]){
+                if(match){
                     const quantity = match[1];
                     const price = match[2];
 
@@ -422,17 +404,140 @@ const processDataForSpirits = async (data)=>{
                     if(!isNaN(effective_price)){
                         return {
                             price:effective_price,
-                            text:promotxt
+                            text:promoText
                         }
                     }
                     else{
-                        console.log("Nan for: quantity="+quantity+" price="+price);
+                        console.log("NaN for: quantity="+quantity+" price="+price);
+                        // Still return the text even if price calculation fails
+                        return {
+                            price: null,
+                            text: promoText
+                        };
                     }
                 }
-                else{
-                    console.log("match not found for:",promotxt);
+                
+                // Handle "Buy X Save Y%" format (e.g., "Liquor | Buy 2 Save 20%")
+                // This means if you buy X items, you save Y% on each item
+                regex = /(?:.*\|\s*)?buy\s+(\d+)\s+save\s+(\d+)%/i;
+                match = promoText.match(regex);
+                
+                if(match){
+                    const buyQuantity = parseFloat(match[1]);
+                    const savePercent = parseFloat(match[2]);
+                    const basePrice = parseFloat(aud_to_usd(rawData.price.replace("$",""),"lotte melbourne"));
+                    
+                    if(!isNaN(buyQuantity) && !isNaN(savePercent) && !isNaN(basePrice)){
+                        // Calculate discounted price per unit (save Y% means price is reduced by Y%)
+                        const discountedPrice = basePrice * ((100 - savePercent) / 100);
+                        return {
+                            price: discountedPrice,
+                            text: promoText
+                        };
+                    }
+                    else{
+                        console.log("NaN for Buy X Save Y%: buyQuantity="+buyQuantity+" savePercent="+savePercent+" basePrice="+basePrice);
+                        return {
+                            price: null,
+                            text: promoText
+                        };
+                    }
                 }
-            });
+                
+                // Handle percentage discount like "X% Off" (works for any percentage: 20%, 40%, 50%, etc.)
+                // Match patterns like: "20% Off", "40% OFF", "50% Discount", "30% Sale", etc.
+                // Try multiple regex patterns to catch variations - (\d+) matches any number
+                regex = /(\d+)%\s*(?:off|discount|sale)/i;
+                match = promoText.match(regex);
+                
+                // If first pattern doesn't match, try a more flexible pattern
+                if(!match){
+                    regex = /(\d+)%\s*off/i;
+                    match = promoText.match(regex);
+                }
+                
+                // Try even more flexible pattern - just look for number followed by % and "off"
+                if(!match){
+                    regex = /(\d+)\s*%\s*off/i;
+                    match = promoText.match(regex);
+                }
+                
+                if(match){
+                    const discountPercent = parseFloat(match[1]);
+                    const priceStr = rawData.price ? rawData.price.replace("$","").trim() : "";
+                    let basePrice = aud_to_usd(priceStr, "lotte melbourne");
+                    
+                    // Handle case where aud_to_usd returns "Invalid input"
+                    if(basePrice === "Invalid input" || basePrice === null || basePrice === undefined){
+                        console.log("Invalid price conversion for:", priceStr);
+                        basePrice = NaN;
+                    } else {
+                        basePrice = parseFloat(basePrice);
+                    }
+                    
+                    console.log("Percentage discount matched:", promoText, "discountPercent:", discountPercent, "priceStr:", priceStr, "basePrice:", basePrice);
+                    
+                    if(!isNaN(discountPercent) && !isNaN(basePrice) && basePrice > 0){
+                        const discountedPrice = basePrice * ((100 - discountPercent) / 100);
+                        console.log("Calculated discounted price:", discountedPrice);
+                        return {
+                            price: discountedPrice,
+                            text: promoText
+                        };
+                    }
+                    else{
+                        console.log("NaN or invalid for percentage discount: discountPercent="+discountPercent+" basePrice="+basePrice+" priceStr="+priceStr);
+                        // Return text even if we can't calculate price - IMPORTANT: always return object with text
+                        return {
+                            price: null,
+                            text: promoText
+                        };
+                    }
+                }
+                
+                // If no pattern matches, check if it contains any percentage (X%) - might be a discount
+                // This is a catch-all for percentage-based promos we haven't matched yet
+                // Works for any percentage value: 10%, 20%, 30%, 40%, 50%, etc.
+                if(promoText && /\d+%/.test(promoText)){
+                    console.log("Found percentage in unmatched promo, attempting to extract:", promoText);
+                    const percentMatch = promoText.match(/(\d+)%/);
+                    if(percentMatch){
+                        const discountPercent = parseFloat(percentMatch[1]);
+                        const priceStr = rawData.price ? rawData.price.replace("$","").trim() : "";
+                        let basePrice = aud_to_usd(priceStr, "lotte melbourne");
+                        
+                        if(basePrice === "Invalid input" || basePrice === null || basePrice === undefined){
+                            basePrice = NaN;
+                        } else {
+                            basePrice = parseFloat(basePrice);
+                        }
+                        
+                        if(!isNaN(discountPercent) && !isNaN(basePrice) && basePrice > 0){
+                            const discountedPrice = basePrice * ((100 - discountPercent) / 100);
+                            console.log("Calculated discounted price from catch-all:", discountedPrice);
+                            return {
+                                price: discountedPrice,
+                                text: promoText
+                            };
+                        }
+                        else{
+                            console.log("Catch-all: Could not calculate price, but returning text. discountPercent="+discountPercent+" basePrice="+basePrice+" priceStr="+priceStr);
+                            // IMPORTANT: Always return object with text, even if price calculation fails
+                            return {
+                                price: null,
+                                text: promoText
+                            };
+                        }
+                    }
+                }
+                
+                // If no pattern matches, still return the text (price will be null)
+                console.log("No pattern matched for:", promoText, "text length:", promoText?.length);
+                return {
+                    price: null,
+                    text: promoText
+                };
+            }).filter(p => p !== null && p !== undefined && p && p.text && String(p.text).trim().length > 0); // Filter out any null/undefined entries or entries without valid text
 
             if(rawData?.promo2){
                 finalData.promo2 = {
