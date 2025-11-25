@@ -547,7 +547,13 @@ exports.getAllProductsFor = catchAsync(async (req, res, next) => {
     const limit = parseInt(req.query.limit, 10) || 1000;
     const offset = parseInt(req.query.offset, 10) || 0;
     const category = req.query.category?.split(",") || null;
-    const sub_category = req.query.sub_category?.split(",") || null;
+    let sub_category = null;
+    if (req.query.sub_category) {
+      const subCategoryArray = req.query.sub_category.split(",").filter(s => s.trim() !== "");
+      if (subCategoryArray.length > 0) {
+        sub_category = subCategoryArray;
+      }
+    }
     const brand = req.query.brand?.split(",") || null;
     const location = req.query.location?.split(",") || null;
     const pricerank = req.query.pricerank?.split(",").map(Number) || null;
