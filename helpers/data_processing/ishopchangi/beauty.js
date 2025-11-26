@@ -183,7 +183,8 @@ const processDataForBeauty = async (data)=>{
 
             if(!breaktitle) throw new Error("Invalid pattern for: "+rawData?.title);
             
-            finalData.title = breaktitle.title?.toLowerCase();
+            // Keep the entire original title, don't use the parsed title
+            finalData.title = rawData?.title?.toLowerCase();
             finalData.unit = breaktitle.unit?.toLowerCase();
             finalData.quantity = breaktitle.quantity;
 
