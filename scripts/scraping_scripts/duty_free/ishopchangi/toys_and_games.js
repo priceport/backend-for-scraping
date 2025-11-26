@@ -72,11 +72,6 @@ const toys_and_games = async (start, end, browser) => {
               }
             }
 
-            // Remove brand name from title
-            if (title && brand && title.toUpperCase().startsWith(brand.toUpperCase())) {
-              title = title.substring(brand.length).trim();
-            }
-
             // Price - find span with S$ (not "From", not line-through)
             let price = null;
             const allSpans = productLink.querySelectorAll("span");

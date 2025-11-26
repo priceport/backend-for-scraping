@@ -57,9 +57,10 @@ const updateDBEntry = async (data) => {
         // Update last_checked timestamp
         await pool.query(
           `UPDATE product 
-                    SET last_checked = current_timestamp , country = $2
+                    SET last_checked = current_timestamp , country = $2,
+                    title = $3
                     WHERE id = $1`,
-          [product?.rows[0]?.id, "singapore"]
+          [product?.rows[0]?.id, "singapore", title]
         );
       }
 

@@ -69,10 +69,6 @@ const tequila = async (start, end, browser) => {
               }
             }
 
-            if (title && brand && title.toUpperCase().startsWith(brand.toUpperCase())) {
-              title = title.substring(brand.length).trim();
-            }
-
             let price = null;
             const allSpans = productLink.querySelectorAll("span");
             for (let span of allSpans) {
