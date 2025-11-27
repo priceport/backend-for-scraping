@@ -148,7 +148,6 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
                 } else if (!row.canprod_id) {
                     matches[similarity].push(row);
                     allProductsForOpenAI.push(row);
-                    console.log(`  Added unmapped product: "${row.title}" (${row.website})`);
                 }
             }
         }
@@ -158,7 +157,6 @@ const getSimilarityByTitleFromSource = catchAsync(async (req, res, next) => {
 
     console.log("filtering similar products using openai from "+allProductsForOpenAI.length+" products");
     let newData = await filterCandidates({title:req.query.title}, allProductsForOpenAI);
-    console.log(newData);
     
     return res.status(200).json({
         status: "successful",
