@@ -4,7 +4,7 @@ const UserController = require('../controllers/user.controller.js');
 
 const router = express.Router();
 
-router.route("/:orgId")
-.get(UserController?.isLoggedIn,UserController.isAuthorized('admin'),OrganisationController?.getAllOrganisations);
+router.route("/")
+.get(UserController?.isLoggedIn,UserController.isAuthorized('admin'),OrganisationController?.getOrganisationsList);
 
 module.exports = router;
