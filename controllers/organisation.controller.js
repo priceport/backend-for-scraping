@@ -16,7 +16,9 @@ exports.getAllOrganisations = catchAsync(async (req,res,next)=>{
         return next(new AppError("Organisation not found", 404));
     }
 
-    if (organisation.rows[0].name !== "Priceport"){
+    const authorizedOrgIds = [1, 2]; 
+    
+    if (!authorizedOrgIds.includes(parseInt(orgId))){
         return next(new AppError("You are not authorized to access this resource", 403));
     }
 
