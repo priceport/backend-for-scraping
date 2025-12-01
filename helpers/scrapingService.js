@@ -2,20 +2,11 @@ const redisClient = require("../configs/redis.config");
 const extract_unit_and_quantity = require("./extract_unit_and_quantity");
 const logError = require("./logError");
 const precomputeDailyData = require("./precomputeDailyData");
-const precomputeDailyDataFNB = require("./precomputeDailyDataFNB");
-const scrapeAelia = require("./scrapeAelia");
-const scrapeAeliaAdelaide = require("./scrapeAeliaAdelaide");
-const scrapeAeliaChristchurch = require("./scrapeAeliaChristchurch");
-const scrapeAeliaQueensland = require("./scrapeAeliaQueensland");
-const scrapeAeliaCairns = require("./scrapeAeliaCairns");
+// const precomputeDailyDataFNB = require("./precomputeDailyDataFNB"); // FNB runs on different instance
 const scrapeBeautyBliss = require("./scrapeBeautyBliss");
 const scrapeBigBarrel = require("./scrapeBigBarrel");
 const scrapeChemistWarehouse = require("./scrapeChemistWarehourse");
 const scrapeFarmers = require("./scrapeFarmers");
-const scrapeHeinemannSydney = require("./scrapeHeinemannSydney");
-const scrapeHeinemannGoldcoast = require("./scrapeHeinemannGoldcoast");
-const scrapeLotteBrisbane = require("./scrapeLotteBrisbane");
-const scrapeLotteMelbourne = require("./scrapeLotteMelbourne");
 const scrapeMecca = require("./scrapeMecca");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeLiquorland = require("./scrapeLiquorland");
@@ -31,25 +22,14 @@ const scrapeTheIconic = require("./scrapeTheIconic");
 const scrapeAuMecca = require("./scrapeAuMecca");
 const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
-const scrapeAuThemall = require("./scrapeAuThemall");
 const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
-const scrapeIshopChangi = require("./scrapeIshopChangi");
 const scrapeLifepharmacy = require("./scrapeLifepharmacy");
 
 
 
 const scrapingService =async ()=>{
 
-  let doneAuckland = false,
-    doneAdelaide =  false,
-    doneQueensland = false,
-    doneSydney = false,
-    doneGoldcoast = false,
-    doneMelbourne = false,
-    doneBrisbane = false,
-    doneChristchurch = false,
-    doneCairns = false,
-    doneWhiskyAndMore = false,
+  let doneWhiskyAndMore = false,
     doneNzLiquor = false,
     doneLiquorland = false,
     doneBigBarrel = false,
@@ -62,9 +42,7 @@ const scrapingService =async ()=>{
     doneAuMecca = false,
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
-    doneAuThemall = false,
     doneDanMurphy=false,
-    doneIshopchangi=false,
     doneLifepharmacy = false
 
 
@@ -72,299 +50,6 @@ const scrapingService =async ()=>{
     end_page = 1;
 
   let internalStates = {
-    auckland: {
-      baijiu: false,
-      brandy: false,
-      cognac: false,
-      fortified: false,
-      fragrance: false,
-      gift_sets: false,
-      gin: false,
-      liqueurs: false,
-      makeup: false,
-      mini_bottles: false,
-      premium_spirits: false,
-      premium_wine: false,
-      red: false,
-      rose: false,
-      rum: false,
-      skin_care: false,
-      sparkling_champagne: false,
-      tequila: false,
-      vodka: false,
-      whisky: false,
-      white: false,
-      lollies: false,
-      chocolates: false,
-      mints: false,
-    },
-    adelaide: {
-      brandy: false,
-      cognac: false,
-      fragrance: false,
-      gift_sets: false,
-      gin: false,
-      liqueurs: false,
-      makeup: false,
-      red: false,
-      rose: false,
-      rum: false,
-      skin_care: false,
-      sparkling_champagne: false,
-      tequila: false,
-      vodka: false,
-      whisky: false,
-      white: false,
-    },
-    cairns: {
-      brandy: false,
-      cognac: false,
-      fragrance: false,
-      gift_sets: false,
-      gin: false,
-      liqueurs: false,
-      makeup: false,
-      red: false,
-      rose: false,
-      rum: false,
-      skin_care: false,
-      sparkling_champagne: false,
-      tequila: false,
-      vodka: false,
-      whisky: false,
-      white: false,
-    },
-    queensland: {
-      baijiu: false,
-      brandy: false,
-      cognac: false,
-      fragrance: false,
-      gift_sets: false,
-      gin: false,
-      liqueurs: false,
-      makeup: false,
-      mini_bottles: false,
-      premium_spirits: false,
-      premium_wine: false,
-      red: false,
-      rose: false,
-      rum: false,
-      skin_care: false,
-      sparkling_champagne: false,
-      tequila: false,
-      vodka: false,
-      whisky: false,
-      white: false,
-    },
-    sydney: {
-      accessories: false,
-      american_whisky: false,
-      australian_whisky: false,
-      bath_and_shower: false,
-      bitter_aperitif: false,
-      blended_whisky: false,
-      blusher: false,
-      body_care: false,
-      bodycare_care: false,
-      canadian_whisky: false,
-      care: false,
-      champagne: false,
-      cleansing: false,
-      cognac_brandy: false,
-      concealer: false,
-      eye_care: false,
-      eye_shadow: false,
-      eyebrows: false,
-      eyeliner: false,
-      foot_care: false,
-      fortified_wine: false,
-      foundation: false,
-      gin: false,
-      hair_care: false,
-      hand_care: false,
-      home_fragrance_candle: false,
-      irish_whisky: false,
-      japanese_whisky: false,
-      lipstick_and_lipliner: false,
-      liqueur: false,
-      makeup_sets: false,
-      mascara: false,
-      masks: false,
-      men_bath_and_shower: false,
-      men_fragrance_set: false,
-      men_fragrance: false,
-      men_skincare: false,
-      powders: false,
-      red_wine: false,
-      rose_wine: false,
-      rum: false,
-      scotch_whisky: false,
-      serum: false,
-      sherry_port: false,
-      single_malt_whisky: false,
-      skin_care_sets: false,
-      sparkling_wine: false,
-      sun_care: false,
-      tequila: false,
-      toiletries: false,
-      vodka: false,
-      white_wine: false,
-      women_fragrance_set: false,
-      women_fragrance: false,
-      confectionary: false,
-    },
-    goldcoast: {
-      accessories: false,
-      american_whisky: false,
-      australian_whisky: false,
-      bath_and_shower: false,
-      bitter_aperitif: false,
-      blended_whisky: false,
-      blusher: false,
-      body_care: false,
-      bodycare_care: false,
-      canadian_whisky: false,
-      care: false,
-      champagne: false,
-      cleansing: false,
-      cognac_brandy: false,
-      concealer: false,
-      eye_care: false,
-      eye_shadow: false,
-      eyebrows: false,
-      eyeliner: false,
-      foot_care: false,
-      fortified_wine: false,
-      foundation: false,
-      gin: false,
-      hair_care: false,
-      hand_care: false,
-      home_fragrance_candle: false,
-      irish_whisky: false,
-      japanese_whisky: false,
-      lipstick_and_lipliner: false,
-      liqueur: false,
-      makeup_sets: false,
-      mascara: false,
-      masks: false,
-      men_bath_and_shower: false,
-      men_fragrance_set: false,
-      men_fragrance: false,
-      men_skincare: false,
-      powders: false,
-      red_wine: false,
-      rose_wine: false,
-      rum: false,
-      scotch_whisky: false,
-      serum: false,
-      sherry_port: false,
-      single_malt_whisky: false,
-      skin_care_sets: false,
-      sparkling_wine: false,
-      sun_care: false,
-      tequila: false,
-      toiletries: false,
-      vodka: false,
-      white_wine: false,
-      women_fragrance_set: false,
-      women_fragrance: false,
-    },
-    melbourne: {
-      baijiu: false,
-      bath_shower: false,
-      body_care: false,
-      brandy: false,
-      champagne: false,
-      cleansers_and_toners: false,
-      cognac: false,
-      devices: false,
-      eau_de_cologne: false,
-      eau_de_parfum: false,
-      eau_de_toilette: false,
-      eyes: false,
-      face: false,
-      gin: false,
-      home_fragrance: false,
-      korean_liquor: false,
-      lips: false,
-      liqueurs: false,
-      masks: false,
-      moisturisers: false,
-      port_and_sherry: false,
-      red_wine: false,
-      rum: false,
-      serums_essences: false,
-      sets_pack: false,
-      single_malt: false,
-      sparkling_wine: false,
-      sun_care: false,
-      tequila: false,
-      treatments: false,
-      vodka: false,
-      whiskey: false,
-      white_wine: false,
-      wine_champagne_beer: false,
-      confectionery:false,
-    },
-    brisbane: {
-      baijiu: false,
-      bath_shower: false,
-      body_care: false,
-      brandy: false,
-      champagne: false,
-      cleansers_and_toners: false,
-      cognac: false,
-      devices: false,
-      eau_de_cologne: false,
-      eau_de_parfum: false,
-      eau_de_toilette: false,
-      eyes: false,
-      face: false,
-      gin: false,
-      home_fragrance: false,
-      korean_liquor: false,
-      lips: false,
-      liqueurs: false,
-      masks: false,
-      moisturisers: false,
-      port_and_sherry: false,
-      red_wine: false,
-      rum: false,
-      serums_essences: false,
-      sets_pack: false,
-      single_malt: false,
-      sparkling_wine: false,
-      sun_care: false,
-      tequila: false,
-      treatments: false,
-      vodka: false,
-      whiskey: false,
-      white_wine: false,
-      wine_champagne_beer: false,
-      confectionery:false,
-    },
-    christchurch: {
-      baijiu: false,
-      brandy: false,
-      cognac: false,
-      fragrance: false,
-      gift_sets: false,
-      gin: false,
-      liqueurs: false,
-      makeup: false,
-      mini_bottles: false,
-      premium_spirits: false,
-      premium_wine: false,
-      red: false,
-      rose: false,
-      rum: false,
-      skin_care: false,
-      sparkling_champagne: false,
-      tequila: false,
-      vodka: false,
-      whisky: false,
-      white: false,
-    },
     whiskyAndMore: {
       whisky: false,
       malt: false,
@@ -569,49 +254,6 @@ const scrapingService =async ()=>{
       beard: false,
       grooming_treatments: false,
     },
-    auThemall: {
-      whiskey: false,
-      gin: false,
-      liqueurs: false,
-      rum: false,
-      vodka: false,
-      brandy: false,
-      cognac: false,
-      tequila: false,
-      baijiu: false,
-      bourbon: false,
-      champagne_sparkling: false,
-      port_sherry: false,
-      red_wine: false,
-      rose_wine: false,
-      white_wine: false,
-      luxury_wine: false,
-      womens_fragrance: false,
-      mens_fragrance: false,
-      unisex_fragrance: false,
-      under_80: false,
-      moisturisers: false,
-      cleansers_toners: false,
-      masks_exfoliators: false,
-      serums_boosters: false,
-      eyes: false,
-      lips: false,
-      suncare: false,
-      face: false,
-      makeup_eyes: false,
-      makeup_lips: false,
-      tools: false,
-      body: false,
-      bath_shower: false,
-      hair: false,
-      hand_feet_care: false,
-      bath_suncare: false,
-      nz_skincare: false,
-      nz_body: false,
-      mens_skincare: false,
-      mens_body: false,
-      mens_grooming: false,
-    },
     danMurphy:{
          aperitifs:false,
          baijiu:false,
@@ -632,85 +274,6 @@ const scrapingService =async ()=>{
          vodka:false,
          whisky:false,
          white_wine:false
-      },
-      ishopchangi: {
-        skin_care: false,
-        makeup: false,
-        hair_care: false,
-        fragrance: false,
-        bath_and_beauty: false,
-        computers_and_peripherals: false,
-        mobile_and_smart_devices: false,
-        audio_devices: false,
-        cameras_and_drones: false,
-        food_staples: false,
-        snacks_and_sweets: false,
-        coffee_and_tea: false,
-        health_food:false,
-        souvenir_food:false,
-        
-        personal_care:false,
-        health_supplements:false,
-        wellness_accessories:false,
-        family_planning:false,
-        food_care:false,
-        medical_supplies:false,
-        medication:false,
-
-        womens_fashion_bags:false,
-        womens_small_leather_goods:false,
-        womens_fashion_watches:false,
-        womens_fashion_jewellery:false,
-        womens_fashion_accessories:false,
-        womens_fashion_shoes:false,
-        womens_apparels:false,
-
-        mens_fashion_accessories:false,
-        mens_fashion_watches:false,
-        mens_fashion_bags:false,
-        mens_small_leather_goods:false,
-        mens_apparels:false,
-        mens_fashion_shoes:false,
-        mens_fashion_jewellery:false,
-
-        kitchen_and_dining:false,
-        personal_care_home_and_living:false,
-        beauty_tools:false,
-        wellness_and_health_devices:false,
-        household_essentials:false,
-
-        feeding_and_nursing:false,
-        baby_gears:false,
-        nursery:false,
-        toys_and_games:false,
-        babies_and_kids_fashion:false,
-        bath:false,
-
-        souvenirs_fashion:false,
-        souvenirs_collectibles:false,
-
-        luggages:false,
-        travel_bags:false,
-        electronics_travel:false,
-        travel_essentials:false,
-
-        spirits_single_malt:false,
-        american_whiskey:false,
-        scotch_blended_whiskey:false,
-        japanese_whiskey:false,
-        tequila:false,
-        vodka:false,
-        rum:false,
-        baijiu:false,
-        gin:false,
-        cognac:false,
-        brandy:false,
-        stout:false,
-        craft_beer:false,
-        red_wines:false,
-        white_wines:false,
-        sparkling_wine:false,
-        champagnes:false
       },
       lifepharmacy : {
         medicines:false,
@@ -746,15 +309,6 @@ const scrapingService =async ()=>{
   };
 
   while (
-    !doneAuckland ||
-    !doneAdelaide ||
-    !doneQueensland ||
-    !doneSydney ||
-    !doneGoldcoast ||
-    !doneMelbourne ||
-    !doneBrisbane ||
-    !doneChristchurch ||
-    !doneCairns ||
     !doneWhiskyAndMore ||
     !doneNzLiquor ||
     !doneBigBarrel ||
@@ -767,9 +321,7 @@ const scrapingService =async ()=>{
     !doneAuMecca ||
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
-    !doneAuThemall ||
     !doneDanMurphy ||
-    !doneIshopchangi ||
     !doneLiquorland || 
     !doneLifepharmacy
   ) {
@@ -787,126 +339,6 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    if (!doneAuckland)
-      try {
-        doneAuckland = await scrapeAelia(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from aelia auckland");
-        logError(err);
-      }
-
-    if (!doneAdelaide)
-      try {
-        doneAdelaide = await scrapeAeliaAdelaide(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from aelia adelaide");
-        logError(err);
-      }
-
-    if (!doneQueensland)
-      try {
-        doneQueensland = await scrapeAeliaQueensland(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from aelia queensland");
-        logError(err);
-      }
-
-    if (!doneCairns)
-      try {
-        doneCairns = await scrapeAeliaCairns(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from aelia cairns");
-        logError(err);
-      }
-
-    if (!doneSydney)
-      try {
-        doneSydney = await scrapeHeinemannSydney(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from heinemann sydney");
-        logError(err);
-      }
-
-    if (!doneGoldcoast)
-      try {
-        doneGoldcoast = await scrapeHeinemannGoldcoast(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log(
-          "There was an error while scraping from heinemann goldcoast"
-        );
-        logError(err);
-      }
-
-    if (!doneMelbourne)
-      try {
-        doneMelbourne = await scrapeLotteMelbourne(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from lotte melbourne");
-        logError(err);
-      }
-
-    if (!doneBrisbane)
-      try {
-        doneBrisbane = await scrapeLotteBrisbane(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from lotte brisbane");
-        logError(err);
-      }
-
-    if (!doneChristchurch)
-      try {
-        doneChristchurch = await scrapeAeliaChristchurch(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log(
-          "There was an error while scraping from aelia christchurch"
-        );
-        logError(err);
-      }
 
     if (!doneWhiskyAndMore)
       try {
@@ -1000,19 +432,6 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    if (!doneAuThemall) {
-      try {
-        doneAuThemall = await scrapeAuThemall(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from auckland themall");
-        logError(err);
-      }
-    }
 
     if (!doneAuMecca)
       try {
@@ -1040,18 +459,6 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    if(!doneIshopchangi)
-      try{
-        doneIshopchangi = await scrapeIshopChangi(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      }catch(err){
-        console.log("There was an error while scraping from ishopchangi");
-        logError(err);
-      }
 
     await browser.close();
 
@@ -1166,29 +573,7 @@ const scrapingService =async ()=>{
   console.log("Cache cleared");
   await extract_unit_and_quantity();
   await updateProductPriceRank();
-  await updateDailyPriceStats("aelia_auckland");
-  await precomputeDailyData('aelia_auckland',true);
-  await precomputeDailyData('aelia_adelaide',true);
-  await precomputeDailyData('nz_themall',true);
-  await precomputeDailyData('lotte_melbourne',true);
-  await precomputeDailyData('aelia_queenstown',true);
-  await precomputeDailyData('lotte_brisbane',true);
-  await precomputeDailyData('heinemann_sydney',true);
-  await precomputeDailyData('aelia_christchurch',true);
-  await precomputeDailyData('heinemann_goldcoast',true);
-  await precomputeDailyData('aelia_cairns',true);
-  await precomputeDailyDataFNB();
-
-  await precomputeLivePriceChanges('aelia_auckland');
-  // precomputeLivePriceChanges('aelia_adelaide');
-  // precomputeLivePriceChanges('nz_themall');
-  await precomputeLivePriceChanges('lotte_melbourne');
-  // precomputeLivePriceChanges('aelia_queenstown');
-  // precomputeLivePriceChanges('lotte_brisbane');
-  await precomputeLivePriceChanges('heinemann_sydney');
-  // precomputeLivePriceChanges('aelia_christchurch');
-  // precomputeLivePriceChanges('heinemann_goldcoast');
-  // precomputeLivePriceChanges('aelia_cairns');
+  // await precomputeDailyDataFNB(); // FNB runs on different instance
 };
 
 module.exports = scrapingService;
