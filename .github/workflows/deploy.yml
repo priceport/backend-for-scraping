@@ -1,35 +1,35 @@
-name: Deploy to AWS
+# name: Deploy to AWS
 
-on:
-  push:
-    branches:
-      - main  # Change this if your default branch is not 'main'
+# on:
+#   push:
+#     branches:
+#       - main  # Change this if your default branch is not 'main'
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+#     steps:
+#     - name: Checkout code
+#       uses: actions/checkout@v2
 
-    - name: Install Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'  # Specify your Node.js version here
+#     - name: Install Node.js
+#       uses: actions/setup-node@v2
+#       with:
+#         node-version: '18'  # Specify your Node.js version here
 
-    - name: Install dependencies
-      run: |
-        npm install
+#     - name: Install dependencies
+#       run: |
+#         npm install
 
-    - name: SSH into EC2 and deploy
-      uses: appleboy/ssh-action@v0.1.5
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ubuntu
-        key: ${{ secrets.EC2_KEY }}
-        script: |
-          cd backend  # Change this to your repo directory
-          git pull origin main
-          npm install
-          pm2 restart priceport-backend
+#     - name: SSH into EC2 and deploy
+#       uses: appleboy/ssh-action@v0.1.5
+#       with:
+#         host: ${{ secrets.EC2_HOST }}
+#         username: ubuntu
+#         key: ${{ secrets.EC2_KEY }}
+#         script: |
+#           cd backend  # Change this to your repo directory
+#           git pull origin main
+#           npm install
+#           pm2 restart priceport-backend
