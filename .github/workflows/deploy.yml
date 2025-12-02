@@ -24,4 +24,4 @@ jobs:
           cd /home/ec2-user/backend-for-scraping
           git pull origin main
           npm install --production
-          pm2 restart priceport-backend
+          pm2 restart priceport-backend-domestic
