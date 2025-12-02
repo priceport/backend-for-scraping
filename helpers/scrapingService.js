@@ -14,7 +14,6 @@ const scrapeSephora = require("./scrapeSephora");
 const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeDanMurphy = require("./scrapeDanMurphy");
 
-const updateDailyPriceStats = require("./updateDailyPriceStats");
 const updateProductPriceRank = require("./updateProductPriceRank");
 const waitForXTime = require("./waitForXTime");
 const puppeteer = require("puppeteer");
@@ -22,9 +21,8 @@ const scrapeTheIconic = require("./scrapeTheIconic");
 const scrapeAuMecca = require("./scrapeAuMecca");
 const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
-const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
 const scrapeLifepharmacy = require("./scrapeLifepharmacy");
-
+const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
 
 
 const scrapingService =async ()=>{
@@ -43,7 +41,8 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
     doneDanMurphy=false,
-    doneLifepharmacy = false
+    doneLifepharmacy = false,
+    doneLiquorlandAus = false
 
 
   let start_page = 1,
@@ -305,6 +304,18 @@ const scrapingService =async ()=>{
         skincare_supplements: false,
         facial_wipes: false,
         lash_brow_serums: false
+      },
+      liquorlandAus : {
+        vodka:false,
+        gin:false,
+        whisky:false,
+        rum:false,
+        bourbon:false,
+        tequila:false,
+        brandy_and_cognac:false,
+        liqueurs:false,
+        aperitifs:false,
+        mixers:false,
       }
   };
 
@@ -323,13 +334,22 @@ const scrapingService =async ()=>{
     !doneAuChemistWarehouse ||
     !doneDanMurphy ||
     !doneLiquorland || 
-    !doneLifepharmacy
+    !doneLifepharmacy || 
+    !doneLiquorlandAus
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
+
+    if (!doneLiquorlandAus)
+      try {
+        doneLiquorlandAus = await scrapeLiquorlandAus(start_page,end_page,internalStates,browser);
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland aus");
+        logError(err);
+      }
 
     if (!doneLifepharmacy)
       try {
@@ -460,23 +480,20 @@ const scrapingService =async ()=>{
       }
 
 
-    await browser.close();
-
-
       if(!doneDanMurphy)
       try{
-          await scrapeDanMurphy(start_page,end_page,internalStates,browser);
+          doneDanMurphy = await scrapeDanMurphy(start_page);
       }catch(err){
          console.log("There was an error while scraping from dan murphy");
          logError(err);
       }
 
-      if(!doneSephora)
-      try{
-         doneSephora = await scrapeSephora(start_page,end_page,internalStates);
-      }catch(err){
-         console.log("There was an error while scraping from sephora");
-         logError(err);
+    if (!doneSephora)
+      try {
+        doneSephora = await scrapeSephora(start_page, end_page, internalStates, browser);
+      } catch (err) {
+        console.log("There was an error while scraping from sephora");
+        logError(err);
       }
 
     if (!doneChemistWarehouse)
@@ -519,6 +536,8 @@ const scrapingService =async ()=>{
         logError(err);
       }
     }
+    
+    await browser.close();
 
     end_page += 1;
     start_page += 1;
