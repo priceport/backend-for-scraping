@@ -41,8 +41,8 @@ const scrapingService =async ()=>{
     doneAuSephora = true,
     doneAuChemistWarehouse = true,
     doneDanMurphy=true,
-    doneLifepharmacy = true,
-    doneLiquorlandAus = false
+    doneLifepharmacy = false,
+    doneLiquorlandAus = true
 
 
   let start_page = 1,
