@@ -339,31 +339,32 @@ const scrapingService =async ()=>{
   ) {
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
-      headless: true,                    // keep true
+      headless: true,
       executablePath: '/usr/bin/google-chrome',
+      protocolTimeout: 120000,                 // ← fixes your current "addScriptToEvaluateOnNewDocument timed out"
+      
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
+        '--disable-dev-shm-usage',             // must-have on 1 GB instances
+        '--single-process',                    // saves 300–400 MB RAM
         '--no-zygote',
-        '--single-process',              // important for EC2
         '--disable-gpu',
-        '--disable-features=ImproveInformer,TranslationServer',
         '--disable-extensions',
+        '--disable-features=Translate,ImproveInformer,AudioServiceOutOfProcess',
         '--disable-background-timer-throttling',
         '--disable-backgrounding-occluded-windows',
         '--disable-renderer-backgrounding',
-        '--disable-infobars',
-        '--disable-breakpad',
-        '--disable-component-extensions-with-background-pages',
-        '--disable-ipc-flooding-protection',
-        '--disable-hang-monitor',
-        '--disable-prompt-on-repost',
-        '--window-size=1920,1080',
-        '--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
-      ]
+        '--memory-pressure-off',
+        '--max_old_space_size=256',
+        '--no-first-run',
+        '--window-size=1920,1080'
+      ],
+    
+      // These two are also important on micro instances
+      defaultViewport: { width: 1920, height: 1080 },
+      ignoreHTTPSErrors: true,
+      dumpio: false   // keep false in production
     });
 
     if (!doneLiquorlandAus)
