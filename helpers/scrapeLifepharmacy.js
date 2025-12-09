@@ -65,68 +65,68 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    // if(!state.lifepharmacy.skincare_treatments)
-    // try{
-    //     skincareTreatmentsData = await skincare_treatments(start,end,browser);
-    //     console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
-    // }catch(err){
-    //     console.log("There was an error while scraping skincare treatments");
-    //     logError(err);
-    // }
+    if(!state.lifepharmacy.skincare_treatments)
+    try{
+        skincareTreatmentsData = await skincare_treatments(start,end,browser);
+        console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
+    }catch(err){
+        console.log("There was an error while scraping skincare treatments");
+        logError(err);
+    }
 
-    // if (!state.lifepharmacy.skincare_treatments&&skincareTreatmentsData?.length==0)
-    // try{
-    //     skincareTreatmentsData = await skincare_treatments(start,end,browser);
-    //     console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
-    //     if(skincareTreatmentsData?.length==0){
-    //         state.lifepharmacy.skincare_treatments = true;
-    //     }
-    // }catch(err){
-    //     console.log("There was an error while scraping skincare treatments");
-    //     logError(err);
-    // }
+    if (!state.lifepharmacy.skincare_treatments&&skincareTreatmentsData?.length==0)
+    try{
+        skincareTreatmentsData = await skincare_treatments(start,end,browser);
+        console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
+        if(skincareTreatmentsData?.length==0){
+            state.lifepharmacy.skincare_treatments = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping skincare treatments");
+        logError(err);
+    }
 
-    // if(!state.lifepharmacy.family_planning)
-    // try{
-    //     familyPlanningData = await family_planning(start,end,browser);
-    //     console.log(`${familyPlanningData?.length} data items scraped for family planning`);
-    // }catch(err){
-    //     console.log("There was an error while scraping family planning");
-    //     logError(err);
-    // }
+    if(!state.lifepharmacy.family_planning)
+    try{
+        familyPlanningData = await family_planning(start,end,browser);
+        console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+    }catch(err){
+        console.log("There was an error while scraping family planning");
+        logError(err);
+    }
 
-    // if(!state.lifepharmacy.family_planning&&familyPlanningData?.length==0)
-    // try{
-    //     familyPlanningData = await family_planning(start,end,browser);
-    //     console.log(`${familyPlanningData?.length} data items scraped for family planning`);
-    //     if(familyPlanningData?.length==0){
-    //         state.lifepharmacy.family_planning = true;
-    //     }
-    // }catch(err){
-    //     console.log("There was an error while scraping family planning");
-    //     logError(err);
-    // }
+    if(!state.lifepharmacy.family_planning&&familyPlanningData?.length==0)
+    try{
+        familyPlanningData = await family_planning(start,end,browser);
+        console.log(`${familyPlanningData?.length} data items scraped for family planning`);
+        if(familyPlanningData?.length==0){
+            state.lifepharmacy.family_planning = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping family planning");
+        logError(err);
+    }
 
-    // if(!state.lifepharmacy.first_aid)
-    // try{
-    //     firstAidData = await first_aid(start,end,browser);
-    //     console.log(`${firstAidData?.length} data items scraped for first aid`);
-    // }catch(err){
-    //     console.log("There was an error while scraping first aid");
-    //     logError(err);
-    // }
+    if(!state.lifepharmacy.first_aid)
+    try{
+        firstAidData = await first_aid(start,end,browser);
+        console.log(`${firstAidData?.length} data items scraped for first aid`);
+    }catch(err){
+        console.log("There was an error while scraping first aid");
+        logError(err);
+    }
 
-    // if(!state.lifepharmacy.first_aid&&firstAidData?.length==0)
-    // try{
-    //     firstAidData = await first_aid(start,end,browser);
-    //     console.log(`${firstAidData?.length} data items scraped for first aid`);
-    //     if(firstAidData?.length==0){
-    //         state.lifepharmacy.first_aid = true;
-    //     }
-    // }catch(err){
-    //     console.log("There was an error while scraping first aid");
-    //     logError(err);
-    // }
+    if(!state.lifepharmacy.first_aid&&firstAidData?.length==0)
+    try{
+        firstAidData = await first_aid(start,end,browser);
+        console.log(`${firstAidData?.length} data items scraped for first aid`);
+        if(firstAidData?.length==0){
+            state.lifepharmacy.first_aid = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping first aid");
+        logError(err);
+    }
 
     // if(!state.lifepharmacy.hair_care)
     // try{
