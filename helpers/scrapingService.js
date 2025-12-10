@@ -343,7 +343,7 @@ const browser = await puppeteer.launch({
   headless: true,
   executablePath: '/usr/bin/google-chrome',
   protocolTimeout: 300000,
-  dumpio: true,
+  dumpio: false,
 
   args: [
     '--no-sandbox',
