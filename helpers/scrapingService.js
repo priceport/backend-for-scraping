@@ -340,10 +340,10 @@ const scrapingService =async ()=>{
     console.log("current page",start_page);
    // FINAL BULLETPROOF LAUNCH CONFIG FOR t3.micro + WEBSHARE PROXY
 const browser = await puppeteer.launch({
-  headless: false,
+  headless: true,
   executablePath: '/usr/bin/google-chrome',
   protocolTimeout: 300000,
-  dumpio: false,
+  dumpio: true,
 
   args: [
     '--no-sandbox',
