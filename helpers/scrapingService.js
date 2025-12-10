@@ -27,7 +27,7 @@ const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
 
 const scrapingService =async ()=>{
 
-  let doneWhiskyAndMore = false,
+  let doneWhiskyAndMore = true,
     doneNzLiquor = true,
     doneLiquorland = true,
     doneBigBarrel = true,
@@ -41,7 +41,7 @@ const scrapingService =async ()=>{
     doneAuSephora = true,
     doneAuChemistWarehouse = true,
     doneDanMurphy=true,
-    doneLifepharmacy = true,
+    doneLifepharmacy = false,
     doneLiquorlandAus = true
 
 
@@ -340,7 +340,7 @@ const scrapingService =async ()=>{
     console.log("current page",start_page);
    // FINAL BULLETPROOF LAUNCH CONFIG FOR t3.micro + WEBSHARE PROXY
 const browser = await puppeteer.launch({
-  headless: true,
+  headless: false,
   executablePath: '/usr/bin/google-chrome',
   protocolTimeout: 300000,
   dumpio: false,
@@ -357,7 +357,7 @@ const browser = await puppeteer.launch({
     '--memory-pressure-off',
     '--max_old_space_size=256',
     '--no-first-run',
-    '--proxy-server=http://p.webshare.io:80'  // YOUR RESIDENTIAL PROXY
+    // '--proxy-server=http://p.webshare.io:80'  // YOUR RESIDENTIAL PROXY
   ]
 });
 
