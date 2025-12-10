@@ -338,34 +338,28 @@ const scrapingService =async ()=>{
     !doneLiquorlandAus
   ) {
     console.log("current page",start_page);
-    const browser = await puppeteer.launch({
-      headless: true,
-      executablePath: '/usr/bin/google-chrome',
-      protocolTimeout: 120000,                 // ← fixes your current "addScriptToEvaluateOnNewDocument timed out"
-      
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',             // must-have on 1 GB instances
-        '--single-process',                    // saves 300–400 MB RAM
-        '--no-zygote',
-        '--disable-gpu',
-        '--disable-extensions',
-        '--disable-features=Translate,ImproveInformer,AudioServiceOutOfProcess',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--memory-pressure-off',
-        '--max_old_space_size=256',
-        '--no-first-run',
-        '--window-size=1920,1080'
-      ],
-    
-      // These two are also important on micro instances
-      defaultViewport: { width: 1920, height: 1080 },
-      ignoreHTTPSErrors: true,
-      dumpio: false   // keep false in production
-    });
+   // FINAL BULLETPROOF LAUNCH CONFIG FOR t3.micro + WEBSHARE PROXY
+const browser = await puppeteer.launch({
+  headless: true,
+  executablePath: '/usr/bin/google-chrome',
+  protocolTimeout: 300000,
+  dumpio: false,
+
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--single-process',
+    '--no-zygote',
+    '--disable-gpu',
+    '--disable-extensions',
+    '--disable-features=Translate,ImproveInformer,AudioServiceOutOfProcess',
+    '--memory-pressure-off',
+    '--max_old_space_size=256',
+    '--no-first-run',
+    '--proxy-server=http://p.webshare.io:80'  // YOUR RESIDENTIAL PROXY
+  ]
+});
 
     if (!doneLiquorlandAus)
       try {
