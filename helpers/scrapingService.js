@@ -27,7 +27,7 @@ const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
 
 const scrapingService =async ()=>{
 
-  let doneWhiskyAndMore = true,
+  let doneWhiskyAndMore = false,
     doneNzLiquor = true,
     doneLiquorland = true,
     doneBigBarrel = true,
@@ -41,7 +41,7 @@ const scrapingService =async ()=>{
     doneAuSephora = true,
     doneAuChemistWarehouse = true,
     doneDanMurphy=true,
-    doneLifepharmacy = false,
+    doneLifepharmacy = true,
     doneLiquorlandAus = true
 
 
@@ -338,13 +338,10 @@ const scrapingService =async ()=>{
     !doneLiquorlandAus
   ) {
     console.log("current page",start_page);
-   // FINAL BULLETPROOF LAUNCH CONFIG FOR t3.micro + WEBSHARE PROXY
 const browser = await puppeteer.launch({
   headless: true,
   executablePath: '/usr/bin/google-chrome',
   protocolTimeout: 300000,
-
-  
 
   args: [
     '--no-sandbox',
