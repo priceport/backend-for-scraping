@@ -27,8 +27,8 @@ const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
 
 const scrapingService =async ()=>{
 
-  let doneWhiskyAndMore = false,
-    doneNzLiquor = true,
+  let doneWhiskyAndMore = true,
+    doneNzLiquor = false,
     doneLiquorland = true,
     doneBigBarrel = true,
     doneSephora = true,
@@ -338,26 +338,10 @@ const scrapingService =async ()=>{
     !doneLiquorlandAus
   ) {
     console.log("current page",start_page);
-const browser = await puppeteer.launch({
-  headless: true,
-  executablePath: '/usr/bin/google-chrome',
-  protocolTimeout: 300000,
-
-  args: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--single-process',
-    '--no-zygote',
-    '--disable-gpu',
-    '--disable-extensions',
-    '--disable-features=Translate,ImproveInformer,AudioServiceOutOfProcess',
-    '--memory-pressure-off',
-    '--max_old_space_size=256',
-    '--no-first-run',
-    // '--proxy-server=http://p.webshare.io:80'  // YOUR RESIDENTIAL PROXY
-  ]
-});
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
 
     if (!doneLiquorlandAus)
       try {
