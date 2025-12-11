@@ -168,9 +168,9 @@ const testWebsite = async ()=>{
 // scrapingService();
 
 // Schedule the task to run at 12 AM New Zealand Time
-// cron.schedule('50 7 * * *', scrapingService, {
-//   scheduled: true,
-//   timezone: 'Pacific/Auckland', // New Zealand timezone
-// });
+cron.schedule('50 7 * * *', scrapingService, {
+  scheduled: true,
+  timezone: 'Pacific/Auckland', // New Zealand timezone
+});
  
 module.exports = app;

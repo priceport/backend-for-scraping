@@ -27,22 +27,22 @@ const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
 
 const scrapingService =async ()=>{
 
-  let doneWhiskyAndMore = true,
+  let doneWhiskyAndMore = false,
     doneNzLiquor = false,
-    doneLiquorland = true,
-    doneBigBarrel = true,
-    doneSephora = true,
-    doneBeautyBliss = true,
-    doneMecca = true,
+    doneLiquorland = false,
+    doneBigBarrel = false,
+    doneSephora = false,
+    doneBeautyBliss = false,
+    doneMecca = false,
     doneFarmers = true,
     doneChemistWarehouse = true,
-    doneTheIconic = true,
-    doneAuMecca = true,
-    doneAuSephora = true,
+    doneTheIconic = false,
+    doneAuMecca = false,
+    doneAuSephora = false,
     doneAuChemistWarehouse = true,
     doneDanMurphy=true,
     doneLifepharmacy = true,
-    doneLiquorlandAus = true
+    doneLiquorlandAus = false
 
 
   let start_page = 1,
