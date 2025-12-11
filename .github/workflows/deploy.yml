@@ -17,11 +17,11 @@ jobs:
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.EC2_HOST }}
-        username: ec2-user
+        username: ubuntu
         key: ${{ secrets.EC2_KEY }}
         port: 22
         script: |
-          cd /home/ec2-user/backend-for-scraping
+          cd /home/ubuntu/backend-for-scraping
           git pull origin main
           npm install --production
           pm2 restart priceport-backend-domestic
