@@ -35,11 +35,11 @@ const scrapingService =async ()=>{
     doneBeautyBliss = false,
     doneMecca = false,
     doneFarmers = true,
-    doneChemistWarehouse = true,
+    doneChemistWarehouse = false,
     doneTheIconic = false,
     doneAuMecca = false,
     doneAuSephora = false,
-    doneAuChemistWarehouse = true,
+    doneAuChemistWarehouse = false,
     doneDanMurphy=true,
     doneLifepharmacy = true,
     doneLiquorlandAus = false
