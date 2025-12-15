@@ -21247,7 +21247,7 @@ if(!state.liquorlandAus.lager)
 
   // update db
   try {
-    // await updateDBEntry(allData);
+    await updateDBEntry(allData);
     console.log(`data items updated`);
   } catch (err) {
     console.log("There was an error while updating data");
