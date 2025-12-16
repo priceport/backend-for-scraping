@@ -41,7 +41,7 @@ const scrapingService =async ()=>{
     doneAuSephora = false,
     doneAuChemistWarehouse = false,
     doneDanMurphy=true,
-    doneLifepharmacy = true,
+    doneLifepharmacy = false,
     doneLiquorlandAus = false
 
 
