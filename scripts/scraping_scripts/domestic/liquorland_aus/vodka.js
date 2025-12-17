@@ -2,7 +2,6 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
-const setupStealthPage = require('../../../../helpers/setupStealthPage');
 
 const vodka = async (start, end, browser) => {
   let pageNo = start;
@@ -11,8 +10,29 @@ const vodka = async (start, end, browser) => {
   const page = await browser.newPage();
   const allProducts = [];
 
-  // Set up stealth page with anti-detection measures
-  await setupStealthPage(page, { domain: 'liquorland.com.au' });
+  // Set up page with anti-detection measures
+  await page.setViewport({ width: 1920, height: 1080 });
+  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+  
+  // Set extra headers to avoid detection
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-AU,en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
+    'Sec-Fetch-Dest': 'document',
+    'Sec-Fetch-Mode': 'navigate',
+    'Sec-Fetch-Site': 'none',
+    'Cache-Control': 'max-age=0'
+  });
+
+  // Remove webdriver property to avoid detection
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', {
+      get: () => false,
+    });
+  });
 
   try {
 
