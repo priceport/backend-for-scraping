@@ -1,59 +1,11 @@
-const puppeteer = require('puppeteer-extra');
-const ProxyPlugin = require('puppeteer-extra-plugin-proxy');
+const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 
-// Configure proxy for Dan Murphy scraping
-const proxyServer = '142.111.48.253:7030';
-const proxyUsername = 'ftjgwyap';
-const proxyPassword = '17xe9se18188';
-
-// Setup proxy plugin
-puppeteer.use(ProxyPlugin({
-    address: proxyServer.split(':')[0],
-    port: parseInt(proxyServer.split(':')[1]),
-    credentials: {
-        username: proxyUsername,
-        password: proxyPassword
-    }
-}));
-
 const spirits = async () => {
-    const browser = await puppeteer.launch({ 
-        headless: true,
-        protocolTimeout: 120000 // Increase protocol timeout to 120 seconds for proxy connections
-    });
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
-    let retryCount = 0;
-    const maxRetries = 3;
-    let spiritsPageLoaded = false;
-    
-    while (retryCount < maxRetries && !spiritsPageLoaded) {
-        try {
-            await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2', timeout: 90000 });
-            console.log("Spirits page loaded successfully");
-            spiritsPageLoaded = true;
-        } catch (error) {
-            retryCount++;
-            console.log(`Error loading spirits page (attempt ${retryCount}/${maxRetries}):`, error.message);
-            if (retryCount < maxRetries) {
-                // Try with a more lenient wait condition
-                try {
-                    await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'domcontentloaded', timeout: 90000 });
-                    console.log("Spirits page loaded with domcontentloaded");
-                    spiritsPageLoaded = true;
-                } catch (retryError) {
-                    console.log(`Retry with domcontentloaded failed (attempt ${retryCount}/${maxRetries}):`, retryError.message);
-                    if (retryCount < maxRetries) {
-                        await waitForXTime(3000 * retryCount); // Exponential backoff
-                    }
-                }
-            } else {
-                console.log("Failed to load spirits page after all retries");
-                throw new Error(`Failed to load spirits page after ${maxRetries} attempts: ${error.message}`);
-            }
-        }
-    }
+    await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2' });
 
     await waitForXTime(5000);
     console.log("Initial wait complete");

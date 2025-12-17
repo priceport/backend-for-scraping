@@ -1,26 +1,10 @@
-const puppeteer = require('puppeteer-extra');
-const ProxyPlugin = require('puppeteer-extra-plugin-proxy');
+const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
-
-// Configure proxy for Dan Murphy scraping
-const proxyServer = '142.111.48.253:7030';
-const proxyUsername = 'ftjgwyap';
-const proxyPassword = '17xe9se18188';
-
-// Setup proxy plugin
-puppeteer.use(ProxyPlugin({
-    address: proxyServer.split(':')[0],
-    port: parseInt(proxyServer.split(':')[1]),
-    credentials: {
-        username: proxyUsername,
-        password: proxyPassword
-    }
-}));
 
 const beer = async () => {
     const browser = await puppeteer.launch({ 
         headless: true,
-        protocolTimeout: 120000, // Increase protocol timeout to 120 seconds for proxy connections
+        protocolTimeout: 60000, // Increase protocol timeout to 60 seconds
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -78,99 +62,34 @@ const beer = async () => {
     console.log("Navigating to Dan Murphy's beer page...");
     
     // First, go to the main page to establish a session
-    let retryCount = 0;
-    const maxRetries = 3;
-    let mainPageLoaded = false;
-    
-    while (retryCount < maxRetries && !mainPageLoaded) {
-        try {
-            await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 90000 });
-            console.log("Main page loaded successfully");
-            mainPageLoaded = true;
-        } catch (error) {
-            retryCount++;
-            console.log(`Error loading main page (attempt ${retryCount}/${maxRetries}):`, error.message);
-            if (retryCount < maxRetries) {
-                await waitForXTime(3000 * retryCount); // Exponential backoff
-            } else {
-                console.log("Failed to load main page after retries, continuing anyway");
-            }
-        }
-    }
+    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
     await waitForXTime(3000);
     
     // Then navigate to the beer page
-    retryCount = 0;
-    let beerPageLoaded = false;
-    
-    while (retryCount < maxRetries && !beerPageLoaded) {
-        try {
-            await page.goto('https://www.danmurphys.com.au/beer/all', { waitUntil: 'networkidle2', timeout: 90000 });
-            console.log("Beer page loaded successfully");
-            beerPageLoaded = true;
-        } catch (error) {
-            retryCount++;
-            console.log(`Error loading beer page (attempt ${retryCount}/${maxRetries}):`, error.message);
-            if (retryCount < maxRetries) {
-                // Try with a more lenient wait condition
-                try {
-                    await page.goto('https://www.danmurphys.com.au/beer/all', { waitUntil: 'domcontentloaded', timeout: 90000 });
-                    console.log("Beer page loaded with domcontentloaded");
-                    beerPageLoaded = true;
-                } catch (retryError) {
-                    console.log(`Retry with domcontentloaded failed (attempt ${retryCount}/${maxRetries}):`, retryError.message);
-                    if (retryCount < maxRetries) {
-                        await waitForXTime(3000 * retryCount); // Exponential backoff
-                    }
-                }
-            } else {
-                console.log("Failed to load beer page after all retries");
-                throw new Error(`Failed to load beer page after ${maxRetries} attempts: ${error.message}`);
-            }
-        }
-    }
+    await page.goto('https://www.danmurphys.com.au/beer/all', { waitUntil: 'networkidle2', timeout: 60000 });
 
     await waitForXTime(8000);
     console.log("Initial wait complete");
 
-    // Verify page is accessible before proceeding
-    let pageContent;
-    try {
-        // Wait a bit more to ensure page is stable
-        await waitForXTime(2000);
-        
-        // Check if we got blocked or if products are loading
-        pageContent = await page.evaluate(() => {
-            return {
-                title: document.title,
-                bodyText: document.body ? document.body.innerText : '',
-                hasNoProducts: document.body ? document.body.innerText.includes('No products found') : false,
-                hasLoading: document.body ? document.body.innerText.includes('Finding closest store') : false,
-                url: window.location.href
-            };
-        });
-        console.log("Page content check:", pageContent);
-    } catch (evalError) {
-        console.log("Error evaluating page content:", evalError.message);
-        // Try to get basic page info
-        try {
-            const currentUrl = page.url();
-            const title = await page.title();
-            console.log("Page URL:", currentUrl, "Title:", title);
-            pageContent = { url: currentUrl, title: title, hasNoProducts: false, hasLoading: false, bodyText: '' };
-        } catch (fallbackError) {
-            console.log("Could not get page info:", fallbackError.message);
-            // Don't throw, just continue with default values to avoid crashing
-            pageContent = { url: 'unknown', title: 'unknown', hasNoProducts: false, hasLoading: false, bodyText: '' };
-        }
-    }
+    // Check if we got blocked or if products are loading
+    const pageContent = await page.evaluate(() => {
+        return {
+            title: document.title,
+            bodyText: document.body.innerText,
+            hasNoProducts: document.body.innerText.includes('No products found'),
+            hasLoading: document.body.innerText.includes('Finding closest store'),
+            url: window.location.href
+        };
+    });
+
+    console.log("Page content check:", pageContent);
 
     // If we're still on the main page or getting blocked, try a different approach
     if (pageContent.hasNoProducts || pageContent.hasLoading) {
         console.log("Detected blocking or loading issue, trying alternative approach...");
         
         // Try going directly to the search results with specific parameters
-        await page.goto('https://www.danmurphys.com.au/beer/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 90000 });
+        await page.goto('https://www.danmurphys.com.au/beer/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 60000 });
         await waitForXTime(5000);
         
         // Try scrolling to trigger lazy loading

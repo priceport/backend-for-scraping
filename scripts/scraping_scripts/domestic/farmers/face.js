@@ -1,8 +1,25 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const ProxyPlugin = require('puppeteer-extra-plugin-proxy');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+
+// Configure webshare.io proxy for Farmers scraping
+const proxyServer = '142.111.48.253:7030';
+const proxyUsername = 'ftjgwyap';
+const proxyPassword = '17xe9se18188';
+
+// Setup webshare proxy plugin
+console.log("Using webshare.io proxy for Farmers face scraping");
+puppeteer.use(ProxyPlugin({
+    address: proxyServer.split(':')[0],
+    port: parseInt(proxyServer.split(':')[1]),
+    credentials: {
+        username: proxyUsername,
+        password: proxyPassword
+    }
+}));
 
 const face = async (start,end,browser)=>{
     let pageNo = start;
@@ -14,35 +31,36 @@ const face = async (start,end,browser)=>{
     
     try{
         // Enable request interception for performance
-        await page.setRequestInterception(true);
+        await page.setRequestInterception(false);
 
         // Smart request blocking - allow essential resources
-        page.on('request', (req) => {
-            const resourceType = req.resourceType();
-            const url = req.url();
-
-            // Allow essential resources for proper page loading
-            if (resourceType === 'document' || 
-                resourceType === 'script' || 
-                resourceType === 'xhr' || 
-                resourceType === 'fetch' ||
-                (resourceType === 'stylesheet' && url.includes('farmers.co.nz')) ||
-                (resourceType === 'image' && url.includes('farmers.co.nz'))) {
-                req.continue();
-            } else {
-                req.abort();
-            }
-        });
-
+        
         // Set realistic browser settings
         await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
         await page.setViewport({ width: 1920, height: 1080 });
+        
+        // Remove webdriver property to avoid detection (important for headless mode)
+        await page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', {
+                get: () => false,
+            });
+            // Override plugins
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => [1, 2, 3, 4, 5],
+            });
+            // Override languages
+            Object.defineProperty(navigator, 'languages', {
+                get: () => ['en-US', 'en'],
+            });
+        });
         
         // Set extra headers to avoid detection
         await page.setExtraHTTPHeaders({
             'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
         });
 
         while(true){
@@ -52,21 +70,180 @@ const face = async (start,end,browser)=>{
             
             try {
                 await page.goto(targetUrl, { 
-                    waitUntil: 'networkidle2',
-                    timeout: 30000
+                    waitUntil: 'domcontentloaded',
+                    timeout: 60000 // Increased timeout for proxy
                 });
                 
-                // Wait for dynamic content to load - using setTimeout instead of waitForTimeout
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Wait for page to be interactive
+                await waitForXTime(3000);
                 
-                // Wait for product elements to be present
-                await page.waitForSelector('.product-list > .product-list-item', { timeout: 10000 });
+                // Wait for page to be fully loaded
+                try {
+                    await page.waitForFunction(() => {
+                        return document.readyState === 'complete';
+                    }, { timeout: 15000 });
+                } catch (e) {
+                    console.log("Page readyState check timeout, continuing...");
+                }
+                
+                // Additional wait for JavaScript to execute and AJAX requests to complete
+                await waitForXTime(5000);
+                
+                // Scroll to trigger lazy loading and ensure content is rendered
+                try {
+                    // Scroll down gradually
+                    for (let i = 0; i < 3; i++) {
+                        await page.evaluate(() => {
+                            window.scrollBy(0, window.innerHeight);
+                        });
+                        await waitForXTime(1000);
+                    }
+                    // Scroll to bottom
+                    await page.evaluate(() => {
+                        window.scrollTo(0, document.body.scrollHeight);
+                    });
+                    await waitForXTime(2000);
+                    // Scroll back to top
+                    await page.evaluate(() => {
+                        window.scrollTo(0, 0);
+                    });
+                    await waitForXTime(2000);
+                } catch (scrollError) {
+                    console.log("Scroll error (non-critical):", scrollError.message);
+                }
+                
+                // Take screenshot for debugging
+                try {
+                    await Promise.race([
+                        page.screenshot({ 
+                            path: `farmers_face_page_${pageNo}_debug.png`, 
+                            fullPage: false 
+                        }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Screenshot timeout')), 5000))
+                    ]);
+                    console.log(`Screenshot saved: farmers_face_page_${pageNo}_debug.png`);
+                } catch (screenshotError) {
+                    console.log(`Screenshot failed (non-critical): ${screenshotError.message}`);
+                }
+                
+                // Try multiple selectors and wait strategies
+                let productsFound = false;
+                
+                // Strategy 1: Wait for the main product list container
+                try {
+                    await page.waitForSelector('.product-list', { timeout: 15000 });
+                    console.log("Product list container found");
+                } catch (e) {
+                    console.log("Product list container not found, trying alternative...");
+                }
+                
+                // Strategy 2: Wait for any product items with multiple selectors and wait strategies
+                let retryCount = 0;
+                const maxRetries = 3;
+                
+                while (!productsFound && retryCount < maxRetries) {
+                    try {
+                        // Try multiple approaches in parallel
+                        await Promise.race([
+                            page.waitForSelector('.product-list > .product-list-item', { timeout: 20000 }),
+                            page.waitForSelector('.product-list-item', { timeout: 20000 }),
+                            page.waitForFunction(() => {
+                                const items = document.querySelectorAll('.product-list > .product-list-item, .product-list-item');
+                                return items.length > 0;
+                            }, { timeout: 20000 }),
+                            page.waitForFunction(() => {
+                                // Check if products are loading
+                                const container = document.querySelector('.product-list');
+                                if (!container) return false;
+                                // Check for any child elements that might be products
+                                return container.children.length > 0;
+                            }, { timeout: 20000 })
+                        ]);
+                        productsFound = true;
+                        console.log("Product items found");
+                        break;
+                    } catch (selectorError) {
+                        retryCount++;
+                        console.log(`Product items not found (attempt ${retryCount}/${maxRetries}), checking page content...`);
+                        
+                        // Debug: Check what's actually on the page
+                        const pageInfo = await page.evaluate(() => {
+                            const productList = document.querySelector('.product-list');
+                            return {
+                                hasProductList: !!productList,
+                                productListChildren: productList ? productList.children.length : 0,
+                                productListItems: document.querySelectorAll('.product-list > .product-list-item').length,
+                                allProductItems: document.querySelectorAll('.product-list-item').length,
+                                allListItems: document.querySelectorAll('li').length,
+                                bodyText: document.body.innerText.substring(0, 300),
+                                url: window.location.href,
+                                readyState: document.readyState
+                            };
+                        });
+                        console.log("Page debug info:", JSON.stringify(pageInfo, null, 2));
+                        
+                        if (retryCount < maxRetries) {
+                            // Wait longer and scroll again
+                            console.log(`Waiting ${3000 * retryCount}ms before retry...`);
+                            await waitForXTime(3000 * retryCount);
+                            
+                            // Scroll again to trigger loading
+                            try {
+                                await page.evaluate(() => {
+                                    window.scrollTo(0, document.body.scrollHeight);
+                                });
+                                await waitForXTime(2000);
+                                await page.evaluate(() => {
+                                    window.scrollTo(0, 0);
+                                });
+                                await waitForXTime(1000);
+                            } catch (e) {}
+                        } else {
+                            // Final attempt - check if container exists
+                            if (pageInfo.hasProductList && pageInfo.productListChildren > 0) {
+                                console.log("Product list container exists with children, continuing anyway...");
+                                productsFound = true; // Assume products are there even if selector doesn't match
+                                break;
+                            } else {
+                                throw new Error(`Products not found after ${maxRetries} attempts. Container: ${pageInfo.hasProductList}, Children: ${pageInfo.productListChildren}, Items: ${pageInfo.productListItems}`);
+                            }
+                        }
+                    }
+                }
                 
             } catch (gotoError) {
                 console.log(`Error loading page ${pageNo}: ${gotoError.message}`);
+                
+                // Take error screenshot for debugging
+                try {
+                    await Promise.race([
+                        page.screenshot({ 
+                            path: `farmers_face_page_${pageNo}_error.png`, 
+                            fullPage: false 
+                        }),
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Screenshot timeout')), 5000))
+                    ]);
+                    console.log(`Error screenshot saved: farmers_face_page_${pageNo}_error.png`);
+                } catch (screenshotError) {
+                    console.log(`Error screenshot failed: ${screenshotError.message}`);
+                }
+                
                 throw gotoError;
             }
 
+            // Take screenshot after successful load
+            try {
+                await Promise.race([
+                    page.screenshot({ 
+                        path: `farmers_face_page_${pageNo}_success.png`, 
+                        fullPage: false 
+                    }),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Screenshot timeout')), 5000))
+                ]);
+            } catch (screenshotError) {
+                // Ignore screenshot errors
+            }
+            
             const [products,missing] = await page.evaluate(() => {
               const productElements = document.querySelectorAll('.product-list > .product-list-item');
               const productList = [];
