@@ -2,47 +2,53 @@ const redisClient = require("../configs/redis.config");
 const extract_unit_and_quantity = require("./extract_unit_and_quantity");
 const logError = require("./logError");
 const precomputeDailyData = require("./precomputeDailyData");
-// const precomputeDailyDataFNB = require("./precomputeDailyDataFNB"); // FNB runs on different instance
-const scrapeBeautyBliss = require("./scrapeBeautyBliss");
-const scrapeBigBarrel = require("./scrapeBigBarrel");
-const scrapeChemistWarehouse = require("./scrapeChemistWarehourse");
-const scrapeFarmers = require("./scrapeFarmers");
-const scrapeMecca = require("./scrapeMecca");
+const precomputeDailyDataFNB = require("./precomputeDailyDataFNB");
+
+// Domestic websites
+const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
 const scrapeNzLiquor = require("./scrapeNzLiquor");
 const scrapeLiquorland = require("./scrapeLiquorland");
+const scrapeBigBarrel = require("./scrapeBigBarrel");
 const scrapeSephora = require("./scrapeSephora");
-const scrapeWhiskyAndMore = require("./scrapeWhiskyAndMore");
-const scrapeDanMurphy = require("./scrapeDanMurphy");
-
-const updateProductPriceRank = require("./updateProductPriceRank");
-const waitForXTime = require("./waitForXTime");
-const puppeteer = require("puppeteer");
+const scrapeBeautyBliss = require("./scrapeBeautyBliss");
+const scrapeMecca = require("./scrapeMecca");
+const scrapeFarmers = require("./scrapeFarmers");
+const scrapeChemistWarehouse = require("./scrapeChemistWarehourse");
 const scrapeTheIconic = require("./scrapeTheIconic");
 const scrapeAuMecca = require("./scrapeAuMecca");
 const scrapeAuSephora = require("./scrapeAuSephora");
 const scrapeAuChemistWarehouse = require("./scrapeAuChemistWarehouse");
+const scrapeDanMurphy = require("./scrapeDanMurphy");
 const scrapeLifepharmacy = require("./scrapeLifepharmacy");
 const scrapeLiquorlandAus = require("./scrapeLiquorLandAus");
+
+const updateDailyPriceStats = require("./updateDailyPriceStats");
+const updateProductPriceRank = require("./updateProductPriceRank");
+const waitForXTime = require("./waitForXTime");
+const puppeteer = require("puppeteer");
+const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
+
 
 
 const scrapingService =async ()=>{
 
-  let doneWhiskyAndMore = false,
-    doneNzLiquor = false,
-    doneLiquorland = false,
-    doneBigBarrel = false,
-    doneSephora = false,
-    doneBeautyBliss = false,
-    doneMecca = false,
+  // Domestic websites
+  let doneWhiskyAndMore = true,
+    doneNzLiquor = true,
+    doneLiquorland = true,
+    doneBigBarrel = true,
+    doneSephora = true,
+    doneBeautyBliss = true,
+    doneMecca = true,
     doneFarmers = true,
-    doneChemistWarehouse = false,
-    doneTheIconic = false,
-    doneAuMecca = false,
-    doneAuSephora = false,
-    doneAuChemistWarehouse = false,
-    doneDanMurphy=true,
-    doneLifepharmacy = false,
-    doneLiquorlandAus = false
+    doneChemistWarehouse = true,
+    doneTheIconic = true,
+    doneAuMecca = true,
+    doneAuSephora = true,
+    doneAuChemistWarehouse = true,
+    doneDanMurphy = false,
+    doneLifepharmacy = true,
+    doneLiquorlandAus = true
 
 
   let start_page = 1,
@@ -253,6 +259,18 @@ const scrapingService =async ()=>{
       beard: false,
       grooming_treatments: false,
     },
+    liquorlandAus : {
+      vodka:false,
+      gin:false,
+      whisky:false,
+      rum:false,
+      bourbon:false,
+      tequila:false,
+      brandy_and_cognac:false,
+      liqueurs:false,
+      aperitifs:false,
+      mixers:false,
+    },
     danMurphy:{
          aperitifs:false,
          baijiu:false,
@@ -304,24 +322,13 @@ const scrapingService =async ()=>{
         skincare_supplements: false,
         facial_wipes: false,
         lash_brow_serums: false
-      },
-      liquorlandAus : {
-        vodka:false,
-        gin:false,
-        whisky:false,
-        rum:false,
-        bourbon:false,
-        tequila:false,
-        brandy_and_cognac:false,
-        liqueurs:false,
-        aperitifs:false,
-        mixers:false,
       }
   };
 
   while (
     !doneWhiskyAndMore ||
     !doneNzLiquor ||
+    !doneLiquorland ||
     !doneBigBarrel ||
     !doneSephora ||
     !doneBeautyBliss ||
@@ -333,8 +340,7 @@ const scrapingService =async ()=>{
     !doneAuSephora ||
     !doneAuChemistWarehouse ||
     !doneDanMurphy ||
-    !doneLiquorland || 
-    !doneLifepharmacy || 
+    !doneLifepharmacy ||
     !doneLiquorlandAus
   ) {
     console.log("current page",start_page);
@@ -342,23 +348,6 @@ const scrapingService =async ()=>{
       headless: true,
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
-
-    if (!doneLiquorlandAus)
-      try {
-        doneLiquorlandAus = await scrapeLiquorlandAus(start_page,end_page,internalStates,browser);
-      } catch (err) {
-        console.log("There was an error while scraping from liquorland aus");
-        logError(err);
-      }
-
-    if (!doneLifepharmacy)
-      try {
-        doneLifepharmacy = await scrapeLifepharmacy(start_page,end_page,internalStates,browser);
-      } catch (err) {
-        console.log("There was an error while scraping from lifepharmacy");
-        logError(err);
-      }
-
 
     if (!doneWhiskyAndMore)
       try {
@@ -413,6 +402,7 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
+
     if (!doneBeautyBliss)
       try {
         doneBeautyBliss = await scrapeBeautyBliss(
@@ -452,6 +442,19 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
+    if (!doneLiquorlandAus)
+      try {
+        doneLiquorlandAus = await scrapeLiquorlandAus(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland aus");
+        logError(err);
+      }
+
 
     if (!doneAuMecca)
       try {
@@ -479,8 +482,24 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
+    if (!doneLifepharmacy)
+      try {
+        doneLifepharmacy = await scrapeLifepharmacy(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from lifepharmacy");
+        logError(err);
+      }
 
-      if(!doneDanMurphy)
+    // Close shared browser before Dan Murphy (which creates its own browsers)
+    await browser.close();
+
+    // Run Dan Murphy independently (creates its own browsers)
+    if(!doneDanMurphy)
       try{
           doneDanMurphy = await scrapeDanMurphy(start_page);
       }catch(err){
@@ -489,13 +508,17 @@ const scrapingService =async ()=>{
       }
 
     if (!doneSephora)
-      try {
-        doneSephora = await scrapeSephora(start_page, end_page, internalStates, browser);
-      } catch (err) {
-        console.log("There was an error while scraping from sephora");
-        logError(err);
-      }
-
+        try {
+          doneSephora = await scrapeSephora(
+            start_page,
+            end_page,
+            internalStates
+          );
+        } catch (err) {
+          console.log("There was an error while scraping from sephora");
+          logError(err);
+    }
+    
     if (!doneChemistWarehouse)
       try {
         doneChemistWarehouse = await scrapeChemistWarehouse(
@@ -508,90 +531,40 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    if (!doneTheIconic)
-      try {
-        doneTheIconic = await scrapeTheIconic(
-          start_page,
-          end_page,
-          internalStates
-        );
-      } catch (err) {
-        console.log(
-          "There was an error while scraping from australia the iconic"
-        );
-        logError(err);
-      }
+      if (!doneTheIconic)
+        try {
+          doneTheIconic = await scrapeTheIconic(
+            start_page,
+            end_page,
+            internalStates
+          );
+        } catch (err) {
+          console.log(
+            "There was an error while scraping from australia the iconic"
+          );
+          logError(err);
+        }
 
-    if (!doneAuChemistWarehouse) {
-      try {
-        doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
-          start_page,
-          end_page,
-          internalStates
-        );
-      } catch (err) {
-        console.log(
-          "There was an error while scraping from australia chemist warehouse"
-        );
-        logError(err);
-      }
-    }
-    
-    await browser.close();
+        if (!doneAuChemistWarehouse) {
+          try {
+            doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
+              start_page,
+              end_page,
+              internalStates
+            );
+          } catch (err) {
+            console.log(
+              "There was an error while scraping from australia chemist warehouse"
+            );
+            logError(err);
+          }
+        }  
 
     end_page += 1;
     start_page += 1;
 
     await waitForXTime(10000);
   }
-  
-  // Clear all Redis cache except live_price_changes_* keys
-  console.log("Clearing Redis cache while preserving live price changes...");
-  
-  // try {
-  //   // Get all keys
-  //   const allKeys = await redisClient.keys('*');
-    
-  //   // Filter out live_price_changes_* keys
-  //   const keysToDelete = allKeys.filter(key => !key.startsWith('live_price_changes_'));
-    
-  //   if (keysToDelete.length > 0) {
-  //     // Delete keys in batches to avoid memory issues
-  //     const batchSize = 1000;
-  //     for (let i = 0; i < keysToDelete.length; i += batchSize) {
-  //       const batch = keysToDelete.slice(i, i + batchSize);
-  //       await Promise.all(batch.map(key => redisClient.del(key)));
-  //     }
-  //     console.log(`Cleared ${keysToDelete.length} keys from Redis cache`);
-  //   }
-    
-  //   // Log preserved keys
-  //   const preservedKeys = allKeys.filter(key => key.startsWith('live_price_changes_'));
-  //   if (preservedKeys.length > 0) {
-  //     console.log(`Preserved ${preservedKeys.length} live price change keys:`, preservedKeys.slice(0, 5), preservedKeys.length > 5 ? '...' : '');
-  //   }
-    
-  // } catch (error) {
-  //   console.log("Error clearing Redis cache:", error.message);
-  // }
-
-  // await redisClient.flushAll();
-  // await redisClient.del('daily_product_data_fnb');
-  // await redisClient.del('daily_product_dataaelia_auckland');
-  // await redisClient.del('daily_product_dataaelia_christchurch');
-  // await redisClient.del('daily_product_datalotte_melbourne');
-  // await redisClient.del('daily_product_dataaelia_queenstown');
-  // await redisClient.del('daily_product_datanz_themall');
-  // await redisClient.del('daily_product_dataheinemann_sydney');
-  // await redisClient.del('daily_product_dataaelia_adelaide');
-  // await redisClient.del('daily_product_dataaelia_cairns');
-  // await redisClient.del('daily_product_dataheinemann_goldcoast');
-  // await redisClient.del('daily_product_datalotte_brisbane');
-
-  
-  // await extract_unit_and_quantity();
-  // await updateProductPriceRank();
-  // await precomputeDailyDataFNB(); // FNB runs on different instance
 };
 
 module.exports = scrapingService;
