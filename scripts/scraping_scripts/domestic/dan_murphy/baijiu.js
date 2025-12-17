@@ -1,5 +1,21 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const ProxyPlugin = require('puppeteer-extra-plugin-proxy');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+
+// Configure proxy for Dan Murphy scraping
+const proxyServer = '142.111.48.253:7030';
+const proxyUsername = 'ftjgwyap';
+const proxyPassword = '17xe9se18188';
+
+// Setup proxy plugin
+puppeteer.use(ProxyPlugin({
+    address: proxyServer.split(':')[0],
+    port: parseInt(proxyServer.split(':')[1]),
+    credentials: {
+        username: proxyUsername,
+        password: proxyPassword
+    }
+}));
 
 const baijiu = async () => {
     const browser = await puppeteer.launch({ 
@@ -62,27 +78,65 @@ const baijiu = async () => {
     console.log("Navigating to Dan Murphy's baijiu page...");
     
     // First, go to the main page to establish a session
-    await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
+    try {
+        await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
+        console.log("Main page loaded successfully");
+    } catch (error) {
+        console.log("Error loading main page:", error.message);
+        // Continue anyway
+    }
     await waitForXTime(3000);
     
     // Then navigate to the baijiu page
-    await page.goto('https://www.danmurphys.com.au/spirits/baijiu', { waitUntil: 'networkidle2', timeout: 60000 });
+    try {
+        await page.goto('https://www.danmurphys.com.au/spirits/baijiu', { waitUntil: 'networkidle2', timeout: 60000 });
+        console.log("Baijiu page loaded successfully");
+    } catch (error) {
+        console.log("Error loading baijiu page:", error.message);
+        // Try with a more lenient wait condition
+        try {
+            await page.goto('https://www.danmurphys.com.au/spirits/baijiu', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            console.log("Baijiu page loaded with domcontentloaded");
+        } catch (retryError) {
+            console.log("Error on retry:", retryError.message);
+            throw retryError;
+        }
+    }
 
     await waitForXTime(8000);
     console.log("Initial wait complete");
 
-    // Check if we got blocked or if products are loading
-    const pageContent = await page.evaluate(() => {
-        return {
-            title: document.title,
-            bodyText: document.body.innerText,
-            hasNoProducts: document.body.innerText.includes('No products found'),
-            hasLoading: document.body.innerText.includes('Finding closest store'),
-            url: window.location.href
-        };
-    });
-
-    console.log("Page content check:", pageContent);
+    // Verify page is accessible before proceeding
+    let pageContent;
+    try {
+        // Wait a bit more to ensure page is stable
+        await waitForXTime(2000);
+        
+        // Check if we got blocked or if products are loading
+        pageContent = await page.evaluate(() => {
+            return {
+                title: document.title,
+                bodyText: document.body ? document.body.innerText : '',
+                hasNoProducts: document.body ? document.body.innerText.includes('No products found') : false,
+                hasLoading: document.body ? document.body.innerText.includes('Finding closest store') : false,
+                url: window.location.href
+            };
+        });
+        console.log("Page content check:", pageContent);
+    } catch (evalError) {
+        console.log("Error evaluating page content:", evalError.message);
+        // Try to get basic page info
+        try {
+            const currentUrl = page.url();
+            const title = await page.title();
+            console.log("Page URL:", currentUrl, "Title:", title);
+            pageContent = { url: currentUrl, title: title, hasNoProducts: false, hasLoading: false, bodyText: '' };
+        } catch (fallbackError) {
+            console.log("Could not get page info:", fallbackError.message);
+            // Don't throw, just continue with default values to avoid crashing
+            pageContent = { url: 'unknown', title: 'unknown', hasNoProducts: false, hasLoading: false, bodyText: '' };
+        }
+    }
 
     // If we're still on the main page or getting blocked, try a different approach
     if (pageContent.hasNoProducts || pageContent.hasLoading) {

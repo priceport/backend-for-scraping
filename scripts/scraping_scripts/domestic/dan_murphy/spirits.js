@@ -1,11 +1,40 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const ProxyPlugin = require('puppeteer-extra-plugin-proxy');
 const waitForXTime = require('../../../../helpers/waitForXTime');
+
+// Configure proxy for Dan Murphy scraping
+const proxyServer = '142.111.48.253:7030';
+const proxyUsername = 'ftjgwyap';
+const proxyPassword = '17xe9se18188';
+
+// Setup proxy plugin
+puppeteer.use(ProxyPlugin({
+    address: proxyServer.split(':')[0],
+    port: parseInt(proxyServer.split(':')[1]),
+    credentials: {
+        username: proxyUsername,
+        password: proxyPassword
+    }
+}));
 
 const spirits = async () => {
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
 
-    await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2' });
+    try {
+        await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2', timeout: 60000 });
+        console.log("Spirits page loaded successfully");
+    } catch (error) {
+        console.log("Error loading spirits page:", error.message);
+        // Try with a more lenient wait condition
+        try {
+            await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            console.log("Spirits page loaded with domcontentloaded");
+        } catch (retryError) {
+            console.log("Error on retry:", retryError.message);
+            throw retryError;
+        }
+    }
 
     await waitForXTime(5000);
     console.log("Initial wait complete");

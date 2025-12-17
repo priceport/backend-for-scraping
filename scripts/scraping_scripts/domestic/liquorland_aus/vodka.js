@@ -2,6 +2,7 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+const setupStealthPage = require('../../../../helpers/setupStealthPage');
 
 const vodka = async (start, end, browser) => {
   let pageNo = start;
@@ -10,11 +11,10 @@ const vodka = async (start, end, browser) => {
   const page = await browser.newPage();
   const allProducts = [];
 
-  await page.setViewport({ width: 1920, height: 1080 });
-  await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+  // Set up stealth page with anti-detection measures
+  await setupStealthPage(page, { domain: 'liquorland.com.au' });
 
   try {
-    await page.setRequestInterception(false);
 
     while (true) {
       await waitForXTime(constants.timeout);
