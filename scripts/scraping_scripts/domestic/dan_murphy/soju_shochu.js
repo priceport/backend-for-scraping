@@ -20,7 +20,7 @@ puppeteer.use(ProxyPlugin({
 const sojuShochu = async () => {
     const browser = await puppeteer.launch({ 
         headless: true,
-        protocolTimeout: 60000, // Increase protocol timeout to 60 seconds
+        protocolTimeout: 120000, // Increase protocol timeout to 120 seconds for proxy connections
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -78,28 +78,55 @@ const sojuShochu = async () => {
     console.log("Navigating to Dan Murphy's soju/shochu page...");
     
     // First, go to the main page to establish a session
-    try {
-        await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
-        console.log("Main page loaded successfully");
-    } catch (error) {
-        console.log("Error loading main page:", error.message);
-        // Continue anyway
+    let retryCount = 0;
+    const maxRetries = 3;
+    let mainPageLoaded = false;
+    
+    while (retryCount < maxRetries && !mainPageLoaded) {
+        try {
+            await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 90000 });
+            console.log("Main page loaded successfully");
+            mainPageLoaded = true;
+        } catch (error) {
+            retryCount++;
+            console.log(`Error loading main page (attempt ${retryCount}/${maxRetries}):`, error.message);
+            if (retryCount < maxRetries) {
+                await waitForXTime(3000 * retryCount); // Exponential backoff
+            } else {
+                console.log("Failed to load main page after retries, continuing anyway");
+            }
+        }
     }
     await waitForXTime(3000);
     
     // Then navigate to the soju/shochu page
-    try {
-        await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu', { waitUntil: 'networkidle2', timeout: 60000 });
-        console.log("Soju/shochu page loaded successfully");
-    } catch (error) {
-        console.log("Error loading soju/shochu page:", error.message);
-        // Try with a more lenient wait condition
+    retryCount = 0;
+    let sojuPageLoaded = false;
+    
+    while (retryCount < maxRetries && !sojuPageLoaded) {
         try {
-            await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu', { waitUntil: 'domcontentloaded', timeout: 60000 });
-            console.log("Soju/shochu page loaded with domcontentloaded");
-        } catch (retryError) {
-            console.log("Error on retry:", retryError.message);
-            throw retryError;
+            await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu', { waitUntil: 'networkidle2', timeout: 90000 });
+            console.log("Soju/shochu page loaded successfully");
+            sojuPageLoaded = true;
+        } catch (error) {
+            retryCount++;
+            console.log(`Error loading soju/shochu page (attempt ${retryCount}/${maxRetries}):`, error.message);
+            if (retryCount < maxRetries) {
+                // Try with a more lenient wait condition
+                try {
+                    await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu', { waitUntil: 'domcontentloaded', timeout: 90000 });
+                    console.log("Soju/shochu page loaded with domcontentloaded");
+                    sojuPageLoaded = true;
+                } catch (retryError) {
+                    console.log(`Retry with domcontentloaded failed (attempt ${retryCount}/${maxRetries}):`, retryError.message);
+                    if (retryCount < maxRetries) {
+                        await waitForXTime(3000 * retryCount); // Exponential backoff
+                    }
+                }
+            } else {
+                console.log("Failed to load soju/shochu page after all retries");
+                throw new Error(`Failed to load soju/shochu page after ${maxRetries} attempts: ${error.message}`);
+            }
         }
     }
 
@@ -143,7 +170,7 @@ const sojuShochu = async () => {
         console.log("Detected blocking or loading issue, trying alternative approach...");
         
         // Try going directly to the search results with specific parameters
-        await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 60000 });
+        await page.goto('https://www.danmurphys.com.au/spirits/soju-shochu?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 90000 });
         await waitForXTime(5000);
         
         // Try scrolling to trigger lazy loading

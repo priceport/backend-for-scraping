@@ -20,7 +20,7 @@ puppeteer.use(ProxyPlugin({
 const whisky = async () => {
     const browser = await puppeteer.launch({ 
         headless: true,
-        protocolTimeout: 60000, // Increase protocol timeout to 60 seconds
+        protocolTimeout: 120000, // Increase protocol timeout to 120 seconds for proxy connections
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -78,28 +78,55 @@ const whisky = async () => {
     console.log("Navigating to Dan Murphy's whisky page...");
     
     // First, go to the main page to establish a session
-    try {
-        await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 60000 });
-        console.log("Main page loaded successfully");
-    } catch (error) {
-        console.log("Error loading main page:", error.message);
-        // Continue anyway
+    let retryCount = 0;
+    const maxRetries = 3;
+    let mainPageLoaded = false;
+    
+    while (retryCount < maxRetries && !mainPageLoaded) {
+        try {
+            await page.goto('https://www.danmurphys.com.au', { waitUntil: 'networkidle2', timeout: 90000 });
+            console.log("Main page loaded successfully");
+            mainPageLoaded = true;
+        } catch (error) {
+            retryCount++;
+            console.log(`Error loading main page (attempt ${retryCount}/${maxRetries}):`, error.message);
+            if (retryCount < maxRetries) {
+                await waitForXTime(3000 * retryCount); // Exponential backoff
+            } else {
+                console.log("Failed to load main page after retries, continuing anyway");
+            }
+        }
     }
     await waitForXTime(3000);
     
     // Then navigate to the whisky page
-    try {
-        await page.goto('https://www.danmurphys.com.au/whisky/all', { waitUntil: 'networkidle2', timeout: 60000 });
-        console.log("Whisky page loaded successfully");
-    } catch (error) {
-        console.log("Error loading whisky page:", error.message);
-        // Try with a more lenient wait condition
+    retryCount = 0;
+    let whiskyPageLoaded = false;
+    
+    while (retryCount < maxRetries && !whiskyPageLoaded) {
         try {
-            await page.goto('https://www.danmurphys.com.au/whisky/all', { waitUntil: 'domcontentloaded', timeout: 60000 });
-            console.log("Whisky page loaded with domcontentloaded");
-        } catch (retryError) {
-            console.log("Error on retry:", retryError.message);
-            throw retryError;
+            await page.goto('https://www.danmurphys.com.au/whisky/all', { waitUntil: 'networkidle2', timeout: 90000 });
+            console.log("Whisky page loaded successfully");
+            whiskyPageLoaded = true;
+        } catch (error) {
+            retryCount++;
+            console.log(`Error loading whisky page (attempt ${retryCount}/${maxRetries}):`, error.message);
+            if (retryCount < maxRetries) {
+                // Try with a more lenient wait condition
+                try {
+                    await page.goto('https://www.danmurphys.com.au/whisky/all', { waitUntil: 'domcontentloaded', timeout: 90000 });
+                    console.log("Whisky page loaded with domcontentloaded");
+                    whiskyPageLoaded = true;
+                } catch (retryError) {
+                    console.log(`Retry with domcontentloaded failed (attempt ${retryCount}/${maxRetries}):`, retryError.message);
+                    if (retryCount < maxRetries) {
+                        await waitForXTime(3000 * retryCount); // Exponential backoff
+                    }
+                }
+            } else {
+                console.log("Failed to load whisky page after all retries");
+                throw new Error(`Failed to load whisky page after ${maxRetries} attempts: ${error.message}`);
+            }
         }
     }
 
@@ -143,7 +170,7 @@ const whisky = async () => {
         console.log("Detected blocking or loading issue, trying alternative approach...");
         
         // Try going directly to the search results with specific parameters
-        await page.goto('https://www.danmurphys.com.au/whisky/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 60000 });
+        await page.goto('https://www.danmurphys.com.au/whisky/all?page=1&sortBy=relevance', { waitUntil: 'networkidle2', timeout: 90000 });
         await waitForXTime(5000);
         
         // Try scrolling to trigger lazy loading

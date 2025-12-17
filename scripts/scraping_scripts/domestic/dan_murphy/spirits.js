@@ -18,21 +18,40 @@ puppeteer.use(ProxyPlugin({
 }));
 
 const spirits = async () => {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+        headless: true,
+        protocolTimeout: 120000 // Increase protocol timeout to 120 seconds for proxy connections
+    });
     const page = await browser.newPage();
 
-    try {
-        await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2', timeout: 60000 });
-        console.log("Spirits page loaded successfully");
-    } catch (error) {
-        console.log("Error loading spirits page:", error.message);
-        // Try with a more lenient wait condition
+    let retryCount = 0;
+    const maxRetries = 3;
+    let spiritsPageLoaded = false;
+    
+    while (retryCount < maxRetries && !spiritsPageLoaded) {
         try {
-            await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'domcontentloaded', timeout: 60000 });
-            console.log("Spirits page loaded with domcontentloaded");
-        } catch (retryError) {
-            console.log("Error on retry:", retryError.message);
-            throw retryError;
+            await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'networkidle2', timeout: 90000 });
+            console.log("Spirits page loaded successfully");
+            spiritsPageLoaded = true;
+        } catch (error) {
+            retryCount++;
+            console.log(`Error loading spirits page (attempt ${retryCount}/${maxRetries}):`, error.message);
+            if (retryCount < maxRetries) {
+                // Try with a more lenient wait condition
+                try {
+                    await page.goto('https://www.danmurphys.com.au/spirits/all', { waitUntil: 'domcontentloaded', timeout: 90000 });
+                    console.log("Spirits page loaded with domcontentloaded");
+                    spiritsPageLoaded = true;
+                } catch (retryError) {
+                    console.log(`Retry with domcontentloaded failed (attempt ${retryCount}/${maxRetries}):`, retryError.message);
+                    if (retryCount < maxRetries) {
+                        await waitForXTime(3000 * retryCount); // Exponential backoff
+                    }
+                }
+            } else {
+                console.log("Failed to load spirits page after all retries");
+                throw new Error(`Failed to load spirits page after ${maxRetries} attempts: ${error.message}`);
+            }
         }
     }
 
