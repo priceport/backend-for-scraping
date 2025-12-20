@@ -15,13 +15,13 @@ const hair_color = async (start, end) => {
   try {
     console.log(`Starting Farmers hair_color scraper (pages ${start} to ${end})...`);
     
-    // Path to Python scraper
-    const pythonScriptPath = path.join(__dirname, '../../../../../python-scraper/farmers-scraper/scraper.py');
-    const pythonVenvPath = path.join(__dirname, '../../../../../python-scraper/venv');
+    // Path to Python scraper (use resolve for absolute paths)
+    const pythonScriptPath = path.resolve(__dirname, '../../../../../python-scraper/farmers-scraper/scraper.py');
+    const pythonVenvPath = path.resolve(__dirname, '../../../../../python-scraper/venv');
     
     // Determine Python executable (use venv if available)
     let pythonExec = 'python3';
-    const venvPython = path.join(pythonVenvPath, 'bin', 'python3');
+    const venvPython = path.resolve(pythonVenvPath, 'bin', 'python3');
     if (fs.existsSync(venvPython)) {
       pythonExec = venvPython;
     }
