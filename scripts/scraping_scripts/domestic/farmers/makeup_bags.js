@@ -1,142 +1,93 @@
-const puppeteer = require('puppeteer');
-const waitForXTime = require('../../../../helpers/waitForXTime');
-const constants = require('../../../../helpers/constants');
+/**
+ * Farmers Makeup Bags Products Scraper
+ * Uses Python Camoufox scraper for better anti-bot evasion
+ */
+
+const { execSync } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
-const makeup_bags = async (start,end,browser)=>{
-    let pageNo = start;
-    const default_url = 'https://www.farmers.co.nz/beauty/makeup/makeup-bags-storage';
-    const url = 'https://www.farmers.co.nz/beauty/makeup/makeup-bags-storage/Page-replace_me-SortingAttribute-SortBy-asc';
+const makeup_bags = async (start, end) => {
+  const allProducts = [];
   
-    const page = await browser.newPage();
-    const allProducts = [];
+  try {
+    console.log(`Starting Farmers makeup_bags scraper (pages ${start} to ${end})...`);
     
-    try{
-        // Enable request interception for performance
-        await page.setRequestInterception(true);
-
-        // Smart request blocking - allow essential resources
-        page.on('request', (req) => {
-            const resourceType = req.resourceType();
-            const url = req.url();
-
-            // Allow essential resources for proper page loading
-            if (resourceType === 'document' || 
-                resourceType === 'script' || 
-                resourceType === 'xhr' || 
-                resourceType === 'fetch' ||
-                (resourceType === 'stylesheet' && url.includes('farmers.co.nz')) ||
-                (resourceType === 'image' && url.includes('farmers.co.nz'))) {
-                req.continue();
-            } else {
-                req.abort();
-            }
-        });
-
-        // Set realistic browser settings
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
-        await page.setViewport({ width: 1920, height: 1080 });
-        
-        // Set extra headers to avoid detection
-        await page.setExtraHTTPHeaders({
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-        });
-
-        while(true){
-            await waitForXTime(constants.timeout);
-            
-            const targetUrl = pageNo==1 ? default_url : url.replace("replace_me", pageNo-1);
-            
-            try {
-                await page.goto(targetUrl, { 
-                    waitUntil: 'networkidle2',
-                    timeout: 30000
-                });
-                
-                // Wait for dynamic content to load - using setTimeout instead of waitForTimeout
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                // Wait for product elements to be present
-                await page.waitForSelector('.product-list > .product-list-item', { timeout: 10000 });
-                
-            } catch (gotoError) {
-                console.log(`Error loading page ${pageNo}: ${gotoError.message}`);
-                throw gotoError;
-            }
-
-            const [products,missing] = await page.evaluate(() => {
-              const productElements = document.querySelectorAll('.product-list > .product-list-item');
-              const productList = [];
-              let missing = 0;
-          
-              productElements.forEach(product => {
-                const titleElement = product.querySelector('.product-title-span');
-                const brandElement = product.querySelector('.css-cfm1ok');
-                const priceElement = product.querySelector('.current-price');
-                const promoElement = product.querySelector('.basics-promotion-label');
-                const urlElement = product.querySelector('.product-image-container > a');
-                const imgElement = product.querySelector('.product-image');
-          
-                const title = titleElement ? titleElement.innerText.trim() : null;
-                const brand = brandElement ? brandElement.innerText.trim() : null;
-                const price = priceElement ? priceElement.innerText.trim() : null;
-                const promo = promoElement ? promoElement?.innerText?.trim() : null;
-                const url = urlElement ? urlElement.href.trim() : null;
-                const img = imgElement ? imgElement.src.trim() : null;
-          
-                if(!title||!brand||!price||!url||!img){missing+=1;}
-
-                if(!title&&!brand&&!price&&!url){}
-                else
-                productList.push({ 
-                  title, 
-                  brand, 
-                  price,
-                  promo, 
-                  url, 
-                  category:'beauty',
-                  source:{website_base:"https://www.farmers.co.nz",location:"new-zealand",tag:"domestic"}, 
-                  date:Date.now(),
-                  last_check:Date.now(),
-                  mapping_ref:null,
-                  unit:undefined,
-                  subcategory:'makeup',
-                  img
-                });
-              });
-          
-              return [productList,missing];
-            });
-
-            if(missing > 5) {
-              await insertScrapingError("More than 5 entries missing for farmers - makeup_bags: "+pageNo,"scraping_missing");
-            }
-
-            allProducts.push(...products);
-
-              if(products?.length==0||pageNo==end){ 
-                await page.close();
-                return allProducts;
-              }
-                
-              pageNo+=1;
-            }
-
-      }catch(err){
-        logError(err);
-
-        try{
-          await insertScrapingError("Error in farmers - makeup_bags: "+err.message,"scraping_trycatch");
-        }catch(err){
-            console.log(err);
-        }
-
-        await page.close();
-        return allProducts;
-      }
-}
+    // Path to Python scraper
+    const pythonScriptPath = path.join(__dirname, '../../../../../python-scraper/farmers-scraper/scraper.py');
+    const pythonVenvPath = path.join(__dirname, '../../../../../python-scraper/venv');
+    
+    // Determine Python executable (use venv if available)
+    let pythonExec = 'python3';
+    const venvPython = path.join(pythonVenvPath, 'bin', 'python3');
+    if (fs.existsSync(venvPython)) {
+      pythonExec = venvPython;
+    }
+    
+    // Execute Python scraper and capture JSON output
+    const output = execSync(`${pythonExec} "${pythonScriptPath}" makeup_bags ${start} ${end}`, {
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024,
+      cwd: path.dirname(pythonScriptPath),
+      timeout: 300000
+    });
+    
+    // Parse JSON output from stdout
+    const pythonProducts = JSON.parse(output.trim());
+    console.log(`Python scraper found ${pythonProducts.length} products`);
+    
+    // Transform Python output to expected format
+    pythonProducts.forEach(product => {
+      const titleParts = product.title.split(' ');
+      const brand = titleParts.length > 1 ? titleParts[0] : null;
+      
+      allProducts.push({
+        title: product.title,
+        brand: brand,
+        price: product.price,
+        promo: null,
+        url: product.url,
+        category: 'beauty',
+        source: {
+          website_base: "https://www.farmers.co.nz",
+          location: "new-zealand",
+          tag: "domestic"
+        },
+        date: product.timestamp,
+        last_check: Date.now(),
+        mapping_ref: null,
+        unit: undefined,
+        subcategory: 'makeup_bags',
+        img: product.img
+      });
+    });
+    
+    // Check for missing data
+    const missingCount = allProducts.filter(p => !p.title || !p.price || !p.url || !p.img).length;
+    if (missingCount > 5) {
+      await insertScrapingError(
+        `More than 5 entries missing for farmers - makeup_bags: ${missingCount} products with missing data`,
+        "scraping_missing"
+      );
+    }
+    
+    console.log(`Farmers makeup_bags scraping completed: ${allProducts.length} products`);
+    return allProducts;
+    
+  } catch (err) {
+    logError(err);
+    try {
+      await insertScrapingError(
+        `Error in farmers - makeup_bags: ${err.message}`,
+        "scraping_trycatch"
+      );
+    } catch (err) {
+      console.log(err);
+    }
+    return allProducts;
+  }
+};
 
 module.exports = makeup_bags;
