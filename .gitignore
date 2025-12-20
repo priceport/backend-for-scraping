@@ -9,3 +9,30 @@ products.txt
 eng.traineddata
 dump.rdb
 uploads
+
+# Python
+python-scraper/venv/
+python-scraper/**/__pycache__/
+python-scraper/**/*.py[cod]
+python-scraper/**/*$py.class
+python-scraper/**/*.so
+python-scraper/.Python
+
+# Python scraper outputs (debug files)
+python-scraper/**/*.png
+python-scraper/**/*.json
+!python-scraper/**/requirements.txt
+
+# Python logs
+python-scraper/**/*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
