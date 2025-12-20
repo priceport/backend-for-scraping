@@ -1,0 +1,8 @@
+# Farmers Scraper Dependencies
+# Install: pip install -r requirements.txt
+
+camoufox>=0.4.0
+playwright>=1.40.0
+
+
+
