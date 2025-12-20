@@ -16,8 +16,8 @@ const collagen = async (start, end) => {
     console.log(`Starting Farmers collagen scraper (pages ${start} to ${end})...`);
     
     // Path to Python scraper (use resolve for absolute paths)
-    const pythonScriptPath = path.resolve(__dirname, '../../../../../python-scraper/farmers-scraper/scraper.py');
-    const pythonVenvPath = path.resolve(__dirname, '../../../../../python-scraper/venv');
+    const pythonScriptPath = path.resolve(__dirname, '../../../../python-scraper/farmers-scraper/scraper.py');
+    const pythonVenvPath = path.resolve(__dirname, '../../../../python-scraper/venv');
     
     // Determine Python executable (use venv if available)
     let pythonExec = 'python3';
