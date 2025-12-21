@@ -148,6 +148,13 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
+        // Convert NZD to USD before storing
+        const convertedPrice = nzd_to_usd(sanitizedPrice, "lifepharmacy");
+        if(convertedPrice === "Invalid input" || convertedPrice === null || convertedPrice === undefined){
+            iterator+=1;
+            continue;
+        }
+
         try{
             finalData.url = rawData.url;
             finalData.category = LIFE_PHARMACY_CATEGORY;
@@ -164,7 +171,8 @@ const processDataForSpirits = async (data)=>{
             finalData.source = LIFE_PHARMACY_SOURCE_FALLBACK;
             finalData.last_check = Date.now();
 
-            finalData.price = sanitizedPrice;
+            // Store price in USD in the expected array format
+            finalData.price = [{text:"",price:convertedPrice}];
 
             // Initialize promo as null
             finalData.promo = null;
