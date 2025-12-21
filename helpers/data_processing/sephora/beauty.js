@@ -169,7 +169,13 @@ const processDataForBeauty = async (data)=>{
             continue;
         }
 
-        if(nzd_to_usd(rawData.price.replace("$",""),"sephora")=="Invalid input"){
+        // Validate and convert price
+        const priceString = rawData.price ? rawData.price.replace("$","").trim() : "";
+        const convertedPrice = nzd_to_usd(priceString, "sephora");
+        
+        // Skip if price conversion failed or returned invalid value
+        if(!convertedPrice || convertedPrice === "Invalid input" || convertedPrice === null || isNaN(convertedPrice)){
+            console.log(`Skipping item with invalid price conversion: ${rawData?.title || rawData?.url}, price: ${rawData.price}`);
             iterator+=1;
             continue;
         } 
@@ -192,11 +198,39 @@ const processDataForBeauty = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
             
-            finalData.price = [{text:"",price:nzd_to_usd(rawData.price.replace("$",""),"sephora")}];
+            // Use the already validated converted price
+            finalData.price = [{text:"",price:convertedPrice}];
 
             finalData.img = rawData.img;
 
-            finalData.promo = rawData?.promo;
+            // Process promo data - convert promo prices to USD
+            if (rawData?.promo && Array.isArray(rawData.promo) && rawData.promo.length > 0) {
+              finalData.promo = rawData.promo.map(promoItem => {
+                if (promoItem && promoItem.price !== undefined && promoItem.price !== null) {
+                  // Convert promo price to USD if it's a number
+                  let promoPrice = promoItem.price;
+                  if (typeof promoPrice === 'string') {
+                    promoPrice = parseFloat(promoPrice.replace(/[^0-9.]/g, ''));
+                  }
+                  if (!isNaN(promoPrice)) {
+                    const convertedPromoPrice = nzd_to_usd(promoPrice.toString(), "sephora");
+                    if (convertedPromoPrice && convertedPromoPrice !== "Invalid input" && !isNaN(convertedPromoPrice)) {
+                      return {
+                        text: promoItem.text || "",
+                        price: convertedPromoPrice
+                      };
+                    }
+                  }
+                }
+                // Return promo with text only if price conversion fails
+                return {
+                  text: promoItem.text || "",
+                  price: null
+                };
+              }).filter(p => p !== null);
+            } else {
+              finalData.promo = null;
+            }
 
             output.push(finalData);
             

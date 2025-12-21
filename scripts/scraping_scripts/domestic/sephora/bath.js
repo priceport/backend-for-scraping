@@ -3,6 +3,7 @@ const constants = require('../../../../helpers/constants');
 const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+const logError = require('../../../../helpers/logError');
 
 puppeteer.use(StealthPlugin());
 
@@ -43,27 +44,58 @@ const bath = async (start,end)=>{
           productElements.forEach(product => {
             const titleElement = product.querySelector('.product-name');
             const brandElement = product.querySelector('.brand');
+            const priceContainer = product.querySelector('.prices');
             const priceElement = product.querySelector('.sell-price');
-            // const promoElement = product.querySelectorAll('.amasty-label-container > img');
+            const originalPriceElement = product.querySelector('.original-price');
+            const saleTextElement = product.querySelector('.sale-text');
             const urlElement = product.querySelector('.product-card-image-link');
             const imgElement = product.querySelector('.product-card-image');
       
             const title = titleElement ? titleElement.innerText.trim() : null;
             const brand = brandElement ? brandElement.innerText.trim() : null;
             const price = priceElement ? priceElement.innerText.trim() : null;
-            // const promo = promoElement ? Array.from(promoElement)?.map(promo=>promo.src.trim()) : null;
-            const url = urlElement ? urlElement.href.trim() : null;
-            const img = imgElement ? imgElement.src.trim() : null;
+            let url = urlElement ? urlElement.href.trim() : null;
+            // Ensure URL is absolute
+            if (url && !url.startsWith('http')) {
+              url = 'https://www.sephora.nz' + url;
+            }
+            let img = imgElement ? imgElement.src.trim() : null;
+            // Ensure image URL is absolute
+            if (img && !img.startsWith('http')) {
+              img = 'https://www.sephora.nz' + img;
+            }
+
+            // Extract promo information
+            let promo = null;
+            if (priceContainer && originalPriceElement && saleTextElement) {
+              const originalPrice = originalPriceElement.innerText.trim();
+              const saleText = saleTextElement.innerText.trim();
+              const sellPrice = priceElement ? priceElement.innerText.trim() : originalPrice;
+              
+              // Create promo object if there's a sale
+              if (originalPrice && sellPrice && originalPrice !== sellPrice && saleText) {
+                // Extract numeric values from prices
+                const originalPriceNum = parseFloat(originalPrice.replace(/[^0-9.]/g, ''));
+                const sellPriceNum = parseFloat(sellPrice.replace(/[^0-9.]/g, ''));
+                
+                if (!isNaN(originalPriceNum) && !isNaN(sellPriceNum)) {
+                  promo = [{
+                    text: saleText,
+                    price: sellPriceNum // Use the sale price for promo
+                  }];
+                }
+              }
+            }
       
             if(!title||!brand||!price||!url||!img){missing+=1;}
 
-            if(!title&&!brand&&!price&&!promo&&!url){}
+            if(!title&&!brand&&!price&&!url){}
             else
             productList.push({ 
               title, 
               brand, 
               price,
-              promo:null, 
+              promo: promo, 
               url, 
               category:'beauty',
               source:{website_base:"https://www.sephora.nz",location:"new-zealand",tag:"domestic"}, 

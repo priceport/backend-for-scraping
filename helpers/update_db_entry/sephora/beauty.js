@@ -22,8 +22,25 @@ const updateDBEntry = async (data) => {
         img,
         promo,
       } = data[iterator];
+
+      // Validate price data
+      if (!price || !Array.isArray(price) || price.length === 0 || !price[0] || price[0].price === undefined || price[0].price === null) {
+        console.log(`Skipping item with invalid price data: ${title || url}`);
+        iterator += 1;
+        continue;
+      }
+
+      const currentPrice = price[0].price;
+
+      // Skip if price is invalid (e.g., "Invalid input" string)
+      if (currentPrice === "Invalid input" || isNaN(currentPrice)) {
+        console.log(`Skipping item with invalid price value: ${title || url}, price: ${currentPrice}`);
+        iterator += 1;
+        continue;
+      }
+
       let price_per_unit = calculatePricePerUnit(
-        price[0].price,
+        currentPrice,
         quantity,
         unit
       );
@@ -74,15 +91,23 @@ const updateDBEntry = async (data) => {
       );
 
       // Insert new price only if it has changed
-      console.log(latestPrice.rows[0].price, price[0].price.toFixed(3));
+      const existingPrice = latestPrice.rowCount > 0 && latestPrice.rows[0] ? latestPrice.rows[0].price : null;
+      const newPriceString = currentPrice.toFixed(3);
+      
+      if (existingPrice !== null) {
+        console.log(`${existingPrice} ${newPriceString}`);
+      } else {
+        console.log(`New price: ${newPriceString}`);
+      }
+
       if (
         latestPrice.rowCount === 0 ||
-        latestPrice.rows[0].price != price[0].price.toFixed(3)
+        existingPrice !== newPriceString
       ) {
         await pool.query(
           `INSERT INTO price (product_id, date, price, website, price_per_unit)
                     VALUES ($1, current_date, $2, $3, $4)`,
-          [product?.rows[0]?.id, price[0].price, "sephora", price_per_unit]
+          [product?.rows[0]?.id, currentPrice, "sephora", price_per_unit]
         );
         new_prices += 1;
       }
