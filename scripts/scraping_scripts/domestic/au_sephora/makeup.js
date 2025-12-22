@@ -5,6 +5,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const {
   insertScrapingError,
 } = require("../../../../helpers/insertScrapingErrors");
+const logError = require("../../../../helpers/logError");
 
 puppeteer.use(StealthPlugin());
 
@@ -36,8 +37,6 @@ const makeup = async (start, end) => {
       }
     });
 
-    const allProducts = [];
-
     while (true) {
       await waitForXTime(constants.timeout);
       await page.goto(url.replace("replace_me", pageNo), {
@@ -54,15 +53,32 @@ const makeup = async (start, end) => {
         productElements.forEach((product) => {
           const titleElement = product.querySelector(".product-name");
           const brandElement = product.querySelector(".brand");
-          const priceElement = product.querySelector(".sell-price");
-          // const promoElement = product.querySelectorAll('.amasty-label-container > img');
+          const pricesDiv = product.querySelector(".prices");
+          const sellPriceElement = product.querySelector(".sell-price");
+          const saleTextElement = product.querySelector(".sale-text");
           const urlElement = product.querySelector(".product-card-image-link");
           const imgElement = product.querySelector(".product-card-image");
 
           const title = titleElement ? titleElement.innerText.trim() : null;
           const brand = brandElement ? brandElement.innerText.trim() : null;
-          const price = priceElement ? priceElement.innerText.trim() : null;
-          // const promo = promoElement ? Array.from(promoElement)?.map(promo=>promo.src.trim()) : null;
+          
+          // Get price: use sell-price if exists, otherwise get from prices div
+          let price = null;
+          if (sellPriceElement) {
+            price = sellPriceElement.innerText.trim();
+          } else if (pricesDiv) {
+            // Extract price from prices div (get the last price value, which is usually the current price)
+            const pricesText = pricesDiv.innerText.trim();
+            // Match price pattern like $52.00 or $32.90
+            const priceMatch = pricesText.match(/\$[\d,]+\.?\d*/g);
+            if (priceMatch && priceMatch.length > 0) {
+              price = priceMatch[priceMatch.length - 1]; // Get the last price (usually the current/sale price)
+            }
+          }
+          
+          // Extract promo from sale-text
+          const promo = saleTextElement ? saleTextElement.innerText.trim() : null;
+          
           const url = urlElement ? urlElement.href.trim() : null;
           const img = imgElement ? imgElement.src.trim() : null;
 
@@ -70,13 +86,13 @@ const makeup = async (start, end) => {
             missing += 1;
           }
 
-          if (!title && !brand && !price && !promo && !url) {
+          if (!title && !brand && !price && !url) {
           } else
             productList.push({
               title,
               brand,
               price,
-              promo: null,
+              promo: promo ? [{ saleText: promo }] : null,
               url,
               category: "beauty",
               source: {

@@ -115,6 +115,10 @@ const skincare = async (start,end)=>{
           await insertScrapingError("More than 5 entries missing for sephora - skincare: "+pageNo,"scraping_missing");
         }
 
+        products.forEach(product=>{
+          console.log({promo: product.promo, title: product.title});
+        });
+
         allProducts.push(...products);
 
           if(products?.length==0||pageNo==end){ 

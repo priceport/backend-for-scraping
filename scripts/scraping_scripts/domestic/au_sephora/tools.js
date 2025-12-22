@@ -5,6 +5,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const {
   insertScrapingError,
 } = require("../../../../helpers/insertScrapingErrors");
+const logError = require("../../../../helpers/logError");
 
 puppeteer.use(StealthPlugin());
 
@@ -36,8 +37,6 @@ const tools = async (start, end) => {
       }
     });
 
-    const allProducts = [];
-
     while (true) {
       await waitForXTime(constants.timeout);
       await page.goto(url.replace("replace_me", pageNo), {
@@ -54,15 +53,31 @@ const tools = async (start, end) => {
         productElements.forEach((product) => {
           const titleElement = product.querySelector(".product-name");
           const brandElement = product.querySelector(".brand");
-          const priceElement = product.querySelector(".sell-price");
-          // const promoElement = product.querySelectorAll('.amasty-label-container > img');
+          const sellPriceElement = product.querySelector(".sell-price");
+          const pricesDiv = product.querySelector(".prices");
+          const saleTextElement = product.querySelector(".sale-text");
           const urlElement = product.querySelector(".product-card-image-link");
           const imgElement = product.querySelector(".product-card-image");
 
           const title = titleElement ? titleElement.innerText.trim() : null;
           const brand = brandElement ? brandElement.innerText.trim() : null;
-          const price = priceElement ? priceElement.innerText.trim() : null;
-          // const promo = promoElement ? Array.from(promoElement)?.map(promo=>promo.src.trim()) : null;
+          let price = null;
+          let promo = null;
+
+          if (sellPriceElement) {
+            price = sellPriceElement.innerText.trim();
+          } else if (pricesDiv) {
+            const pricesText = pricesDiv.innerText.trim();
+            const priceMatches = pricesText.match(/\$[\d,]+\.?\d{0,2}/g);
+            if (priceMatches && priceMatches.length > 0) {
+              price = priceMatches[priceMatches.length - 1];
+            }
+          }
+
+          if (saleTextElement) {
+            promo = [{ saleText: saleTextElement.innerText.trim() }];
+          }
+
           const url = urlElement ? urlElement.href.trim() : null;
           const img = imgElement ? imgElement.src.trim() : null;
 
@@ -70,13 +85,13 @@ const tools = async (start, end) => {
             missing += 1;
           }
 
-          if (!title && !brand && !price && !promo && !url) {
+          if (!title && !brand && !price && !url) {
           } else
             productList.push({
               title,
               brand,
               price,
-              promo: null,
+              promo,
               url,
               category: "beauty",
               source: {

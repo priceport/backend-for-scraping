@@ -174,10 +174,13 @@ const processDataForBeauty = async (data) => {
       continue;
     }
 
-    if (
-      aud_to_usd(rawData.price.replace("$", ""), "au_sephora") ==
-      "Invalid input"
-    ) {
+    // Validate and convert price
+    const priceString = rawData.price ? rawData.price.replace("$", "").trim() : "";
+    const convertedPrice = aud_to_usd(priceString, "au_sephora");
+    
+    // Skip if price conversion failed or returned invalid value
+    if (!convertedPrice || convertedPrice === "Invalid input" || convertedPrice === null || isNaN(convertedPrice)) {
+      console.log(`Skipping item with invalid price conversion: ${rawData?.title || rawData?.url}, price: ${rawData.price}`);
       iterator += 1;
       continue;
     }
@@ -201,16 +204,32 @@ const processDataForBeauty = async (data) => {
       finalData.source = rawData.source;
       finalData.last_check = Date.now();
 
+      // Use the already validated converted price
       finalData.price = [
         {
           text: "",
-          price: aud_to_usd(rawData.price.replace("$", ""), "au_sephora"),
+          price: convertedPrice,
         },
       ];
 
       finalData.img = rawData.img;
 
-      finalData.promo = rawData?.promo;
+      // Process promo data - extract sale text from promo array
+      if (rawData?.promo && Array.isArray(rawData.promo) && rawData.promo.length > 0) {
+        finalData.promo = rawData.promo.map(promoItem => {
+          if (promoItem && promoItem.saleText) {
+            // For au_sephora, we only have saleText (e.g., "30% OFF")
+            // The actual sale price is already in the main price field
+            return {
+              text: promoItem.saleText,
+              price: null // Price is null because the sale price is the main price
+            };
+          }
+          return null;
+        }).filter(p => p !== null);
+      } else {
+        finalData.promo = null;
+      }
 
       output.push(finalData);
     } catch (err) {
