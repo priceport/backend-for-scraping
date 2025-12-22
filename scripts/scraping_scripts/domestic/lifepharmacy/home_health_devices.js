@@ -54,7 +54,7 @@ const home_health_devices = async (start, end, browser) => {
               price,
               promo,
               url,
-              category: 'health',
+              category: 'beauty',
               source: { 
                 website_base: "https://www.lifepharmacy.co.nz", 
                 location: "new_zealand", 

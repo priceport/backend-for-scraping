@@ -155,7 +155,7 @@ const budget_beer = async (start, end, browser) => {
                 price,
                 promo: null,
                 url,
-              category: 'beer',
+              category: 'liquor',
               source: { website_base: "https://www.liquorland.co.nz", location: "new-zealand", tag: "domestic" }, 
                 date: Date.now(),
                 last_check: Date.now(),
