@@ -4,15 +4,22 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const foot_care = async (start, end, browser) => {
+const mens_skincare_grooming = async (start, end, browser, sharedPage) => {
+
   const allProducts = [];
   let missingTotal = 0;
-  const baseUrl = "https://www.farmers.co.nz/beauty/body-care/foot-care";
+  const baseUrl = "https://www.farmers.co.nz/beauty/skincare/men-s-skincare-grooming";
   
   try {
     if (!browser) {
       throw new Error('Browser instance is required');
     }
+    
+    if (!sharedPage) {
+      throw new Error('Shared page instance is required');
+    }
+    
+    const pageInstance = sharedPage;
     
     for (let page = start; page <= end; page++) {
       await waitForXTime(constants.timeout);
@@ -20,12 +27,9 @@ const foot_care = async (start, end, browser) => {
       const url = `${baseUrl}/Page-${page}-SortingAttribute-SortBy-asc`;
       
       try {
-        const pageInstance = await browser.newPage();
-        await pageInstance.setViewportSize({ width: 1920, height: 1080 });
-        
         await pageInstance.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 60000
+          timeout: 120000
         });
         
         await waitForXTime(3000);
@@ -43,7 +47,6 @@ const foot_care = async (start, end, browser) => {
         missingTotal += pageMissing;
         
         allProducts.push(...products);
-        await pageInstance.close();
         
         if (products.length === 0) {
           break;
@@ -60,9 +63,9 @@ const foot_care = async (start, end, browser) => {
       const brand = titleParts.length > 1 ? titleParts[0].toLowerCase() : null;
       
       return {
-        title: product.title ?? product.title.toLowerCase() ,
+        title: product.title ? product.title.toLowerCase() : null,
         brand: brand,
-        price: product.price ?? product.price.toLowerCase(),
+        price: product.price ? product.price.toLowerCase() : null,
         promo: null,
         url: product.url,
         category: 'beauty',
@@ -75,7 +78,7 @@ const foot_care = async (start, end, browser) => {
         last_check: Date.now(),
         mapping_ref: null,
         unit: undefined,
-        subcategory: 'foot_care',
+        subcategory: 'mens_skincare_grooming',
         img: product.img || null
       };
     });
@@ -83,7 +86,7 @@ const foot_care = async (start, end, browser) => {
     const missingCount = missingTotal;
     if (missingCount > 5) {
       await insertScrapingError(
-        `More than 5 entries missing for farmers - foot_care: ${missingCount} products with missing data`,
+        `More than 5 entries missing for farmers - mens_skincare_grooming: ${missingCount} products with missing data`,
         "scraping_missing"
       );
     }
@@ -94,7 +97,7 @@ const foot_care = async (start, end, browser) => {
     logError(err);
     try {
       await insertScrapingError(
-        `Error in farmers - foot_care (Bright Data Browser): ${err.message}`,
+        `Error in farmers - mens_skincare_grooming (Bright Data Browser): ${err.message}`,
         "scraping_trycatch"
       );
     } catch (err) {
@@ -105,4 +108,5 @@ const foot_care = async (start, end, browser) => {
   }
 };
 
-module.exports = foot_care;
+module.exports = mens_skincare_grooming;
+

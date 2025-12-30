@@ -4,15 +4,22 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const deodorants = async (start, end, browser) => {
+const mens_aftershaves_cologne = async (start, end, browser, sharedPage) => {
+
   const allProducts = [];
   let missingTotal = 0;
-  const baseUrl = "https://www.farmers.co.nz/beauty/body-care/deodorants";
+  const baseUrl = "https://www.farmers.co.nz/beauty/perfume/men-s-aftershaves-cologne";
   
   try {
     if (!browser) {
       throw new Error('Browser instance is required');
     }
+    
+    if (!sharedPage) {
+      throw new Error('Shared page instance is required');
+    }
+    
+    const pageInstance = sharedPage;
     
     for (let page = start; page <= end; page++) {
       await waitForXTime(constants.timeout);
@@ -20,12 +27,9 @@ const deodorants = async (start, end, browser) => {
       const url = `${baseUrl}/Page-${page}-SortingAttribute-SortBy-asc`;
       
       try {
-        const pageInstance = await browser.newPage();
-        await pageInstance.setViewportSize({ width: 1920, height: 1080 });
-        
         await pageInstance.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 60000
+          timeout: 120000
         });
         
         await waitForXTime(3000);
@@ -43,7 +47,6 @@ const deodorants = async (start, end, browser) => {
         missingTotal += pageMissing;
         
         allProducts.push(...products);
-        await pageInstance.close();
         
         if (products.length === 0) {
           break;
@@ -60,9 +63,9 @@ const deodorants = async (start, end, browser) => {
       const brand = titleParts.length > 1 ? titleParts[0].toLowerCase() : null;
       
       return {
-        title: product.title ?? product.title.toLowerCase() ,
+        title: product.title ? product.title.toLowerCase() : null,
         brand: brand,
-        price: product.price ?? product.price.toLowerCase(),
+        price: product.price ? product.price.toLowerCase() : null,
         promo: null,
         url: product.url,
         category: 'beauty',
@@ -75,7 +78,7 @@ const deodorants = async (start, end, browser) => {
         last_check: Date.now(),
         mapping_ref: null,
         unit: undefined,
-        subcategory: 'deodorants',
+        subcategory: 'mens_aftershaves_cologne',
         img: product.img || null
       };
     });
@@ -83,7 +86,7 @@ const deodorants = async (start, end, browser) => {
     const missingCount = missingTotal;
     if (missingCount > 5) {
       await insertScrapingError(
-        `More than 5 entries missing for farmers - deodorants: ${missingCount} products with missing data`,
+        `More than 5 entries missing for farmers - mens_aftershaves_cologne: ${missingCount} products with missing data`,
         "scraping_missing"
       );
     }
@@ -94,7 +97,7 @@ const deodorants = async (start, end, browser) => {
     logError(err);
     try {
       await insertScrapingError(
-        `Error in farmers - deodorants (Bright Data Browser): ${err.message}`,
+        `Error in farmers - mens_aftershaves_cologne (Bright Data Browser): ${err.message}`,
         "scraping_trycatch"
       );
     } catch (err) {
@@ -105,4 +108,5 @@ const deodorants = async (start, end, browser) => {
   }
 };
 
-module.exports = deodorants;
+module.exports = mens_aftershaves_cologne;
+

@@ -4,11 +4,11 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const nail_polish = async (start, end, browser, sharedPage) => {
+const hair_accessories = async (start, end, browser, sharedPage) => {
 
   const allProducts = [];
   let missingTotal = 0;
-  const baseUrl = "https://www.farmers.co.nz/beauty/nail-care/nail-polish";
+  const baseUrl = "https://www.farmers.co.nz/beauty/hair-care-colour/hair-accessories";
   
   try {
     if (!browser) {
@@ -78,7 +78,7 @@ const nail_polish = async (start, end, browser, sharedPage) => {
         last_check: Date.now(),
         mapping_ref: null,
         unit: undefined,
-        subcategory: 'nail_polish',
+        subcategory: 'hair_accessories',
         img: product.img || null
       };
     });
@@ -86,7 +86,7 @@ const nail_polish = async (start, end, browser, sharedPage) => {
     const missingCount = missingTotal;
     if (missingCount > 5) {
       await insertScrapingError(
-        `More than 5 entries missing for farmers - nail_polish: ${missingCount} products with missing data`,
+        `More than 5 entries missing for farmers - hair_accessories: ${missingCount} products with missing data`,
         "scraping_missing"
       );
     }
@@ -97,7 +97,7 @@ const nail_polish = async (start, end, browser, sharedPage) => {
     logError(err);
     try {
       await insertScrapingError(
-        `Error in farmers - nail_polish (Bright Data Browser): ${err.message}`,
+        `Error in farmers - hair_accessories (Bright Data Browser): ${err.message}`,
         "scraping_trycatch"
       );
     } catch (err) {
@@ -108,5 +108,5 @@ const nail_polish = async (start, end, browser, sharedPage) => {
   }
 };
 
-module.exports = nail_polish;
+module.exports = hair_accessories;
 

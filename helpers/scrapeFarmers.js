@@ -1,33 +1,35 @@
 //scraping script imports
-const bath_care = require("../scripts/scraping_scripts/domestic/farmers/bath_care");
+const blushers_bronzers = require("../scripts/scraping_scripts/domestic/farmers/blushers_bronzers");
+const makeup_brushes_tools = require("../scripts/scraping_scripts/domestic/farmers/makeup_brushes_tools");
+const womens_perfumes = require("../scripts/scraping_scripts/domestic/farmers/womens_perfumes");
+const mens_aftershaves_cologne = require("../scripts/scraping_scripts/domestic/farmers/mens_aftershaves_cologne");
+const deodorants_body_sprays = require("../scripts/scraping_scripts/domestic/farmers/deodorants_body_sprays");
+const rollerballs = require("../scripts/scraping_scripts/domestic/farmers/rollerballs");
+const moisturisers_serums_anti_aging = require("../scripts/scraping_scripts/domestic/farmers/moisturisers_serums_anti_aging");
+const cleansers_makeup_removers = require("../scripts/scraping_scripts/domestic/farmers/cleansers_makeup_removers");
+const treatments_masks = require("../scripts/scraping_scripts/domestic/farmers/treatments_masks");
+const mens_skincare_grooming = require("../scripts/scraping_scripts/domestic/farmers/mens_skincare_grooming");
+const skincare_ingredients = require("../scripts/scraping_scripts/domestic/farmers/skincare_ingredients");
+const nail_polish = require("../scripts/scraping_scripts/domestic/farmers/nail_polish");
+const nail_care_tools = require("../scripts/scraping_scripts/domestic/farmers/nail_care_tools");
 const body_care = require("../scripts/scraping_scripts/domestic/farmers/body_care");
-const cleansers = require("../scripts/scraping_scripts/domestic/farmers/cleansers");
-const collagen = require("../scripts/scraping_scripts/domestic/farmers/collagen");
-const deodorants = require("../scripts/scraping_scripts/domestic/farmers/deodorants");
+const hand_foot_care = require("../scripts/scraping_scripts/domestic/farmers/hand_foot_care");
+const bath_shower_care = require("../scripts/scraping_scripts/domestic/farmers/bath_shower_care");
+const suncare_tanning = require("../scripts/scraping_scripts/domestic/farmers/suncare_tanning");
+const hair_care_brushes = require("../scripts/scraping_scripts/domestic/farmers/hair_care_brushes");
+const hair_colour = require("../scripts/scraping_scripts/domestic/farmers/hair_colour");
+const hair_accessories = require("../scripts/scraping_scripts/domestic/farmers/hair_accessories");
+const collagens = require("../scripts/scraping_scripts/domestic/farmers/collagens");
+const sleep = require("../scripts/scraping_scripts/domestic/farmers/sleep");
 const exfoliators = require("../scripts/scraping_scripts/domestic/farmers/exfoliators");
 const eye_cream = require("../scripts/scraping_scripts/domestic/farmers/eye_cream");
 const eyes = require("../scripts/scraping_scripts/domestic/farmers/eyes");
 const face = require("../scripts/scraping_scripts/domestic/farmers/face");
-const foot_care = require("../scripts/scraping_scripts/domestic/farmers/foot_care");
-const grooming = require("../scripts/scraping_scripts/domestic/farmers/grooming");
-const hair_accesories = require("../scripts/scraping_scripts/domestic/farmers/hair_accesories");
-const hair_care = require("../scripts/scraping_scripts/domestic/farmers/hair_care");
-const hair_color = require("../scripts/scraping_scripts/domestic/farmers/hair_color");
 const lips = require("../scripts/scraping_scripts/domestic/farmers/lips");
 const makeup_bags = require("../scripts/scraping_scripts/domestic/farmers/makeup_bags");
-const menAftershave = require("../scripts/scraping_scripts/domestic/farmers/menAftershave");
-const moisturizers = require("../scripts/scraping_scripts/domestic/farmers/moisturizers");
-const nail_polish = require("../scripts/scraping_scripts/domestic/farmers/nail_polish");
-const nail_tools = require("../scripts/scraping_scripts/domestic/farmers/nail_tools");
-const sun_care = require("../scripts/scraping_scripts/domestic/farmers/sun_care");
 const toners = require("../scripts/scraping_scripts/domestic/farmers/toners");
-const tools = require("../scripts/scraping_scripts/domestic/farmers/tools");
-const tools2 = require("../scripts/scraping_scripts/domestic/farmers/tools2");
-const treatments = require("../scripts/scraping_scripts/domestic/farmers/treatments");
-const wellness_skincare = require("../scripts/scraping_scripts/domestic/farmers/wellness_skincare");
-const womensPerfume = require("../scripts/scraping_scripts/domestic/farmers/womensPerfume");
 
-const { chromium } = require('playwright');
+const puppeteer = require('puppeteer');
 
 //processing script imports
 const processDataForBeauty = require("./data_processing/farmers/beauty");
@@ -39,263 +41,141 @@ const updateDBEntry = require("./update_db_entry/farmers/beauty");
 const scrapeFarmers = async (start, end, state) => {
     console.log("scraping started for farmers at:" + Date.now());
 
-    let browser;
-    try {
-        const BRIGHT_DATA_WS = process.env.BRIGHT_DATA_WS;
-        if (!BRIGHT_DATA_WS) {
-            throw new Error('BRIGHT_DATA_WS environment variable is required');
-        }
-        browser = await chromium.connectOverCDP(BRIGHT_DATA_WS);
-    } catch (err) {
-        logError(err);
+    const BRIGHT_DATA_WS = process.env.BRIGHT_DATA_WS;
+    if (!BRIGHT_DATA_WS) {
+        console.log('BRIGHT_DATA_WS environment variable is required');
         return true;
+    }
+
+    // CRITICAL: Bright Data Browser API allows only 1 navigation per browser instance
+    // Solution: Create a NEW browser for EACH category
+    let categoryCount = 0;
+    
+    const createBrowserForCategory = async () => {
+        categoryCount++;
+        try {
+            const browser = await puppeteer.connect({
+                browserWSEndpoint: BRIGHT_DATA_WS,
+            });
+            return browser;
+        } catch (err) {
+            logError(err);
+            throw new Error(`Failed to create browser for category ${categoryCount}`);
         }
+    };
+    
+    const createNewPage = async (browser) => {
+        try {
+            const page = await browser.newPage();
+            await page.setViewport({ width: 1920, height: 1080 });
+            return page;
+        } catch (err) {
+            throw err;
+        }
+    };
+    
+    const runCategoryScraper = async (scraperFunc, categoryName, start, end) => {
+        let browser = null;
+        let page = null;
+        try {
+            browser = await createBrowserForCategory();
+            page = await createNewPage(browser);
+            const result = await scraperFunc(start, end, browser, page);
+            return result;
+        } catch (err) {
+            logError(err);
+            return [];
+        } finally {
+            if (page) {
+                try {
+                    await page.close();
+                } catch (e) {
+                    // Ignore
+                }
+            }
+            if (browser) {
+                try {
+                    await browser.close();
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        }
+    };
 
     try {
         //variable initialization
-        let faceData = [], makeupBagData = [], lipsData = [], eyesData = [], toolsData = [], tools2Data = [], 
-            womensPerfumeData = [], menAftershaveData = [], deodorantData = [], moisturiserData = [], 
-            exfoliatorsData = [], cleansersData = [], tonersData = [], treatmentsData = [], eyeCreamData = [], 
-            groomingData = [], nailToolsData = [], nailPolishData = [], bodyCareData = [], footCareData = [], 
-            bathCareData = [], sunCareData = [], hairCareData = [], hairColorData = [], hairAccesoriesData = [], 
-            wSkincareData = [], collagensData = [];
+        let blushersBronzersData = [], makeupBrushesToolsData = [], womensPerfumesData = [], 
+            mensAftershavesCologneData = [], deodorantsBodySpraysData = [], rollerballsData = [],
+            moisturisersSerumsAntiAgingData = [], cleansersMakeupRemoversData = [], treatmentsMasksData = [],
+            mensSkincareGroomingData = [], skincareIngredientsData = [], nailPolishData = [],
+            nailCareToolsData = [], bodyCareData = [], handFootCareData = [], bathShowerCareData = [],
+            suncareTanningData = [], hairCareBrushesData = [], hairColourData = [], hairAccessoriesData = [],
+            collagensData = [], sleepData = [], faceData = [], makeupBagData = [], lipsData = [], 
+            eyesData = [], exfoliatorsData = [], tonersData = [], eyeCreamData = [];
 
         // Face
         if (!state.farmers.face) {
-            try {
-                faceData = await face(start, end, browser);
-                console.log(`${faceData?.length} data items scraped for face`);
-            } catch (err) {
-                console.log("There was an error while scraping face");
-                logError(err);
-            }
+            faceData = await runCategoryScraper(face, 'face', start, end);
+            console.log(`${faceData?.length} data items scraped for face`);
         }
 
         if (!state.farmers.face && faceData?.length == 0) {
-            try {
-                faceData = await face(start, end, browser);
-                console.log(`${faceData?.length} data items scraped for face`);
-                if (faceData?.length == 0) {
-                    state.farmers.face = true;
-                }
-            } catch (err) {
-                console.log("There was an error while scraping face");
-                logError(err);
+            faceData = await runCategoryScraper(face, 'face retry', start, end);
+            console.log(`${faceData?.length} data items scraped for face`);
+            if (faceData?.length == 0) {
+                state.farmers.face = true;
             }
         }
 
     // Makeup Bags
         if (!state.farmers.makeup) {
-        try {
-            makeupBagData = await makeup_bags(start, end, browser);
+            makeupBagData = await runCategoryScraper(makeup_bags, 'makeup bags', start, end);
             console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
-        } catch (err) {
-            console.log("There was an error while scraping makeup bags");
-            logError(err);
-        }
         }
 
         if (!state.farmers.makeup && makeupBagData?.length == 0) {
-        try {
-            makeupBagData = await makeup_bags(start, end, browser);
+            makeupBagData = await runCategoryScraper(makeup_bags, 'makeup bags retry', start, end);
             console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
             if (makeupBagData?.length == 0) {
                 state.farmers.makeup = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping makeup bags");
-            logError(err);
-        }
         }
 
     // Lips
         if (!state.farmers.lips) {
-        try {
-            lipsData = await lips(start, end, browser);
+            lipsData = await runCategoryScraper(lips, 'lips', start, end);
             console.log(`${lipsData?.length} data items scraped for lips`);
-        } catch (err) {
-            console.log("There was an error while scraping lips");
-            logError(err);
-        }
         }
 
         if (!state.farmers.lips && lipsData?.length == 0) {
-        try {
-            lipsData = await lips(start, end, browser);
+            lipsData = await runCategoryScraper(lips, 'lips retry', start, end);
             console.log(`${lipsData?.length} data items scraped for lips`);
             if (lipsData?.length == 0) {
                 state.farmers.lips = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping lips");
-            logError(err);
-        }
         }
 
     // Eyes
         if (!state.farmers.eyes) {
         try {
-            eyesData = await eyes(start, end, browser);
+            eyesData = await runCategoryScraper(eyes, 'eyes', start, end);
             console.log(`${eyesData?.length} data items scraped for eyes`);
         } catch (err) {
-            console.log("There was an error while scraping eyes");
+            
             logError(err);
         }
         }
 
         if (!state.farmers.eyes && eyesData?.length == 0) {
         try {
-            eyesData = await eyes(start, end, browser);
+            eyesData = await runCategoryScraper(eyes, 'eyes', start, end);
             console.log(`${eyesData?.length} data items scraped for eyes`);
             if (eyesData?.length == 0) {
                 state.farmers.eyes = true;
             }
         } catch (err) {
-            console.log("There was an error while scraping eyes");
-            logError(err);
-        }
-        }
-
-    // Tools
-        if (!state.farmers.tools) {
-        try {
-            toolsData = await tools(start, end, browser);
-            console.log(`${toolsData?.length} data items scraped for tools`);
-        } catch (err) {
-            console.log("There was an error while scraping tools");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.tools && toolsData?.length == 0) {
-        try {
-            toolsData = await tools(start, end, browser);
-            console.log(`${toolsData?.length} data items scraped for tools`);
-            if (toolsData?.length == 0) {
-                state.farmers.tools = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping tools");
-            logError(err);
-        }
-        }
-
-    // Tools2
-        if (!state.farmers.tools2) {
-        try {
-            tools2Data = await tools2(start, end);
-            console.log(`${tools2Data?.length} data items scraped for tools2`);
-        } catch (err) {
-            console.log("There was an error while scraping tools2");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.tools2 && tools2Data?.length == 0) {
-        try {
-            tools2Data = await tools2(start, end);
-            console.log(`${tools2Data?.length} data items scraped for tools2`);
-            if (tools2Data?.length == 0) {
-                state.farmers.tools2 = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping tools2");
-            logError(err);
-        }
-        }
-
-    // Women's Perfume
-        if (!state.farmers.womenPerfume) {
-        try {
-            womensPerfumeData = await womensPerfume(start, end, browser);
-            console.log(`${womensPerfumeData?.length} data items scraped for womens perfume`);
-        } catch (err) {
-            console.log("There was an error while scraping womens perfume");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.womenPerfume && womensPerfumeData?.length == 0) {
-        try {
-            womensPerfumeData = await womensPerfume(start, end, browser);
-            console.log(`${womensPerfumeData?.length} data items scraped for womens perfume`);
-            if (womensPerfumeData?.length == 0) {
-                state.farmers.womenPerfume = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping womens perfume");
-            logError(err);
-        }
-        }
-
-    // Men's Aftershave
-        if (!state.farmers.menAfterShave) {
-        try {
-            menAftershaveData = await menAftershave(start, end, browser);
-            console.log(`${menAftershaveData?.length} data items scraped for men aftershave`);
-        } catch (err) {
-            console.log("There was an error while scraping men aftershave");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.menAfterShave && menAftershaveData?.length == 0) {
-        try {
-            menAftershaveData = await menAftershave(start, end, browser);
-            console.log(`${menAftershaveData?.length} data items scraped for men aftershave`);
-            if (menAftershaveData?.length == 0) {
-                state.farmers.menAfterShave = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping men aftershave");
-            logError(err);
-        }
-        }
-
-    // Deodorants
-        if (!state.farmers.deodorant) {
-        try {
-            deodorantData = await deodorants(start, end, browser);
-            console.log(`${deodorantData?.length} data items scraped for deodorants`);
-        } catch (err) {
-            console.log("There was an error while scraping deodorants");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.deodorant && deodorantData?.length == 0) {
-        try {
-            deodorantData = await deodorants(start, end, browser);
-            console.log(`${deodorantData?.length} data items scraped for deodorants`);
-            if (deodorantData?.length == 0) {
-                state.farmers.deodorant = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping deodorants");
-            logError(err);
-        }
-        }
-
-    // Moisturizers
-        if (!state.farmers.moisturiser) {
-        try {
-            moisturiserData = await moisturizers(start, end, browser);
-            console.log(`${moisturiserData?.length} data items scraped for moisturizers`);
-        } catch (err) {
-            console.log("There was an error while scraping moisturizers");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.moisturiser && moisturiserData?.length == 0) {
-        try {
-            moisturiserData = await moisturizers(start, end, browser);
-            console.log(`${moisturiserData?.length} data items scraped for moisturizers`);
-            if (moisturiserData?.length == 0) {
-                state.farmers.moisturiser = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping moisturizers");
+            
             logError(err);
         }
         }
@@ -303,47 +183,23 @@ const scrapeFarmers = async (start, end, state) => {
     // Exfoliators
         if (!state.farmers.exfoliators) {
         try {
-            exfoliatorsData = await exfoliators(start, end, browser);
+            exfoliatorsData = await runCategoryScraper(exfoliators, 'exfoliators', start, end);
             console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
         } catch (err) {
-            console.log("There was an error while scraping exfoliators");
+            
             logError(err);
         }
         }
 
         if (!state.farmers.exfoliators && exfoliatorsData?.length == 0) {
         try {
-            exfoliatorsData = await exfoliators(start, end, browser);
+            exfoliatorsData = await runCategoryScraper(exfoliators, 'exfoliators', start, end);
             console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
             if (exfoliatorsData?.length == 0) {
                 state.farmers.exfoliators = true;
             }
         } catch (err) {
-            console.log("There was an error while scraping exfoliators");
-            logError(err);
-        }
-        }
-
-    // Cleansers
-        if (!state.farmers.cleansers) {
-        try {
-            cleansersData = await cleansers(start, end, browser);
-            console.log(`${cleansersData?.length} data items scraped for cleansers`);
-        } catch (err) {
-            console.log("There was an error while scraping cleansers");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.cleansers && cleansersData?.length == 0) {
-        try {
-            cleansersData = await cleansers(start, end, browser);
-            console.log(`${cleansersData?.length} data items scraped for cleansers`);
-            if (cleansersData?.length == 0) {
-                state.farmers.cleansers = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping cleansers");
+            
             logError(err);
         }
         }
@@ -351,47 +207,23 @@ const scrapeFarmers = async (start, end, state) => {
     // Toners
         if (!state.farmers.toners) {
         try {
-            tonersData = await toners(start, end, browser);
+            tonersData = await runCategoryScraper(toners, 'toners', start, end);
             console.log(`${tonersData?.length} data items scraped for toners`);
         } catch (err) {
-            console.log("There was an error while scraping toners");
+            
             logError(err);
         }
         }
 
         if (!state.farmers.toners && tonersData?.length == 0) {
         try {
-            tonersData = await toners(start, end, browser);
+            tonersData = await runCategoryScraper(toners, 'toners', start, end);
             console.log(`${tonersData?.length} data items scraped for toners`);
             if (tonersData?.length == 0) {
                 state.farmers.toners = true;
             }
         } catch (err) {
-            console.log("There was an error while scraping toners");
-            logError(err);
-        }
-        }
-
-    // Treatments
-        if (!state.farmers.treatments) {
-        try {
-            treatmentsData = await treatments(start, end, browser);
-            console.log(`${treatmentsData?.length} data items scraped for treatments`);
-        } catch (err) {
-            console.log("There was an error while scraping treatments");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.treatments && treatmentsData?.length == 0) {
-        try {
-            treatmentsData = await treatments(start, end, browser);
-            console.log(`${treatmentsData?.length} data items scraped for treatments`);
-            if (treatmentsData?.length == 0) {
-                state.farmers.treatments = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping treatments");
+            
             logError(err);
         }
         }
@@ -399,323 +231,345 @@ const scrapeFarmers = async (start, end, state) => {
     // Eye Cream
         if (!state.farmers.eyecream) {
         try {
-            eyeCreamData = await eye_cream(start, end, browser);
+            eyeCreamData = await runCategoryScraper(eye_cream, 'eye cream', start, end);
             console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
         } catch (err) {
-            console.log("There was an error while scraping eye cream");
+            
             logError(err);
         }
         }
 
         if (!state.farmers.eyecream && eyeCreamData?.length == 0) {
         try {
-            eyeCreamData = await eye_cream(start, end, browser);
+            eyeCreamData = await runCategoryScraper(eye_cream, 'eye cream', start, end);
             console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
             if (eyeCreamData?.length == 0) {
                 state.farmers.eyecream = true;
             }
         } catch (err) {
-            console.log("There was an error while scraping eye cream");
+            
             logError(err);
         }
         }
 
-    // Grooming
-        if (!state.farmers.grooming) {
-        try {
-            groomingData = await grooming(start, end, browser);
-            console.log(`${groomingData?.length} data items scraped for grooming`);
-        } catch (err) {
-            console.log("There was an error while scraping grooming");
-            logError(err);
-        }
+    // Blushers Bronzers
+        if (!state.farmers.blushersBronzers) {
+            blushersBronzersData = await runCategoryScraper(blushers_bronzers, 'blushers bronzers', start, end);
+            console.log(`${blushersBronzersData?.length} data items scraped for blushers bronzers`);
         }
 
-        if (!state.farmers.grooming && groomingData?.length == 0) {
-        try {
-            groomingData = await grooming(start, end, browser);
-            console.log(`${groomingData?.length} data items scraped for grooming`);
-            if (groomingData?.length == 0) {
-                state.farmers.grooming = true;
+        if (!state.farmers.blushersBronzers && blushersBronzersData?.length == 0) {
+            blushersBronzersData = await runCategoryScraper(blushers_bronzers, 'blushers bronzers retry', start, end);
+            console.log(`${blushersBronzersData?.length} data items scraped for blushers bronzers`);
+            if (blushersBronzersData?.length == 0) {
+                state.farmers.blushersBronzers = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping grooming");
-            logError(err);
-        }
         }
 
-    // Nail Tools
-        if (!state.farmers.nailtools) {
-        try {
-            nailToolsData = await nail_tools(start, end, browser);
-            console.log(`${nailToolsData?.length} data items scraped for nail tools`);
-        } catch (err) {
-            console.log("There was an error while scraping nail tools");
-            logError(err);
-        }
+    // Makeup Brushes Tools
+        if (!state.farmers.makeupBrushesTools) {
+            makeupBrushesToolsData = await runCategoryScraper(makeup_brushes_tools, 'makeup brushes tools', start, end);
+            console.log(`${makeupBrushesToolsData?.length} data items scraped for makeup brushes tools`);
         }
 
-        if (!state.farmers.nailtools && nailToolsData?.length == 0) {
-        try {
-            nailToolsData = await nail_tools(start, end, browser);
-            console.log(`${nailToolsData?.length} data items scraped for nail tools`);
-            if (nailToolsData?.length == 0) {
-                state.farmers.nailtools = true;
+        if (!state.farmers.makeupBrushesTools && makeupBrushesToolsData?.length == 0) {
+            makeupBrushesToolsData = await runCategoryScraper(makeup_brushes_tools, 'makeup brushes tools retry', start, end);
+            console.log(`${makeupBrushesToolsData?.length} data items scraped for makeup brushes tools`);
+            if (makeupBrushesToolsData?.length == 0) {
+                state.farmers.makeupBrushesTools = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping nail tools");
-            logError(err);
         }
+
+    // Womens Perfumes
+        if (!state.farmers.womensPerfumes) {
+            womensPerfumesData = await runCategoryScraper(womens_perfumes, 'womens perfumes', start, end);
+            console.log(`${womensPerfumesData?.length} data items scraped for womens perfumes`);
+        }
+
+        if (!state.farmers.womensPerfumes && womensPerfumesData?.length == 0) {
+            womensPerfumesData = await runCategoryScraper(womens_perfumes, 'womens perfumes retry', start, end);
+            console.log(`${womensPerfumesData?.length} data items scraped for womens perfumes`);
+            if (womensPerfumesData?.length == 0) {
+                state.farmers.womensPerfumes = true;
+            }
+        }
+
+    // Mens Aftershaves Cologne
+        if (!state.farmers.mensAftershavesCologne) {
+            mensAftershavesCologneData = await runCategoryScraper(mens_aftershaves_cologne, 'mens aftershaves cologne', start, end);
+            console.log(`${mensAftershavesCologneData?.length} data items scraped for mens aftershaves cologne`);
+        }
+
+        if (!state.farmers.mensAftershavesCologne && mensAftershavesCologneData?.length == 0) {
+            mensAftershavesCologneData = await runCategoryScraper(mens_aftershaves_cologne, 'mens aftershaves cologne retry', start, end);
+            console.log(`${mensAftershavesCologneData?.length} data items scraped for mens aftershaves cologne`);
+            if (mensAftershavesCologneData?.length == 0) {
+                state.farmers.mensAftershavesCologne = true;
+            }
+        }
+
+    // Deodorants Body Sprays
+        if (!state.farmers.deodorantsBodySprays) {
+            deodorantsBodySpraysData = await runCategoryScraper(deodorants_body_sprays, 'deodorants body sprays', start, end);
+            console.log(`${deodorantsBodySpraysData?.length} data items scraped for deodorants body sprays`);
+        }
+
+        if (!state.farmers.deodorantsBodySprays && deodorantsBodySpraysData?.length == 0) {
+            deodorantsBodySpraysData = await runCategoryScraper(deodorants_body_sprays, 'deodorants body sprays retry', start, end);
+            console.log(`${deodorantsBodySpraysData?.length} data items scraped for deodorants body sprays`);
+            if (deodorantsBodySpraysData?.length == 0) {
+                state.farmers.deodorantsBodySprays = true;
+            }
+        }
+
+    // Rollerballs
+        if (!state.farmers.rollerballs) {
+            rollerballsData = await runCategoryScraper(rollerballs, 'rollerballs', start, end);
+            console.log(`${rollerballsData?.length} data items scraped for rollerballs`);
+        }
+
+        if (!state.farmers.rollerballs && rollerballsData?.length == 0) {
+            rollerballsData = await runCategoryScraper(rollerballs, 'rollerballs retry', start, end);
+            console.log(`${rollerballsData?.length} data items scraped for rollerballs`);
+            if (rollerballsData?.length == 0) {
+                state.farmers.rollerballs = true;
+            }
+        }
+
+    // Moisturisers Serums Anti Aging
+        if (!state.farmers.moisturisersSerumsAntiAging) {
+            moisturisersSerumsAntiAgingData = await runCategoryScraper(moisturisers_serums_anti_aging, 'moisturisers serums anti aging', start, end);
+            console.log(`${moisturisersSerumsAntiAgingData?.length} data items scraped for moisturisers serums anti aging`);
+        }
+
+        if (!state.farmers.moisturisersSerumsAntiAging && moisturisersSerumsAntiAgingData?.length == 0) {
+            moisturisersSerumsAntiAgingData = await runCategoryScraper(moisturisers_serums_anti_aging, 'moisturisers serums anti aging retry', start, end);
+            console.log(`${moisturisersSerumsAntiAgingData?.length} data items scraped for moisturisers serums anti aging`);
+            if (moisturisersSerumsAntiAgingData?.length == 0) {
+                state.farmers.moisturisersSerumsAntiAging = true;
+            }
+        }
+
+    // Cleansers Makeup Removers
+        if (!state.farmers.cleansersMakeupRemovers) {
+            cleansersMakeupRemoversData = await runCategoryScraper(cleansers_makeup_removers, 'cleansers makeup removers', start, end);
+            console.log(`${cleansersMakeupRemoversData?.length} data items scraped for cleansers makeup removers`);
+        }
+
+        if (!state.farmers.cleansersMakeupRemovers && cleansersMakeupRemoversData?.length == 0) {
+            cleansersMakeupRemoversData = await runCategoryScraper(cleansers_makeup_removers, 'cleansers makeup removers retry', start, end);
+            console.log(`${cleansersMakeupRemoversData?.length} data items scraped for cleansers makeup removers`);
+            if (cleansersMakeupRemoversData?.length == 0) {
+                state.farmers.cleansersMakeupRemovers = true;
+            }
+        }
+
+    // Treatments Masks
+        if (!state.farmers.treatmentsMasks) {
+            treatmentsMasksData = await runCategoryScraper(treatments_masks, 'treatments masks', start, end);
+            console.log(`${treatmentsMasksData?.length} data items scraped for treatments masks`);
+        }
+
+        if (!state.farmers.treatmentsMasks && treatmentsMasksData?.length == 0) {
+            treatmentsMasksData = await runCategoryScraper(treatments_masks, 'treatments masks retry', start, end);
+            console.log(`${treatmentsMasksData?.length} data items scraped for treatments masks`);
+            if (treatmentsMasksData?.length == 0) {
+                state.farmers.treatmentsMasks = true;
+            }
+        }
+
+    // Mens Skincare Grooming
+        if (!state.farmers.mensSkincareGrooming) {
+            mensSkincareGroomingData = await runCategoryScraper(mens_skincare_grooming, 'mens skincare grooming', start, end);
+            console.log(`${mensSkincareGroomingData?.length} data items scraped for mens skincare grooming`);
+        }
+
+        if (!state.farmers.mensSkincareGrooming && mensSkincareGroomingData?.length == 0) {
+            mensSkincareGroomingData = await runCategoryScraper(mens_skincare_grooming, 'mens skincare grooming retry', start, end);
+            console.log(`${mensSkincareGroomingData?.length} data items scraped for mens skincare grooming`);
+            if (mensSkincareGroomingData?.length == 0) {
+                state.farmers.mensSkincareGrooming = true;
+            }
+        }
+
+    // Skincare Ingredients
+        if (!state.farmers.skincareIngredients) {
+            skincareIngredientsData = await runCategoryScraper(skincare_ingredients, 'skincare ingredients', start, end);
+            console.log(`${skincareIngredientsData?.length} data items scraped for skincare ingredients`);
+        }
+
+        if (!state.farmers.skincareIngredients && skincareIngredientsData?.length == 0) {
+            skincareIngredientsData = await runCategoryScraper(skincare_ingredients, 'skincare ingredients retry', start, end);
+            console.log(`${skincareIngredientsData?.length} data items scraped for skincare ingredients`);
+            if (skincareIngredientsData?.length == 0) {
+                state.farmers.skincareIngredients = true;
+            }
         }
 
     // Nail Polish
-        if (!state.farmers.nailpolish) {
-        try {
-            nailPolishData = await nail_polish(start, end, browser);
+        if (!state.farmers.nailPolish) {
+            nailPolishData = await runCategoryScraper(nail_polish, 'nail polish', start, end);
             console.log(`${nailPolishData?.length} data items scraped for nail polish`);
-        } catch (err) {
-            console.log("There was an error while scraping nail polish");
-            logError(err);
-        }
         }
 
-        if (!state.farmers.nailpolish && nailPolishData?.length == 0) {
-        try {
-            nailPolishData = await nail_polish(start, end, browser);
+        if (!state.farmers.nailPolish && nailPolishData?.length == 0) {
+            nailPolishData = await runCategoryScraper(nail_polish, 'nail polish retry', start, end);
             console.log(`${nailPolishData?.length} data items scraped for nail polish`);
             if (nailPolishData?.length == 0) {
-                state.farmers.nailpolish = true;
+                state.farmers.nailPolish = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping nail polish");
-            logError(err);
         }
+
+    // Nail Care Tools
+        if (!state.farmers.nailCareTools) {
+            nailCareToolsData = await runCategoryScraper(nail_care_tools, 'nail care tools', start, end);
+            console.log(`${nailCareToolsData?.length} data items scraped for nail care tools`);
+        }
+
+        if (!state.farmers.nailCareTools && nailCareToolsData?.length == 0) {
+            nailCareToolsData = await runCategoryScraper(nail_care_tools, 'nail care tools retry', start, end);
+            console.log(`${nailCareToolsData?.length} data items scraped for nail care tools`);
+            if (nailCareToolsData?.length == 0) {
+                state.farmers.nailCareTools = true;
+            }
         }
 
     // Body Care
-        if (!state.farmers.bodycare) {
-        try {
-            bodyCareData = await body_care(start, end, browser);
+        if (!state.farmers.bodyCare) {
+            bodyCareData = await runCategoryScraper(body_care, 'body care', start, end);
             console.log(`${bodyCareData?.length} data items scraped for body care`);
-        } catch (err) {
-            console.log("There was an error while scraping body care");
-            logError(err);
-        }
         }
 
-        if (!state.farmers.bodycare && bodyCareData?.length == 0) {
-        try {
-            bodyCareData = await body_care(start, end, browser);
+        if (!state.farmers.bodyCare && bodyCareData?.length == 0) {
+            bodyCareData = await runCategoryScraper(body_care, 'body care retry', start, end);
             console.log(`${bodyCareData?.length} data items scraped for body care`);
             if (bodyCareData?.length == 0) {
-                state.farmers.bodycare = true;
+                state.farmers.bodyCare = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping body care");
-            logError(err);
-        }
         }
 
-    // Foot Care
-        if (!state.farmers.footcare) {
-        try {
-            footCareData = await foot_care(start, end, browser);
-            console.log(`${footCareData?.length} data items scraped for foot care`);
-        } catch (err) {
-            console.log("There was an error while scraping foot care");
-            logError(err);
-        }
+    // Hand Foot Care
+        if (!state.farmers.handFootCare) {
+            handFootCareData = await runCategoryScraper(hand_foot_care, 'hand foot care', start, end);
+            console.log(`${handFootCareData?.length} data items scraped for hand foot care`);
         }
 
-        if (!state.farmers.footcare && footCareData?.length == 0) {
-        try {
-            footCareData = await foot_care(start, end, browser);
-            console.log(`${footCareData?.length} data items scraped for foot care`);
-            if (footCareData?.length == 0) {
-                state.farmers.footcare = true;
+        if (!state.farmers.handFootCare && handFootCareData?.length == 0) {
+            handFootCareData = await runCategoryScraper(hand_foot_care, 'hand foot care retry', start, end);
+            console.log(`${handFootCareData?.length} data items scraped for hand foot care`);
+            if (handFootCareData?.length == 0) {
+                state.farmers.handFootCare = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping foot care");
-            logError(err);
-        }
         }
 
-    // Bath Care
-        if (!state.farmers.bathcare) {
-        try {
-            bathCareData = await bath_care(start, end, browser);
-            console.log(`${bathCareData?.length} data items scraped for bath care`);
-        } catch (err) {
-            console.log("There was an error while scraping bath care");
-            logError(err);
-        }
+    // Bath Shower Care
+        if (!state.farmers.bathShowerCare) {
+            bathShowerCareData = await runCategoryScraper(bath_shower_care, 'bath shower care', start, end);
+            console.log(`${bathShowerCareData?.length} data items scraped for bath shower care`);
         }
 
-        if (!state.farmers.bathcare && bathCareData?.length == 0) {
-        try {
-            bathCareData = await bath_care(start, end, browser);
-            console.log(`${bathCareData?.length} data items scraped for bath care`);
-            if (bathCareData?.length == 0) {
-                state.farmers.bathcare = true;
+        if (!state.farmers.bathShowerCare && bathShowerCareData?.length == 0) {
+            bathShowerCareData = await runCategoryScraper(bath_shower_care, 'bath shower care retry', start, end);
+            console.log(`${bathShowerCareData?.length} data items scraped for bath shower care`);
+            if (bathShowerCareData?.length == 0) {
+                state.farmers.bathShowerCare = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping bath care");
-            logError(err);
-        }
         }
 
-    // Sun Care
-        if (!state.farmers.suncare) {
-        try {
-            sunCareData = await sun_care(start, end, browser);
-            console.log(`${sunCareData?.length} data items scraped for sun care`);
-        } catch (err) {
-            console.log("There was an error while scraping sun care");
-            logError(err);
-        }
+    // Suncare Tanning
+        if (!state.farmers.suncareTanning) {
+            suncareTanningData = await runCategoryScraper(suncare_tanning, 'suncare tanning', start, end);
+            console.log(`${suncareTanningData?.length} data items scraped for suncare tanning`);
         }
 
-        if (!state.farmers.suncare && sunCareData?.length == 0) {
-        try {
-            sunCareData = await sun_care(start, end, browser);
-            console.log(`${sunCareData?.length} data items scraped for sun care`);
-            if (sunCareData?.length == 0) {
-                state.farmers.suncare = true;
+        if (!state.farmers.suncareTanning && suncareTanningData?.length == 0) {
+            suncareTanningData = await runCategoryScraper(suncare_tanning, 'suncare tanning retry', start, end);
+            console.log(`${suncareTanningData?.length} data items scraped for suncare tanning`);
+            if (suncareTanningData?.length == 0) {
+                state.farmers.suncareTanning = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping sun care");
-            logError(err);
-        }
         }
 
-    // Hair Care
-        if (!state.farmers.haircare) {
-        try {
-            hairCareData = await hair_care(start, end, browser);
-            console.log(`${hairCareData?.length} data items scraped for hair care`);
-        } catch (err) {
-            console.log("There was an error while scraping hair care");
-            logError(err);
-        }
+    // Hair Care Brushes
+        if (!state.farmers.hairCareBrushes) {
+            hairCareBrushesData = await runCategoryScraper(hair_care_brushes, 'hair care brushes', start, end);
+            console.log(`${hairCareBrushesData?.length} data items scraped for hair care brushes`);
         }
 
-        if (!state.farmers.haircare && hairCareData?.length == 0) {
-        try {
-            hairCareData = await hair_care(start, end, browser);
-            console.log(`${hairCareData?.length} data items scraped for hair care`);
-            if (hairCareData?.length == 0) {
-                state.farmers.haircare = true;
+        if (!state.farmers.hairCareBrushes && hairCareBrushesData?.length == 0) {
+            hairCareBrushesData = await runCategoryScraper(hair_care_brushes, 'hair care brushes retry', start, end);
+            console.log(`${hairCareBrushesData?.length} data items scraped for hair care brushes`);
+            if (hairCareBrushesData?.length == 0) {
+                state.farmers.hairCareBrushes = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping hair care");
-            logError(err);
-        }
         }
 
-    // Hair Color
-        if (!state.farmers.haircolor) {
-        try {
-            hairColorData = await hair_color(start, end, browser);
-            console.log(`${hairColorData?.length} data items scraped for hair color`);
-        } catch (err) {
-            console.log("There was an error while scraping hair color");
-            logError(err);
-        }
+    // Hair Colour
+        if (!state.farmers.hairColour) {
+            hairColourData = await runCategoryScraper(hair_colour, 'hair colour', start, end);
+            console.log(`${hairColourData?.length} data items scraped for hair colour`);
         }
 
-        if (!state.farmers.haircolor && hairColorData?.length == 0) {
-        try {
-            hairColorData = await hair_color(start, end, browser);
-            console.log(`${hairColorData?.length} data items scraped for hair color`);
-            if (hairColorData?.length == 0) {
-                state.farmers.haircolor = true;
+        if (!state.farmers.hairColour && hairColourData?.length == 0) {
+            hairColourData = await runCategoryScraper(hair_colour, 'hair colour retry', start, end);
+            console.log(`${hairColourData?.length} data items scraped for hair colour`);
+            if (hairColourData?.length == 0) {
+                state.farmers.hairColour = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping hair color");
-            logError(err);
-        }
         }
 
     // Hair Accessories
-        if (!state.farmers.hairaccessories) {
-        try {
-            hairAccesoriesData = await hair_accesories(start, end, browser);
-            console.log(`${hairAccesoriesData?.length} data items scraped for hair accessories`);
-        } catch (err) {
-            console.log("There was an error while scraping hair accessories");
-            logError(err);
-        }
+        if (!state.farmers.hairAccessories) {
+            hairAccessoriesData = await runCategoryScraper(hair_accessories, 'hair accessories', start, end);
+            console.log(`${hairAccessoriesData?.length} data items scraped for hair accessories`);
         }
 
-        if (!state.farmers.hairaccessories && hairAccesoriesData?.length == 0) {
-        try {
-            hairAccesoriesData = await hair_accesories(start, end, browser);
-            console.log(`${hairAccesoriesData?.length} data items scraped for hair accessories`);
-            if (hairAccesoriesData?.length == 0) {
-                state.farmers.hairaccessories = true;
+        if (!state.farmers.hairAccessories && hairAccessoriesData?.length == 0) {
+            hairAccessoriesData = await runCategoryScraper(hair_accessories, 'hair accessories retry', start, end);
+            console.log(`${hairAccessoriesData?.length} data items scraped for hair accessories`);
+            if (hairAccessoriesData?.length == 0) {
+                state.farmers.hairAccessories = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping hair accessories");
-            logError(err);
-        }
         }
 
-    // Wellness Skincare
-        if (!state.farmers.skincare) {
-        try {
-            wSkincareData = await wellness_skincare(start, end, browser);
-            console.log(`${wSkincareData?.length} data items scraped for wellness skincare`);
-        } catch (err) {
-            console.log("There was an error while scraping wellness skincare");
-            logError(err);
-        }
+    // Collagens
+        if (!state.farmers.collagens) {
+            collagensData = await runCategoryScraper(collagens, 'collagens', start, end);
+            console.log(`${collagensData?.length} data items scraped for collagens`);
         }
 
-        if (!state.farmers.skincare && wSkincareData?.length == 0) {
-        try {
-            wSkincareData = await wellness_skincare(start, end, browser);
-            console.log(`${wSkincareData?.length} data items scraped for wellness skincare`);
-            if (wSkincareData?.length == 0) {
-                state.farmers.skincare = true;
-            }
-        } catch (err) {
-            console.log("There was an error while scraping wellness skincare");
-            logError(err);
-        }
-        }
-
-    // Collagen
-        if (!state.farmers.collegens) {
-        try {
-            collagensData = await collagen(start, end, browser);
-            console.log(`${collagensData?.length} data items scraped for collagen`);
-        } catch (err) {
-            console.log("There was an error while scraping collagen");
-            logError(err);
-        }
-        }
-
-        if (!state.farmers.collegens && collagensData?.length == 0) {
-        try {
-            collagensData = await collagen(start, end, browser);
-            console.log(`${collagensData?.length} data items scraped for collagen`);
+        if (!state.farmers.collagens && collagensData?.length == 0) {
+            collagensData = await runCategoryScraper(collagens, 'collagens retry', start, end);
+            console.log(`${collagensData?.length} data items scraped for collagens`);
             if (collagensData?.length == 0) {
-                state.farmers.collegens = true;
+                state.farmers.collagens = true;
             }
-        } catch (err) {
-            console.log("There was an error while scraping collagen");
-            logError(err);
         }
+
+    // Sleep
+        if (!state.farmers.sleep) {
+            sleepData = await runCategoryScraper(sleep, 'sleep', start, end);
+            console.log(`${sleepData?.length} data items scraped for sleep`);
+        }
+
+        if (!state.farmers.sleep && sleepData?.length == 0) {
+            sleepData = await runCategoryScraper(sleep, 'sleep retry', start, end);
+            console.log(`${sleepData?.length} data items scraped for sleep`);
+            if (sleepData?.length == 0) {
+                state.farmers.sleep = true;
+            }
         }
 
         //merge data
         const allData = [
-            ...faceData, ...makeupBagData, ...lipsData, ...eyesData, ...toolsData, ...tools2Data,
-            ...womensPerfumeData, ...menAftershaveData, ...deodorantData, ...moisturiserData,
-            ...exfoliatorsData, ...cleansersData, ...tonersData, ...treatmentsData, ...eyeCreamData,
-            ...groomingData, ...nailToolsData, ...nailPolishData, ...bodyCareData, ...footCareData,
-            ...bathCareData, ...sunCareData, ...hairCareData, ...hairColorData, ...hairAccesoriesData,
-            ...wSkincareData, ...collagensData
+            ...blushersBronzersData, ...makeupBrushesToolsData, ...womensPerfumesData,
+            ...mensAftershavesCologneData, ...deodorantsBodySpraysData, ...rollerballsData,
+            ...moisturisersSerumsAntiAgingData, ...cleansersMakeupRemoversData, ...treatmentsMasksData,
+            ...mensSkincareGroomingData, ...skincareIngredientsData, ...nailPolishData,
+            ...nailCareToolsData, ...bodyCareData, ...handFootCareData, ...bathShowerCareData,
+            ...suncareTanningData, ...hairCareBrushesData, ...hairColourData, ...hairAccessoriesData,
+            ...collagensData, ...sleepData, ...faceData, ...makeupBagData, ...lipsData, ...eyesData,
+            ...exfoliatorsData, ...tonersData, ...eyeCreamData
         ];
 
         //process data
@@ -740,15 +594,11 @@ const scrapeFarmers = async (start, end, state) => {
         console.log("entries updated for farmers");
 
         return allData?.length == 0;
-    } finally {
-        if (browser) {
-            try {
-                await browser.close();
-            } catch (closeErr) {
-                logError(closeErr);
-            }
-        }
+    } catch (mainErr) {
+        logError(mainErr);
+        return true;
     }
+    // No finally block needed - each category creates and closes its own browser
 }
 
 module.exports = scrapeFarmers;

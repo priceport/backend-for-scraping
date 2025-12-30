@@ -4,28 +4,35 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const nail_tools = async (start, end, browser) => {
+const rollerballs = async (start, end, browser, sharedPage) => {
+
   const allProducts = [];
   let missingTotal = 0;
-  const baseUrl = "https://www.farmers.co.nz/beauty/nails/nail-tools";
+  const baseUrl = "https://www.farmers.co.nz/filter/function-Rollerballs-SortingAttribute-SortBy-asc";
+  const searchTerm = "perfume";
   
   try {
     if (!browser) {
       throw new Error('Browser instance is required');
     }
     
+    if (!sharedPage) {
+      throw new Error('Shared page instance is required');
+    }
+    
+    const pageInstance = sharedPage;
+    
     for (let page = start; page <= end; page++) {
       await waitForXTime(constants.timeout);
       
-      const url = `${baseUrl}/Page-${page}-SortingAttribute-SortBy-asc`;
+      const url = page === 1 
+        ? `${baseUrl}?SearchTerm=${searchTerm}`
+        : `${baseUrl}?SearchTerm=${searchTerm}&Page=${page}`;
       
       try {
-        const pageInstance = await browser.newPage();
-        await pageInstance.setViewportSize({ width: 1920, height: 1080 });
-        
         await pageInstance.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 60000
+          timeout: 120000
         });
         
         await waitForXTime(3000);
@@ -43,7 +50,6 @@ const nail_tools = async (start, end, browser) => {
         missingTotal += pageMissing;
         
         allProducts.push(...products);
-        await pageInstance.close();
         
         if (products.length === 0) {
           break;
@@ -60,9 +66,9 @@ const nail_tools = async (start, end, browser) => {
       const brand = titleParts.length > 1 ? titleParts[0].toLowerCase() : null;
       
       return {
-        title: product.title ?? product.title.toLowerCase() ,
+        title: product.title ? product.title.toLowerCase() : null,
         brand: brand,
-        price: product.price ?? product.price.toLowerCase(),
+        price: product.price ? product.price.toLowerCase() : null,
         promo: null,
         url: product.url,
         category: 'beauty',
@@ -75,7 +81,7 @@ const nail_tools = async (start, end, browser) => {
         last_check: Date.now(),
         mapping_ref: null,
         unit: undefined,
-        subcategory: 'nail_tools',
+        subcategory: 'rollerballs',
         img: product.img || null
       };
     });
@@ -83,7 +89,7 @@ const nail_tools = async (start, end, browser) => {
     const missingCount = missingTotal;
     if (missingCount > 5) {
       await insertScrapingError(
-        `More than 5 entries missing for farmers - nail_tools: ${missingCount} products with missing data`,
+        `More than 5 entries missing for farmers - rollerballs: ${missingCount} products with missing data`,
         "scraping_missing"
       );
     }
@@ -94,7 +100,7 @@ const nail_tools = async (start, end, browser) => {
     logError(err);
     try {
       await insertScrapingError(
-        `Error in farmers - nail_tools (Bright Data Browser): ${err.message}`,
+        `Error in farmers - rollerballs (Bright Data Browser): ${err.message}`,
         "scraping_trycatch"
       );
     } catch (err) {
@@ -105,4 +111,5 @@ const nail_tools = async (start, end, browser) => {
   }
 };
 
-module.exports = nail_tools;
+module.exports = rollerballs;
+

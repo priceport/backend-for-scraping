@@ -4,15 +4,22 @@ const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const body_care = async (start, end, browser) => {
+const body_care = async (start, end, browser, sharedPage) => {
+
   const allProducts = [];
   let missingTotal = 0;
-  const baseUrl = "https://www.farmers.co.nz/beauty/body-care";
+  const baseUrl = "https://www.farmers.co.nz/beauty/bath-body-care/body-care";
   
   try {
     if (!browser) {
       throw new Error('Browser instance is required');
     }
+    
+    if (!sharedPage) {
+      throw new Error('Shared page instance is required');
+    }
+    
+    const pageInstance = sharedPage;
     
     for (let page = start; page <= end; page++) {
       await waitForXTime(constants.timeout);
@@ -20,12 +27,9 @@ const body_care = async (start, end, browser) => {
       const url = `${baseUrl}/Page-${page}-SortingAttribute-SortBy-asc`;
       
       try {
-        const pageInstance = await browser.newPage();
-        await pageInstance.setViewportSize({ width: 1920, height: 1080 });
-        
         await pageInstance.goto(url, {
           waitUntil: 'domcontentloaded',
-          timeout: 60000
+          timeout: 120000
         });
         
         await waitForXTime(3000);
@@ -43,7 +47,6 @@ const body_care = async (start, end, browser) => {
         missingTotal += pageMissing;
         
         allProducts.push(...products);
-        await pageInstance.close();
         
         if (products.length === 0) {
           break;
@@ -60,9 +63,9 @@ const body_care = async (start, end, browser) => {
       const brand = titleParts.length > 1 ? titleParts[0].toLowerCase() : null;
       
       return {
-        title: product.title ?? product.title.toLowerCase() ,
+        title: product.title ? product.title.toLowerCase() : null,
         brand: brand,
-        price: product.price ?? product.price.toLowerCase(),
+        price: product.price ? product.price.toLowerCase() : null,
         promo: null,
         url: product.url,
         category: 'beauty',
@@ -106,3 +109,4 @@ const body_care = async (start, end, browser) => {
 };
 
 module.exports = body_care;
+
