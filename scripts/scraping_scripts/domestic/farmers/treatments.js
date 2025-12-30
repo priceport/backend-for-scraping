@@ -1,52 +1,68 @@
-/**
- * Farmers Treatments Products Scraper
- * Uses Python Camoufox scraper for better anti-bot evasion
- */
-
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
 const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
+const waitForXTime = require('../../../../helpers/waitForXTime');
+const constants = require('../../../../helpers/constants');
+const parseProductsFromHtml = require('../../../../helpers/parsers/farmersHtmlParser');
 
-const treatments = async (start, end) => {
+const treatments = async (start, end, browser) => {
   const allProducts = [];
+  let missingTotal = 0;
+  const baseUrl = "https://www.farmers.co.nz/beauty/skincare/treatments";
   
   try {
-    console.log(`Starting Farmers treatments scraper (pages ${start} to ${end})...`);
-    
-    // Path to Python scraper (use resolve for absolute paths)
-    const pythonScriptPath = path.resolve(__dirname, '../../../../python-scraper/farmers-scraper/scraper.py');
-    const pythonVenvPath = path.resolve(__dirname, '../../../../python-scraper/venv');
-    
-    // Determine Python executable (use venv if available)
-    let pythonExec = 'python3';
-    const venvPython = path.resolve(pythonVenvPath, 'bin', 'python3');
-    if (fs.existsSync(venvPython)) {
-      pythonExec = venvPython;
+    if (!browser) {
+      throw new Error('Browser instance is required');
     }
     
-    // Execute Python scraper and capture JSON output
-    const output = execSync(`${pythonExec} "${pythonScriptPath}" treatments ${start} ${end}`, {
-      encoding: 'utf-8',
-      maxBuffer: 10 * 1024 * 1024,
-      cwd: path.dirname(pythonScriptPath),
-      timeout: 300000
-    });
-    
-    // Parse JSON output from stdout
-    const pythonProducts = JSON.parse(output.trim());
-    console.log(`Python scraper found ${pythonProducts.length} products`);
-    
-    // Transform Python output to expected format
-    pythonProducts.forEach(product => {
-      const titleParts = product.title.split(' ');
-      const brand = titleParts.length > 1 ? titleParts[0] : null;
+    for (let page = start; page <= end; page++) {
+      await waitForXTime(constants.timeout);
       
-      allProducts.push({
-        title: product.title,
+      const url = `${baseUrl}/Page-${page}-SortingAttribute-SortBy-asc`;
+      
+      try {
+        const pageInstance = await browser.newPage();
+        await pageInstance.setViewportSize({ width: 1920, height: 1080 });
+        
+        await pageInstance.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 60000
+        });
+        
+        await waitForXTime(3000);
+        
+        try {
+          await pageInstance.waitForSelector('.product-list-item, [data-evg-item-id]', {
+            timeout: 30000
+          });
+        } catch (selectorErr) {
+          // Continue anyway
+        }
+        
+        const html = await pageInstance.content();
+        const [products, pageMissing] = parseProductsFromHtml(html);
+        missingTotal += pageMissing;
+        
+        allProducts.push(...products);
+        await pageInstance.close();
+        
+        if (products.length === 0) {
+          break;
+        }
+        
+      } catch (err) {
+        logError(err);
+        continue;
+      }
+    }
+    
+    const formattedProducts = allProducts.map(product => {
+      const titleParts = product.title ? product.title.split(' ') : [];
+      const brand = titleParts.length > 1 ? titleParts[0].toLowerCase() : null;
+      
+      return {
+        title: product.title ?? product.title.toLowerCase() ,
         brand: brand,
-        price: product.price,
+        price: product.price ?? product.price.toLowerCase(),
         promo: null,
         url: product.url,
         category: 'beauty',
@@ -55,17 +71,16 @@ const treatments = async (start, end) => {
           location: "new-zealand",
           tag: "domestic"
         },
-        date: product.timestamp,
+        date: Date.now(),
         last_check: Date.now(),
         mapping_ref: null,
         unit: undefined,
         subcategory: 'treatments',
-        img: product.img
-      });
+        img: product.img || null
+      };
     });
     
-    // Check for missing data
-    const missingCount = allProducts.filter(p => !p.title || !p.price || !p.url || !p.img).length;
+    const missingCount = missingTotal;
     if (missingCount > 5) {
       await insertScrapingError(
         `More than 5 entries missing for farmers - treatments: ${missingCount} products with missing data`,
@@ -73,19 +88,19 @@ const treatments = async (start, end) => {
       );
     }
     
-    console.log(`Farmers treatments scraping completed: ${allProducts.length} products`);
-    return allProducts;
+    return formattedProducts;
     
   } catch (err) {
     logError(err);
     try {
       await insertScrapingError(
-        `Error in farmers - treatments: ${err.message}`,
+        `Error in farmers - treatments (Bright Data Browser): ${err.message}`,
         "scraping_trycatch"
       );
     } catch (err) {
-      console.log(err);
+      // Ignore
     }
+    
     return allProducts;
   }
 };
