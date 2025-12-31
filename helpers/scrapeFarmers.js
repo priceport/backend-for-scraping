@@ -47,21 +47,25 @@ const scrapeFarmers = async (start, end, state) => {
         return true;
     }
 
-    // CRITICAL: Bright Data Browser API allows only 1 navigation per browser instance
-    // Solution: Create a NEW browser for EACH category
+    // Bright Data Browser API constraints:
+    // 1. Only 1 navigation per browser session
+    // 2. Maximum Session Length: 30 minutes
+    // 3. Idle Session Timeout: 5 minutes (if no usage)
+    // Solution: Create a NEW browser for EACH category, close immediately after use
     let categoryCount = 0;
     
     const createBrowserForCategory = async () => {
         categoryCount++;
-        try {
-            const browser = await puppeteer.connect({
-                browserWSEndpoint: BRIGHT_DATA_WS,
-            });
-            return browser;
-        } catch (err) {
-            logError(err);
-            throw new Error(`Failed to create browser for category ${categoryCount}`);
+        
+        // Add delay between browser connections to avoid overwhelming Bright Data
+        if (categoryCount > 1) {
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
+        
+        const browser = await puppeteer.connect({
+            browserWSEndpoint: BRIGHT_DATA_WS,
+        });
+        return browser;
     };
     
     const createNewPage = async (browser) => {
@@ -77,10 +81,21 @@ const scrapeFarmers = async (start, end, state) => {
     const runCategoryScraper = async (scraperFunc, categoryName, start, end) => {
         let browser = null;
         let page = null;
+        const startTime = Date.now();
+        
         try {
             browser = await createBrowserForCategory();
             page = await createNewPage(browser);
+            
+            // Bright Data Browser API: Max 30min session, 5min idle timeout
+            // We create new browser per category and close immediately, so timeouts are avoided
             const result = await scraperFunc(start, end, browser, page);
+            
+            const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+            if (duration > 25 * 60) {
+                console.log(`⚠️  Category ${categoryName} took ${duration}s - approaching 30min session limit`);
+            }
+            
             return result;
         } catch (err) {
             logError(err);
@@ -90,14 +105,14 @@ const scrapeFarmers = async (start, end, state) => {
                 try {
                     await page.close();
                 } catch (e) {
-                    // Ignore
+                    // Ignore cleanup errors
                 }
             }
             if (browser) {
                 try {
                     await browser.close();
                 } catch (e) {
-                    // Ignore
+                    // Ignore cleanup errors
                 }
             }
         }
@@ -125,39 +140,39 @@ const scrapeFarmers = async (start, end, state) => {
             console.log(`${faceData?.length} data items scraped for face`);
             if (faceData?.length == 0) {
                 state.farmers.face = true;
-            }
         }
+    }
 
     // Makeup Bags
-        if (!state.farmers.makeup) {
+    if (!state.farmers.makeup) {
             makeupBagData = await runCategoryScraper(makeup_bags, 'makeup bags', start, end);
             console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
-        }
+    }
 
-        if (!state.farmers.makeup && makeupBagData?.length == 0) {
+    if (!state.farmers.makeup && makeupBagData?.length == 0) {
             makeupBagData = await runCategoryScraper(makeup_bags, 'makeup bags retry', start, end);
             console.log(`${makeupBagData?.length} data items scraped for makeup bags`);
             if (makeupBagData?.length == 0) {
                 state.farmers.makeup = true;
-            }
         }
+    }
 
     // Lips
-        if (!state.farmers.lips) {
+    if (!state.farmers.lips) {
             lipsData = await runCategoryScraper(lips, 'lips', start, end);
             console.log(`${lipsData?.length} data items scraped for lips`);
-        }
+    }
 
-        if (!state.farmers.lips && lipsData?.length == 0) {
+    if (!state.farmers.lips && lipsData?.length == 0) {
             lipsData = await runCategoryScraper(lips, 'lips retry', start, end);
             console.log(`${lipsData?.length} data items scraped for lips`);
             if (lipsData?.length == 0) {
                 state.farmers.lips = true;
-            }
         }
+    }
 
     // Eyes
-        if (!state.farmers.eyes) {
+    if (!state.farmers.eyes) {
         try {
             eyesData = await runCategoryScraper(eyes, 'eyes', start, end);
             console.log(`${eyesData?.length} data items scraped for eyes`);
@@ -165,9 +180,9 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
-        if (!state.farmers.eyes && eyesData?.length == 0) {
+    if (!state.farmers.eyes && eyesData?.length == 0) {
         try {
             eyesData = await runCategoryScraper(eyes, 'eyes', start, end);
             console.log(`${eyesData?.length} data items scraped for eyes`);
@@ -178,10 +193,10 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
     // Exfoliators
-        if (!state.farmers.exfoliators) {
+    if (!state.farmers.exfoliators) {
         try {
             exfoliatorsData = await runCategoryScraper(exfoliators, 'exfoliators', start, end);
             console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
@@ -189,9 +204,9 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
-        if (!state.farmers.exfoliators && exfoliatorsData?.length == 0) {
+    if (!state.farmers.exfoliators && exfoliatorsData?.length == 0) {
         try {
             exfoliatorsData = await runCategoryScraper(exfoliators, 'exfoliators', start, end);
             console.log(`${exfoliatorsData?.length} data items scraped for exfoliators`);
@@ -202,10 +217,10 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
     // Toners
-        if (!state.farmers.toners) {
+    if (!state.farmers.toners) {
         try {
             tonersData = await runCategoryScraper(toners, 'toners', start, end);
             console.log(`${tonersData?.length} data items scraped for toners`);
@@ -213,9 +228,9 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
-        if (!state.farmers.toners && tonersData?.length == 0) {
+    if (!state.farmers.toners && tonersData?.length == 0) {
         try {
             tonersData = await runCategoryScraper(toners, 'toners', start, end);
             console.log(`${tonersData?.length} data items scraped for toners`);
@@ -226,10 +241,10 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
     // Eye Cream
-        if (!state.farmers.eyecream) {
+    if (!state.farmers.eyecream) {
         try {
             eyeCreamData = await runCategoryScraper(eye_cream, 'eye cream', start, end);
             console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
@@ -237,9 +252,9 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
-        if (!state.farmers.eyecream && eyeCreamData?.length == 0) {
+    if (!state.farmers.eyecream && eyeCreamData?.length == 0) {
         try {
             eyeCreamData = await runCategoryScraper(eye_cream, 'eye cream', start, end);
             console.log(`${eyeCreamData?.length} data items scraped for eye cream`);
@@ -250,7 +265,7 @@ const scrapeFarmers = async (start, end, state) => {
             
             logError(err);
         }
-        }
+    }
 
     // Blushers Bronzers
         if (!state.farmers.blushersBronzers) {
@@ -403,14 +418,14 @@ const scrapeFarmers = async (start, end, state) => {
             console.log(`${skincareIngredientsData?.length} data items scraped for skincare ingredients`);
             if (skincareIngredientsData?.length == 0) {
                 state.farmers.skincareIngredients = true;
-            }
         }
+    }
 
     // Nail Polish
         if (!state.farmers.nailPolish) {
             nailPolishData = await runCategoryScraper(nail_polish, 'nail polish', start, end);
             console.log(`${nailPolishData?.length} data items scraped for nail polish`);
-        }
+    }
 
         if (!state.farmers.nailPolish && nailPolishData?.length == 0) {
             nailPolishData = await runCategoryScraper(nail_polish, 'nail polish retry', start, end);
@@ -431,14 +446,14 @@ const scrapeFarmers = async (start, end, state) => {
             console.log(`${nailCareToolsData?.length} data items scraped for nail care tools`);
             if (nailCareToolsData?.length == 0) {
                 state.farmers.nailCareTools = true;
-            }
         }
+    }
 
     // Body Care
         if (!state.farmers.bodyCare) {
             bodyCareData = await runCategoryScraper(body_care, 'body care', start, end);
             console.log(`${bodyCareData?.length} data items scraped for body care`);
-        }
+    }
 
         if (!state.farmers.bodyCare && bodyCareData?.length == 0) {
             bodyCareData = await runCategoryScraper(body_care, 'body care retry', start, end);
@@ -515,8 +530,8 @@ const scrapeFarmers = async (start, end, state) => {
             console.log(`${hairColourData?.length} data items scraped for hair colour`);
             if (hairColourData?.length == 0) {
                 state.farmers.hairColour = true;
-            }
         }
+    }
 
     // Hair Accessories
         if (!state.farmers.hairAccessories) {
@@ -557,11 +572,11 @@ const scrapeFarmers = async (start, end, state) => {
             console.log(`${sleepData?.length} data items scraped for sleep`);
             if (sleepData?.length == 0) {
                 state.farmers.sleep = true;
-            }
         }
+    }
 
-        //merge data
-        const allData = [
+    //merge data
+    const allData = [
             ...blushersBronzersData, ...makeupBrushesToolsData, ...womensPerfumesData,
             ...mensAftershavesCologneData, ...deodorantsBodySpraysData, ...rollerballsData,
             ...moisturisersSerumsAntiAgingData, ...cleansersMakeupRemoversData, ...treatmentsMasksData,
@@ -570,30 +585,30 @@ const scrapeFarmers = async (start, end, state) => {
             ...suncareTanningData, ...hairCareBrushesData, ...hairColourData, ...hairAccessoriesData,
             ...collagensData, ...sleepData, ...faceData, ...makeupBagData, ...lipsData, ...eyesData,
             ...exfoliatorsData, ...tonersData, ...eyeCreamData
-        ];
+    ];
 
-        //process data
-        let processedData = allData;
-        try {
-            processedData = await processDataForBeauty(allData);
-            console.log(`${processedData?.length} data items processed`);
-        } catch (err) {
-            console.log("There was an error while processing data");
-            logError(err);
-        }
+    //process data
+    let processedData = allData;
+    try {
+        processedData = await processDataForBeauty(allData);
+        console.log(`${processedData?.length} data items processed`);
+    } catch (err) {
+        console.log("There was an error while processing data");
+        logError(err);
+    }
 
-        // update db
-        try {
-            await updateDBEntry(processedData);
-            console.log(`data items updated`);
-        } catch (err) {
-            console.log("There was an error while updating data");
-            logError(err);
-        }
+    // update db
+    try {
+        await updateDBEntry(processedData);
+        console.log(`data items updated`);
+    } catch (err) {
+        console.log("There was an error while updating data");
+        logError(err);
+    }
 
-        console.log("entries updated for farmers");
+    console.log("entries updated for farmers");
 
-        return allData?.length == 0;
+    return allData?.length == 0;
     } catch (mainErr) {
         logError(mainErr);
         return true;
