@@ -40,26 +40,37 @@ const beer = async (start,end,browser)=>{
 
         if(loadedPageNo==pageNo)
         [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelector('#fast-simon-serp-app').shadowRoot.querySelectorAll(".product-card");
+          const productElements = document.querySelectorAll('#product_listing__sorted .product_item');
           const productList = [];
           let missing = 0;
       
           productElements.forEach(product => {
-            const titleElement = product.querySelector('.title');
-            const brandElement = product.querySelector('.product-item-brand');
-            const priceElement = product.querySelector('.price');
-            // const promoElement = product.querySelectorAll('.amasty-label-container > img');
-            const urlElement = product.querySelector('.title-container');
-            const imgElement = product.querySelector('.image');
+            const titleAnchor = product.querySelector('.product_info .product_name a');
+            const priceElement = product.querySelector('.product_info .product_prop .product_price .money:last-of-type .langwill-money')
+              || product.querySelector('.product_info .product_prop .product_price .money .langwill-money')
+              || product.querySelector('.product_info .product_prop .product_price .money:last-of-type')
+              || product.querySelector('.product_info .product_prop .product_price .money');
+            const imgElement = product.querySelector('.product_img img');
       
-            const title = titleElement ? titleElement?.innerText?.trim() : null;
+            const title = titleAnchor ? titleAnchor?.innerText?.trim() : null;
             const brand = null;
-            const price = priceElement ? priceElement?.innerText?.trim() : null;
+            let price = priceElement ? priceElement?.innerText?.trim() : null;
             const promo = null;
-            const url = urlElement ? urlElement?.href?.trim() : null;
-            const img = imgElement ? imgElement?.src?.trim() : null;
+            const url = titleAnchor ? titleAnchor?.href?.trim() : null;
+            let img = imgElement ? imgElement?.src?.trim() : null;
+
+            if (img && img.startsWith('//')) {
+              img = `https:${img}`;
+            }
+
+            if (price) {
+              price = price.replace(/\s+/g, ' ').trim();
+              if (price.startsWith('$') && !price.startsWith('NZ$')) {
+                price = `NZ${price}`;
+              }
+            }
       
-            if(!title||!brand||!price||!url||!img){missing+=1;}
+            if(!title||!price||!url||!img){missing+=1;}
 
             if(!title&&!brand&&!price&&!promo&&!url){}
             else

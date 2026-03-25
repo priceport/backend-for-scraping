@@ -22,8 +22,14 @@ const updateDBEntry = async (data) => {
         img,
         promo,
       } = data[iterator];
+      const currentPrice = Number(price?.[0]?.price);
+      if (!Number.isFinite(currentPrice)) {
+        iterator += 1;
+        continue;
+      }
+
       let price_per_unit = calculatePricePerUnit(
-        price[0].price,
+        currentPrice,
         quantity,
         unit
       );
@@ -74,15 +80,20 @@ const updateDBEntry = async (data) => {
       );
 
       // Insert new price only if it has changed
-      console.log(latestPrice.rows[0].price, price[0].price.toFixed(3));
+      const latestPriceValue =
+        latestPrice.rowCount > 0 ? Number(latestPrice.rows?.[0]?.price) : null;
+      const normalizedCurrentPrice = Number(currentPrice.toFixed(3));
+      if (latestPrice.rowCount > 0) {
+        console.log(latestPriceValue, normalizedCurrentPrice);
+      }
       if (
         latestPrice.rowCount === 0 ||
-        latestPrice.rows[0].price != price[0].price.toFixed(3)
+        latestPriceValue !== normalizedCurrentPrice
       ) {
         await pool.query(
           `INSERT INTO price (product_id, date, price, website, price_per_unit)
                     VALUES ($1, current_date, $2, $3, $4)`,
-          [product?.rows[0]?.id, price[0].price, "nz_liquor", price_per_unit]
+          [product?.rows[0]?.id, normalizedCurrentPrice, "nz_liquor", price_per_unit]
         );
         new_prices += 1;
       }
