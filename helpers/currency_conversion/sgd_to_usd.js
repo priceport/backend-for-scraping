@@ -12,7 +12,9 @@ const sgd_to_usd = (sgd, source) => {
       return "Invalid input";
     }
 
-    return sgd * 0.75;
+    //old 0.75
+    //new 0.78
+    return sgd * 0.78;
   } catch (err) {
     console.log("cant convert for value:" + sgd);
     logError(err);

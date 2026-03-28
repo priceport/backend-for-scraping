@@ -12,7 +12,9 @@ const aud_to_usd = (aud, source) => {
       return "Invalid input";
     }
 
-    return aud * 0.66;
+    //old 0.66
+    //new 0.7
+    return aud * 0.7;
   } catch (err) {
     console.log("cant convert for value:" + aud);
     logError(err);
