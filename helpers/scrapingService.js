@@ -51,8 +51,8 @@ const scrapingService =async ()=>{
     doneLiquorlandAus = false
 
 
-  let start_page = 20,
-    end_page = 20;
+  let start_page = 1,
+    end_page = 1;
 
   let internalStates = {
     whiskyAndMore: {
