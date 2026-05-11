@@ -406,19 +406,6 @@ const scrapingService =async ()=>{
       }
 
 
-    if (!doneBeautyBliss)
-      try {
-        doneBeautyBliss = await scrapeBeautyBliss(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from beauty bliss");
-        logError(err);
-      }
-
     if (!doneMecca)
       try {
         doneMecca = await scrapeMecca(
@@ -498,10 +485,20 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    // Close shared browser before Dan Murphy (which creates its own browsers)
     await browser.close();
 
-    // Run Dan Murphy independently (creates its own browsers)
+    if (!doneBeautyBliss)
+      try {
+        doneBeautyBliss = await scrapeBeautyBliss(
+          start_page,
+          end_page,
+          internalStates
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from beauty bliss");
+        logError(err);
+      }
+
     if(!doneDanMurphy)
       try{
           doneDanMurphy = await scrapeDanMurphy(start_page);
