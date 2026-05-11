@@ -1,25 +1,49 @@
-//scraping script imports
+const { connect } = require('puppeteer-real-browser');
 const bath = require("../scripts/scraping_scripts/domestic/beauty_bliss/bath");
 const hair = require("../scripts/scraping_scripts/domestic/beauty_bliss/hair");
 const makeup = require("../scripts/scraping_scripts/domestic/beauty_bliss/makeup");
 const skincare = require("../scripts/scraping_scripts/domestic/beauty_bliss/skincare");
 const tools = require("../scripts/scraping_scripts/domestic/beauty_bliss/tools");
 
-//processing script imports
 const processDataForBeauty = require("./data_processing/beauty_bliss/beauty");
 const logError = require("./logError");
-
-//db update imports
 const updateDBEntry = require("./update_db_entry/beauty_bliss/beauty");
+const waitForXTime = require("./waitForXTime");
 
-
-const scrapeBeautyBliss = async (start,end,state,browser) =>{
+const scrapeBeautyBliss = async (start,end,state) =>{
     console.log("scraping started for beauty bliss at:"+Date.now());
 
-    //variable initialization
+    const { browser, page } = await connect({
+        headless: false,
+        turnstile: true,
+        disableXvfb: false,
+        args: ['--start-maximized'],
+        connectOption: {
+            defaultViewport: null,
+        },
+    });
+
+    console.log("beauty bliss: real browser launched with turnstile bypass");
+
+    try {
+        console.log("beauty bliss: warming up on homepage to get cf_clearance cookie...");
+        await page.goto('https://beautybliss.co.nz', { waitUntil: 'networkidle2', timeout: 90000 });
+        await waitForXTime(5000);
+
+        const passed = await page.evaluate(() => !document.title.toLowerCase().includes('just a moment'));
+        if (passed) {
+            console.log("beauty bliss: Cloudflare passed, cf_clearance cookie set");
+        } else {
+            console.log("beauty bliss: waiting for Turnstile auto-click...");
+            await waitForXTime(15000);
+        }
+    } catch (err) {
+        console.log("beauty bliss: warmup navigation error:", err.message);
+    }
+    await page.close();
+
     let makeupData=[],skincareData=[],toolsData=[],hairData=[],bathData=[];
 
-    //scrape each category
     if(!state.beautyBliss.makeup)
     try{
         makeupData = await makeup(start,end,browser);
@@ -130,10 +154,8 @@ const scrapeBeautyBliss = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    //merge data
     makeupData = [...makeupData,...skincareData,...toolsData,...hairData,...bathData];
 
-    //process data
     try{
         makeupData = await processDataForBeauty(makeupData);
         console.log(`${makeupData?.length} data items proccessed`);
@@ -142,7 +164,6 @@ const scrapeBeautyBliss = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    //update db
     try{
         await updateDBEntry(makeupData);
         console.log(`data items updated`);
@@ -150,6 +171,8 @@ const scrapeBeautyBliss = async (start,end,state,browser) =>{
         console.log("There was an error while updating data");
         logError(err);
     }
+
+    await browser.close();
     
     console.log("entries updated for beauty bliss");
     return makeupData?.length==0;

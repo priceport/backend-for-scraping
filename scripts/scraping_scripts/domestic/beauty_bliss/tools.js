@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
@@ -9,47 +8,35 @@ const tools = async (start,end,browser)=>{
     const url = 'https://beautybliss.co.nz/product-category/brushes/?SkipCount=replace_me';
   
     const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080 });
+
     const allProducts = [];
 
     try{
 
-    // Enable request interception to block unnecessary resources
-    await page.setRequestInterception(true);
-
-    // Only allow 'document' (HTML) requests
-    page.on('request', (req) => {
-         const resourceType = req.resourceType();
-
-         if (resourceType === 'document') {
-         req.continue();
-         } else {
-         req.abort();  // Block other resources like JS, CSS, images, etc.
-         }
-    });
-
     while(true){
         await waitForXTime(constants.timeout);
-        await page.goto(url.replace("replace_me",(pageNo==1?0:(28 * (pageNo-1))-1)), { waitUntil: 'networkidle2' });
-      
+        await page.goto(url.replace("replace_me",(pageNo==1?0:(28 * (pageNo-1))-1)), { waitUntil: 'networkidle2', timeout: 90000 });
+
+        await page.waitForSelector('#productListCards > .card', { visible: true, timeout: 90000 });
+
         const [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelectorAll('.card-deck > .card');
+          const productElements = document.querySelectorAll('#productListCards > .card');
           const productList = [];
           let missing = 0;
       
           productElements.forEach(product => {
             const titleElement = product.querySelector('.product-title');
             const brandElement = product.querySelector('.brand');
-            const priceElement = product.querySelector('strong');
-            // const promoElement = product.querySelectorAll('.amasty-label-container > img');
-            const urlElement = product.querySelector('a');
-            const imgElement = product.querySelector('a > .secondary > img');
+            const priceElement = product.querySelector('.card-text strong');
+            const urlElement = product.querySelector('.product-title');
+            const imgElement = product.querySelector('picture.card-img-top:not(.secondary) img');
       
             const title = titleElement ? titleElement.innerText.trim() : null;
             const brand = brandElement ? brandElement.innerText.trim() : null;
             const price = priceElement ? priceElement.innerText.trim() : null;
-            // const promo = promoElement ? Array.from(promoElement)?.map(promo=>promo.src.trim()) : null;
-            const url = urlElement ? urlElement.href.trim() : null;
-            const img = imgElement ? imgElement.dataset.src.trim() : null;
+            const url = urlElement ? urlElement.href?.trim() : null;
+            const img = imgElement ? (imgElement.dataset.src || imgElement.src)?.trim() : null;
       
             if(!title||!brand||!price||!url||!img){missing+=1;}
 

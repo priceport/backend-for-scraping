@@ -7,77 +7,27 @@ const { insertScrapingError } = require('../../../../helpers/insertScrapingError
 
 puppeteer.use(StealthPlugin());
 
+/** Scrapes fragrances listing — page 1 only (start/end ignored for pagination). */
 const fragrance = async (start, end, browser) => {
-    let pageNo = 1;
     const url = 'https://www.chemistwarehouse.co.nz/shop-online/542/fragrances';
 
     const page = await browser.newPage();
 
     const allProducts = [];
 
-    try{
-
-    // Navigate to the initial page
-    await page.goto(url, { waitUntil: 'networkidle2' });
-
-    await page.waitForSelector('.product__container', { visible: true });
-
-    let activePageElement = await page.$(".pager__button--active.pager__button");
-    let skipMultiplePagesElement = await page.$$(".pager__button.pager__spacer");
-    let prevButtonElement = await page.$(".pager__button.pager__button--prev");
-    let nextBtn = await page.$('.pager__button--next');
-
-    skipMultiplePagesElement = skipMultiplePagesElement[skipMultiplePagesElement.length-1];
-
-    let activePage = await page.evaluate(el => el.innerText, activePageElement);
-
-    while(activePage!=start){
-        if(activePage<start)
-        await skipMultiplePagesElement.click();
-
-        if(activePage>start)
-        await prevButtonElement.click();
+    try {
+        await page.goto(url, { waitUntil: 'networkidle2' });
 
         await page.waitForSelector('.product__container', { visible: true });
 
         await waitForXTime(constants.timeout);
 
-        activePageElement = await page.$(".pager__button--active.pager__button");
-        activePage = await page.evaluate(el => el.innerText, activePageElement);
-        skipMultiplePagesElement = await page.$$(".pager__button.pager__spacer");
-        prevButtonElement = await page.$(".pager__button.pager__button--prev");
-        nextBtn = await page.$('.pager__button--next');
+        console.log('pageNo=1');
 
-        if(skipMultiplePagesElement?.length==1&&activePage>5){
-            while(nextBtn&&activePage!=start) {
-                await nextBtn.click();
-
-                await page.waitForSelector('.product__container', { visible: true });
-        
-                await waitForXTime(constants.timeout);
-
-                nextBtn = await page.$('.pager__button--next');
-            };
-
-            if(!nextBtn&&activePage!=start) {
-                await page.close();
-                return [];
-            }
-        }
-
-        skipMultiplePagesElement = skipMultiplePagesElement[skipMultiplePagesElement.length-1];
-    }
-
-    while (true) {
-        console.log("pageNo="+(start+pageNo-1));
-
-        await waitForXTime(constants.timeout);
-
-        // Evaluate the product data from the current page
         const products = await page.evaluate(() => {
             const productList = [];
             const productElements = document.querySelectorAll('.product__container');
-           
+
             productElements.forEach(product => {
                 const titleElement = product.querySelector('.product__title');
                 const brandElement = product.querySelector('.css-cfm1ok');
@@ -99,9 +49,9 @@ const fragrance = async (start, end, browser) => {
                         url,
                         category: 'beauty',
                         source: {
-                            website_base: "https://www.chemistwarehouse.co.nz",
-                            location: "new-zealand",
-                            tag: "domestic"
+                            website_base: 'https://www.chemistwarehouse.co.nz',
+                            location: 'new-zealand',
+                            tag: 'domestic'
                         },
                         date: Date.now(),
                         last_check: Date.now(),
@@ -114,38 +64,21 @@ const fragrance = async (start, end, browser) => {
             return productList;
         });
 
-        // Push new products to the allProducts array
         allProducts.push(...products);
 
-        // Check for the next button
-        nextBtn = await page.$('.pager__button--next');
+        console.log(`fragrance page 1: ${allProducts.length} products scraped`);
+        allProducts.forEach(pro => console.log({ price: pro.price, title: pro.title }));
 
-        if (!nextBtn||(start+pageNo-1)>=end) {
-            break;  // Exit the loop when there are no more pages
-        }
+        await page.close();
 
-        // Click the next button
-        await nextBtn.click();
-
-        // Wait for the next batch of products to load by waiting for a new element or a change in the DOM
-        await page.waitForSelector('.product__container', { visible: true });
-
-        // Optionally, add a delay to ensure all content is loaded
-        await waitForXTime(constants.timeout);
-
-        pageNo += 1;
-    }
-
-    await page.close();
-    return allProducts;
-
-    }catch(err){
+        return allProducts;
+    } catch (err) {
         logError(err);
 
-        try{
-            await insertScrapingError("Error in chemist_warehouse - fragrance: "+err.message,"scraping_trycatch");
-        }catch(err){
-            console.log(err);
+        try {
+            await insertScrapingError('Error in chemist_warehouse - fragrance: ' + err.message, 'scraping_trycatch');
+        } catch (e) {
+            console.log(e);
         }
 
         await page.close();

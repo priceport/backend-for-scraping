@@ -35,6 +35,7 @@
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-proxy": "^1.0.2",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-real-browser": "^1.4.4",
     "redis": "^4.7.0",
     "tesseract.js": "^5.1.1",
     "uuid": "^11.1.0",
