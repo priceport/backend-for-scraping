@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 const waitForXTime = require('../../../../helpers/waitForXTime');
 const constants = require('../../../../helpers/constants');
 const logError = require('../../../../helpers/logError');
@@ -14,25 +13,13 @@ const spirits = async (start,end,browser)=>{
     
     try{
 
-    // Enable request interception to block unnecessary resources
-    // await page.setRequestInterception(true);
-
-    // // Only allow 'document' (HTML) requests
-    // page.on('request', (req) => {
-    //      const resourceType = req.resourceType();
-
-    //      if (resourceType === 'document') {
-    //      req.continue();
-    //      } else {
-    //      req.abort();  // Block other resources like JS, CSS, images, etc.
-    //      }
-    // });
-
     while(true){
         await waitForXTime(constants.timeout);
-        await page.goto(url+pageNo, {  timeout: 0});
+        await page.goto(url+pageNo, { waitUntil: 'networkidle2', timeout: 60000 });
 
-        const currentPageUrl = page.url();  // Gets the final URL after redirection
+        await page.waitForSelector('#product-grid .grid__item', { visible: true, timeout: 30000 });
+
+        const currentPageUrl = page.url();
         const urlParams = new URL(currentPageUrl).searchParams;
         const loadedPageNo = parseInt(urlParams.get('page'), 10) || 1; 
 
@@ -40,34 +27,33 @@ const spirits = async (start,end,browser)=>{
 
         if(loadedPageNo==pageNo)
         [products,missing] = await page.evaluate(() => {
-          const productElements = document.querySelectorAll('#product_listing__sorted .product_item');
+          const productElements = document.querySelectorAll('#product-grid .grid__item');
           const productList = [];
           let missing = 0;
       
           productElements.forEach(product => {
-            const titleAnchor = product.querySelector('.product_info .product_name a');
-            const priceElement = product.querySelector('.product_info .product_prop .product_price .money:last-of-type .langwill-money')
-              || product.querySelector('.product_info .product_prop .product_price .money .langwill-money')
-              || product.querySelector('.product_info .product_prop .product_price .money:last-of-type')
-              || product.querySelector('.product_info .product_prop .product_price .money');
-            const imgElement = product.querySelector('.product_img img');
+            const titleAnchor = product.querySelector('.card__information h3 a');
+            const priceElement = product.querySelector('.price-item--sale')
+              || product.querySelector('.price-item--regular')
+              || product.querySelector('.price .money');
+            const imgElement = product.querySelector('.card__media img')
+              || product.querySelector('.media img');
       
-            const title = titleAnchor ? titleAnchor?.innerText?.trim() : null;
+            const title = titleAnchor ? titleAnchor.innerText.trim() : null;
             const brand = null;
-            let price = priceElement ? priceElement?.innerText?.trim() : null;
+            let price = priceElement ? priceElement.innerText.trim() : null;
             const promo = null;
-            const url = titleAnchor ? titleAnchor?.href?.trim() : null;
-            let img = imgElement ? imgElement?.src?.trim() : null;
+            const url = titleAnchor ? titleAnchor.href.trim() : null;
+            let img = imgElement ? (imgElement.src || imgElement.dataset.src)?.trim() : null;
 
             if (img && img.startsWith('//')) {
               img = `https:${img}`;
             }
 
-            // Normalize price for downstream processing (expects "NZ$")
             if (price) {
               price = price.replace(/\s+/g, ' ').trim();
               if (price.startsWith('$') && !price.startsWith('NZ$')) {
-                price = `NZ${price}`; // "$49.99" -> "NZ$49.99"
+                price = `NZ${price}`;
               }
             }
       
