@@ -177,6 +177,10 @@ const dark_rum = async (start, end, browser) => {
 
       allProducts.push(...products);
 
+      products.forEach(product => {
+        console.log(product.title);
+      });
+
       // Check if we should stop: no products found OR reached the end page
       if (pageNo === end) {
         await page.close();

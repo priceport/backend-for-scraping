@@ -92,7 +92,9 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
-        if(nzd_to_usd(rawData.price.replace("$","").replace("Mates Club: ","").replace("Special: ",""),"big barrel")=="Invalid input"){
+        const priceLocalStr = rawData.price.replace("$","").replace("Mates Club: ","").replace("Special: ","");
+        const localPrice = parseFloat(priceLocalStr);
+        if(nzd_to_usd(priceLocalStr,"big barrel")=="Invalid input"){
             iterator+=1;
             continue;
         } 
@@ -115,7 +117,8 @@ const processDataForSpirits = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
 
-            finalData.price = [{text:"",price:nzd_to_usd(rawData.price.replace("$","").replace("Mates Club: ","").replace("Special: ",""),"big barrel")}];
+            finalData.local_price = localPrice;
+            finalData.price = [{text:"",price:nzd_to_usd(priceLocalStr,"big barrel")}];
 
             finalData.img = rawData.img;
 

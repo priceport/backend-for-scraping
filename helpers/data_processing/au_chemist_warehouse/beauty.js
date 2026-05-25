@@ -194,9 +194,10 @@ const processDataForBeauty = async (data) => {
       continue;
     }
 
+    const priceLocalStr = rawData.price.replace("$", "");
+    const localPrice = parseFloat(priceLocalStr);
     if (
-      aud_to_usd(rawData.price.replace("$", ""), "au chemist warehouse") ==
-      "Invalid input"
+      aud_to_usd(priceLocalStr, "au chemist warehouse") == "Invalid input"
     ) {
       iterator += 1;
       continue;
@@ -221,13 +222,11 @@ const processDataForBeauty = async (data) => {
       finalData.source = rawData.source;
       finalData.last_check = Date.now();
 
+      finalData.local_price = localPrice;
       finalData.price = [
         {
           text: "",
-          price: aud_to_usd(
-            rawData.price.replace("$", ""),
-            "au chemist warehouse"
-          ),
+          price: aud_to_usd(priceLocalStr, "au chemist warehouse"),
         },
       ];
 

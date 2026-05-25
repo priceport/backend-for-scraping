@@ -30,7 +30,10 @@ const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
 
 
 
+const { loadExchangeRates } = require("./currency_conversion/exchangeRates");
+
 const scrapingService =async ()=>{
+  await loadExchangeRates();
 
   // Domestic websites
   let doneWhiskyAndMore = false,
@@ -48,7 +51,7 @@ const scrapingService =async ()=>{
     doneAuChemistWarehouse = false,
     doneDanMurphy = false,
     doneLifepharmacy = false,
-    doneLiquorlandAus = true
+    doneLiquorlandAus = false
 
 
   let start_page = 1,
@@ -378,19 +381,19 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    // if (!doneLiquorland) {
-    //   try {
-    //     doneLiquorland = await scrapeLiquorland(
-    //         start_page,
-    //         end_page,
-    //         internalStates,
-    //         browser
-    //       );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from liquorland");
-    //     logError(err);
-    //   }
-    // }
+    if (!doneLiquorland) {
+      try {
+        doneLiquorland = await scrapeLiquorland(
+            start_page,
+            end_page,
+            internalStates,
+            browser
+          );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland");
+        logError(err);
+      }
+    }
 
     if (!doneBigBarrel)
       try {

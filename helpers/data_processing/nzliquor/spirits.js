@@ -52,7 +52,9 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
-        if(nzd_to_usd(rawData.price.replace("NZ$",""),"nz liquor")=="Invalid input"){
+        const priceLocalStr = rawData.price.replace("NZ$","");
+        const localPrice = parseFloat(priceLocalStr);
+        if(nzd_to_usd(priceLocalStr,"nz liquor")=="Invalid input"){
             iterator+=1;
             continue;
         } 
@@ -75,7 +77,8 @@ const processDataForSpirits = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
 
-            finalData.price = [{text:"",price:nzd_to_usd(rawData.price.replace("NZ$",""),"nz liquor")}];
+            finalData.local_price = localPrice;
+            finalData.price = [{text:"",price:nzd_to_usd(priceLocalStr,"nz liquor")}];
 
             finalData.img = rawData.img;
 

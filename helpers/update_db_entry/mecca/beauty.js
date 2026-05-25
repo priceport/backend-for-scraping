@@ -1,6 +1,7 @@
 const pool = require("../../../configs/postgresql.config");
 const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
+const syncPriceEntry = require("../../currency_conversion/syncPriceEntry");
 
 // Main function
 const updateDBEntry = async (data) => {
@@ -21,6 +22,7 @@ const updateDBEntry = async (data) => {
         sub_category,
         img,
         promo,
+        local_price,
       } = data[iterator];
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
@@ -63,29 +65,17 @@ const updateDBEntry = async (data) => {
         );
       }
 
-      // Check the most recent price for this product and website
-      const latestPrice = await pool.query(
-        `SELECT price 
-                FROM price 
-                WHERE product_id = $1 AND website = $2 
-                ORDER BY date DESC, id DESC 
-                LIMIT 1`,
-        [product?.rows[0]?.id, "mecca"]
-      );
+      const inserted = await syncPriceEntry({
+        pool,
+        productId: product.rows[0].id,
+        website: "mecca",
+        usdPrice: price[0].price,
+        localPrice: local_price,
+        pricePerUnit: price_per_unit,
+        currency: "NZD",
+      });
+      if (inserted) new_prices += 1;
 
-      // Insert new price only if it has changed
-      console.log(latestPrice.rows[0]?.price, price[0].price.toFixed(3));
-      if (
-        latestPrice.rowCount === 0 ||
-        latestPrice.rows[0]?.price != price[0].price.toFixed(3)
-      ) {
-        await pool.query(
-          `INSERT INTO price (product_id, date, price, website, price_per_unit)
-                    VALUES ($1, current_date, $2, $3, $4)`,
-          [product?.rows[0]?.id, price[0].price, "mecca", price_per_unit]
-        );
-        new_prices += 1;
-      }
 
       // Promo insertion logic (if needed in the future)
       if (promo) {

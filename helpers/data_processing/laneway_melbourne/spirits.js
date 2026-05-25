@@ -335,7 +335,9 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
-        if(aud_to_usd(rawData.price.replace("$",""),"laneway melbourne")=="Invalid input"){
+        const priceLocalStr = rawData.price.replace("$","");
+        const localPrice = parseFloat(priceLocalStr);
+        if(aud_to_usd(priceLocalStr,"laneway melbourne")=="Invalid input"){
             iterator+=1;
             continue;
         } 
@@ -358,7 +360,8 @@ const processDataForSpirits = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
             
-            finalData.price = [{text:"",price:aud_to_usd(rawData.price.replace("$",""),"laneway melbourne")}];
+            finalData.local_price = localPrice;
+            finalData.price = [{text:"",price:aud_to_usd(priceLocalStr,"laneway melbourne")}];
 
             finalData.img = rawData.img;
 

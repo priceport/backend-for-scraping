@@ -38,6 +38,7 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
+        const localPrice = parseFloat(extractPrice(rawData.price));
         const price = aud_to_usd(extractPrice(rawData.price));
         if(price==null){
             iterator+=1;
@@ -60,6 +61,7 @@ const processDataForSpirits = async (data)=>{
             finalData.website = rawData.website;
             finalData.last_check = Date.now();
 
+            finalData.local_price = localPrice;
             finalData.price = [{text:"",price:price}];
 
             finalData.img = rawData.img;

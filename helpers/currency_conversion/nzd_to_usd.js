@@ -1,5 +1,6 @@
 const logError = require("../logError");
 const logInvalidInput = require("../logInvalidInput");
+const { getCachedExchangeRates } = require("./exchangeRates");
 
 const nzd_to_usd = (nzd, source) => {
   try {
@@ -12,9 +13,7 @@ const nzd_to_usd = (nzd, source) => {
       return "Invalid input";
     }
 
-    //old 0.6
-    //new 0.58
-    return nzd * 0.58;
+    return Number(nzd) * getCachedExchangeRates().nzd;
   } catch (err) {
     console.log("cant convert for value:" + nzd);
     logError(err);

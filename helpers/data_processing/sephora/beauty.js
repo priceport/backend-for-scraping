@@ -171,6 +171,7 @@ const processDataForBeauty = async (data)=>{
 
         // Validate and convert price
         const priceString = rawData.price ? rawData.price.replace("$","").trim() : "";
+        const localPrice = parseFloat(priceString);
         const convertedPrice = nzd_to_usd(priceString, "sephora");
         
         // Skip if price conversion failed or returned invalid value
@@ -198,7 +199,7 @@ const processDataForBeauty = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
             
-            // Use the already validated converted price
+            finalData.local_price = localPrice;
             finalData.price = [{text:"",price:convertedPrice}];
 
             finalData.img = rawData.img;

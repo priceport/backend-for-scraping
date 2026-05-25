@@ -73,8 +73,11 @@ function isTodayOrYesterday(timestamp) {
     return inputDate >= tenDaysAgo && inputDate <= today;
 }
 
+const { loadExchangeRates } = require("./currency_conversion/exchangeRates");
+
 const precomputeDailyData = async (source,checkMappings) => {
     try {
+    await loadExchangeRates();
 
     const canprod_ids = await pool.query(`select * from cannonical_product;`);
     let finalData = []
@@ -105,7 +108,10 @@ const precomputeDailyData = async (source,checkMappings) => {
                 p.product_id, 
                 p.price, 
                 p.date, 
-                p.website
+                p.website,
+                p.conversion_rate_nzd,
+                p.conversion_rate_aud,
+                p.conversion_rate_sgd
             FROM 
                 price p
             WHERE 
@@ -122,6 +128,9 @@ const precomputeDailyData = async (source,checkMappings) => {
             }
 
             temp.latest_price = price.rows[0].price;
+            temp.conversion_rate_nzd = price.rows[0].conversion_rate_nzd;
+            temp.conversion_rate_aud = price.rows[0].conversion_rate_aud;
+            temp.conversion_rate_sgd = price.rows[0].conversion_rate_sgd;
 
             if(temp.website == source) source_price = price.rows[0].price;
 

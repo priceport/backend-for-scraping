@@ -1,6 +1,7 @@
 const pool = require("../../../configs/postgresql.config");
 const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
+const syncPriceEntry = require("../../currency_conversion/syncPriceEntry");
 
 // Main function
 const updateDBEntry = async (data) => {
@@ -20,6 +21,7 @@ const updateDBEntry = async (data) => {
         quantity,
         sub_category,
         img,
+        local_price,
       } = data[iterator];
       let price_per_unit = calculatePricePerUnit(
         price[0].price,
@@ -27,7 +29,6 @@ const updateDBEntry = async (data) => {
         unit
       );
 
-      // Skip if the price is invalid
       if (isNaN(price[0].price)) {
         db_ops += 1;
         continue;
@@ -39,7 +40,6 @@ const updateDBEntry = async (data) => {
       );
 
       if (product.rowCount === 0) {
-        // If no product exists, create one
         product = await pool.query(
           `INSERT INTO product (title, brand, description, url, image_url, qty, unit, category, sub_category, website, tag, country)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
@@ -58,43 +58,7 @@ const updateDBEntry = async (data) => {
             "new zealand",
           ]
         );
-        await pool.query(
-          `INSERT INTO price (product_id, date, price, website, price_per_unit)
-                    VALUES ($1, current_date, $2, $3, $4)`,
-          [product?.rows[0]?.id, price[0].price, "beauty_bliss", price_per_unit]
-        );
-        new_prices += 1;
       } else {
-        // Check the most recent price for this product and website
-        const latestPrice = await pool.query(
-          `SELECT price 
-                    FROM price 
-                    WHERE product_id = $1 AND website = $2 
-                    ORDER BY date DESC, id DESC 
-                    LIMIT 1`,
-          [product?.rows[0]?.id, "beauty_bliss"]
-        );
-
-        // Insert new price only if it has changed
-        console.log(latestPrice.rows[0].price, price[0].price.toFixed(3));
-        if (
-          latestPrice.rowCount === 0 ||
-          latestPrice.rows[0].price != price[0].price.toFixed(3)
-        ) {
-          await pool.query(
-            `INSERT INTO price (product_id, date, price, website, price_per_unit)
-                        VALUES ($1, current_date, $2, $3, $4)`,
-            [
-              product?.rows[0]?.id,
-              price[0].price,
-              "beauty_bliss",
-              price_per_unit,
-            ]
-          );
-          new_prices += 1;
-        }
-
-        // Update last_checked timestamp
         await pool.query(
           `UPDATE product 
                     SET last_checked = current_timestamp , country = $2
@@ -102,6 +66,17 @@ const updateDBEntry = async (data) => {
           [product?.rows[0]?.id, "new zealand"]
         );
       }
+
+      const inserted = await syncPriceEntry({
+        pool,
+        productId: product.rows[0].id,
+        website: "beauty_bliss",
+        usdPrice: price[0].price,
+        localPrice: local_price,
+        pricePerUnit: price_per_unit,
+        currency: "NZD",
+      });
+      if (inserted) new_prices += 1;
 
       db_ops += 1;
     } catch (err) {

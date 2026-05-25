@@ -67,6 +67,7 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
         
+        const localPrice = parseFloat(cleanPrice);
         const convertedPrice = nzd_to_usd(cleanPrice,"liquorland");
         
         if(convertedPrice == "Invalid input" || convertedPrice == null || convertedPrice == undefined){
@@ -93,6 +94,7 @@ const processDataForSpirits = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
 
+            finalData.local_price = localPrice;
             finalData.price = [{text:"",price:convertedPrice}];
 
             finalData.img = rawData.img;

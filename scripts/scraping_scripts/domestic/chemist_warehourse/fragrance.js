@@ -66,6 +66,10 @@ const fragrance = async (start, end, browser) => {
 
         allProducts.push(...products);
 
+        products.forEach(pro => {
+            console.log({ title: pro.title });
+        });
+
         console.log(`fragrance page 1: ${allProducts.length} products scraped`);
         allProducts.forEach(pro => console.log({ price: pro.price, title: pro.title }));
 

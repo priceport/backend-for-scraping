@@ -4,6 +4,7 @@ const waitForXTime = require("../../../../helpers/waitForXTime");
 const {
   insertScrapingError,
 } = require("../../../../helpers/insertScrapingErrors");
+const extractAuChemistWarehouseCardPrice = require("../../../../helpers/extractAuChemistWarehouseCardPrice");
 const cosmetics = async (start, end, browser) => {
   let pageNo = start;
   const url = "https://www.chemistwarehouse.com.au/shop-online/648/cosmetics";
@@ -16,6 +17,8 @@ const cosmetics = async (start, end, browser) => {
         "(KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
     );
 
+    await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+
     // Enable request interception to block unnecessary resources
     await page.setRequestInterception(true);
 
@@ -23,7 +26,7 @@ const cosmetics = async (start, end, browser) => {
     page.on("request", (req) => {
       const resourceType = req.resourceType();
 
-      if (["document", "xhr", "script"].includes(resourceType)) {
+      if (["document", "xhr", "fetch", "script"].includes(resourceType)) {
         req.continue();
       } else {
         req.abort();
@@ -36,17 +39,30 @@ const cosmetics = async (start, end, browser) => {
         waitUntil: "networkidle2",
       });
 
-      // Then try to wait for the selector
-      await page.waitForSelector("li.group.relative.list-none", {
+      await page.waitForSelector('ul[data-cy="product-grid"]', {
         timeout: 10000,
       });
 
-      const products = await page.evaluate(() => {
-        const productElements = document.querySelectorAll(
-          "li.group.relative.list-none"
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 1500);
+          })
+      );
+
+      const products = await page.evaluate((extractorSource) => {
+        const extractAuChemistWarehouseCardPrice = (0, eval)(
+          "(" + extractorSource + ")"
         );
+        let productElements = document.querySelectorAll(
+          'ul[data-cy="product-grid"] > li'
+        );
+        if (!productElements.length) {
+          productElements = document.querySelectorAll(
+            "li.group.relative.list-none"
+          );
+        }
         const productList = [];
-        let missing = 0;
 
         productElements.forEach((product) => {
           const title =
@@ -54,12 +70,9 @@ const cosmetics = async (start, end, browser) => {
           const url = product.querySelector("p.body-s a")?.href || null;
           const img = product.querySelector("img")?.src || null;
 
-          const price =
-            product
-              .querySelector("p.text-colour-title-light.headline-xl")
-              ?.innerText.trim() || null;
+          const price = extractAuChemistWarehouseCardPrice(product);
 
-          if (title || brand || price || url) {
+          if (title || price || url) {
             productList.push({
               title,
               brand: null,
@@ -82,7 +95,7 @@ const cosmetics = async (start, end, browser) => {
           }
         });
         return productList;
-      });
+      }, extractAuChemistWarehouseCardPrice.toString());
 
       // Push new products to the allProducts array
       allProducts.push(...products);

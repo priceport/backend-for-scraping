@@ -257,7 +257,9 @@ const processDataForBeauty = async (data)=>{
             continue;
         }
 
-        if(nzd_to_usd(rawData.price.replace("$",""),"farmers")=="Invalid input"){
+        const priceLocalStr = rawData.price.replace("$","");
+        const localPrice = parseFloat(priceLocalStr);
+        if(nzd_to_usd(priceLocalStr,"farmers")=="Invalid input"){
             iterator+=1;
             continue;
         } 
@@ -280,7 +282,8 @@ const processDataForBeauty = async (data)=>{
             finalData.source = rawData.source;
             finalData.last_check = Date.now();
             
-            finalData.price = [{text:"",price:nzd_to_usd(rawData.price.replace("$",""))}];
+            finalData.local_price = localPrice;
+            finalData.price = [{text:"",price:nzd_to_usd(priceLocalStr,"farmers")}];
 
             finalData.img = rawData.img;
 

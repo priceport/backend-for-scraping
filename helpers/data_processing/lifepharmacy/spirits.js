@@ -148,7 +148,7 @@ const processDataForSpirits = async (data)=>{
             continue;
         }
 
-        // Convert NZD to USD before storing
+        const localPrice = parseFloat(sanitizedPrice);
         const convertedPrice = nzd_to_usd(sanitizedPrice, "lifepharmacy");
         if(convertedPrice === "Invalid input" || convertedPrice === null || convertedPrice === undefined){
             iterator+=1;
@@ -171,7 +171,7 @@ const processDataForSpirits = async (data)=>{
             finalData.source = LIFE_PHARMACY_SOURCE_FALLBACK;
             finalData.last_check = Date.now();
 
-            // Store price in USD in the expected array format
+            finalData.local_price = localPrice;
             finalData.price = [{text:"",price:convertedPrice}];
 
             // Initialize promo as null
