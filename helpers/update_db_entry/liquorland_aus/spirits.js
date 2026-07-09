@@ -2,6 +2,7 @@ const pool = require("../../../configs/postgresql.config");
 const calculatePricePerUnit = require("../../calculatePricePerUnit");
 const logError = require("../../logError");
 const syncPriceEntry = require("../../currency_conversion/syncPriceEntry");
+const insertPromotion = require("../../currency_conversion/insertPromotion");
 
 // Main function
 const updateDBEntry = async (data) => {
@@ -91,16 +92,13 @@ const updateDBEntry = async (data) => {
             continue;
           }
           
-          await pool.query(
-            `INSERT INTO promotion (product_id, text, price, website) 
-                        VALUES ($1, $2, $3, $4)`,
-            [
-              product?.rows[0]?.id,
-              promo[i]?.text || "",
-              promo[i]?.price,
-              "liquorland_aus",
-            ]
-          );
+          await insertPromotion({
+            pool,
+            productId: product?.rows[0]?.id,
+            website: "liquorland_aus",
+            text: promo[i]?.text || "",
+            usdPrice: promo[i]?.price,
+          });
         }
       }
       db_ops += 1;
