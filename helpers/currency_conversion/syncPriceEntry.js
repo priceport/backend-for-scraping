@@ -4,7 +4,7 @@ const {
 } = require("./exchangeRates");
 const {
   getCurrencyForWebsite,
-  hasLocalPriceChanged,
+  shouldInsertPriceRow,
 } = require("./priceConversionUtils");
 
 const LATEST_PRICE_QUERY = `
@@ -24,7 +24,9 @@ const INSERT_PRICE_QUERY = `
 `;
 
 /**
- * Insert a price row only when scraped local price changed vs latest DB row.
+ * Insert a price row when scraped shelf price OR today's FX rates changed.
+ * usdPrice must come from the scraper (shelf × today's rate) so USD and rates
+ * stay in sync: display shelf = usdPrice / rate.
  * @returns {Promise<boolean>} true if a row was inserted
  */
 const syncPriceEntry = async ({
@@ -46,7 +48,12 @@ const syncPriceEntry = async ({
     latest.rowCount > 0 ? latest.rows[0] : null;
 
   if (
-    !hasLocalPriceChanged(latestRow, localPrice, resolvedCurrency)
+    !shouldInsertPriceRow(
+      latestRow,
+      localPrice,
+      resolvedCurrency,
+      rates
+    )
   ) {
     return false;
   }

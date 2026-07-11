@@ -54,11 +54,55 @@ const hasLocalPriceChanged = (latestRow, scrapedLocalPrice, currency) => {
   return previous !== scraped;
 };
 
+const RATE_EPSILON = 0.000005;
+
+const normalizeRate = (rate) => {
+  const n = Number(rate);
+  if (!Number.isFinite(n)) return null;
+  return parseFloat(n.toFixed(5));
+};
+
+/**
+ * True when any stamped FX rate differs from today's scrape rates.
+ * Compared at 5 decimal places to ignore floating-point noise.
+ */
+const hasConversionRatesChanged = (latestRow, rates) => {
+  if (!latestRow) return true;
+  if (!rates) return true;
+
+  const pairs = [
+    [latestRow.conversion_rate_nzd, rates.nzd],
+    [latestRow.conversion_rate_aud, rates.aud],
+    [latestRow.conversion_rate_sgd, rates.sgd],
+  ];
+
+  return pairs.some(([stored, current]) => {
+    const a = normalizeRate(stored);
+    const b = normalizeRate(current);
+    if (a == null || b == null) return true;
+    return Math.abs(a - b) > RATE_EPSILON;
+  });
+};
+
+/**
+ * Insert when shelf changed OR FX rates changed (even if shelf is unchanged).
+ */
+const shouldInsertPriceRow = (latestRow, scrapedLocalPrice, currency, rates) => {
+  if (!latestRow) return true;
+  return (
+    hasLocalPriceChanged(latestRow, scrapedLocalPrice, currency) ||
+    hasConversionRatesChanged(latestRow, rates)
+  );
+};
+
 module.exports = {
   getCurrencyForWebsite,
   getRateForCurrency,
   normalizeLocalPrice,
+  normalizeRate,
   localPriceFromUsdRow,
   hasLocalPriceChanged,
+  hasConversionRatesChanged,
+  shouldInsertPriceRow,
   RATE_COLUMN,
 };
