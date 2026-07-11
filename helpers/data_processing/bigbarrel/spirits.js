@@ -20,7 +20,7 @@ function calculatePriceFromText(text, og_price) {
         offer = offer.trim(); // Clean up extra spaces
         
         // Case 1: Handle "2 for $79" type texts
-        const matchForXForY = offer.match(/(\d+)\s*for\s*\$(\d+)/i);
+        const matchForXForY = offer.match(/(\d+)\s*for\s*\$(\d+(?:\.\d+)?)/i);
         if (matchForXForY) {
             const quantity = parseInt(matchForXForY[1], 10);
             const price = parseFloat(matchForXForY[2]);

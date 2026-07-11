@@ -37,7 +37,7 @@ function calculatePriceFromText(text, og_price) {
     offers.forEach(offer => {
         offer = offer.trim();
         
-        const matchForXForY = offer.match(/(\d+)\s*(?:for|tor)\s*\$(\d+)/i);
+        const matchForXForY = offer.match(/(\d+)\s*(?:for|tor)\s*\$(\d+(?:\.\d+)?)/i);
         if (matchForXForY) {
             const quantity = parseInt(matchForXForY[1], 10);
             const price = parseFloat(matchForXForY[2]);
