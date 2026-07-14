@@ -51,7 +51,7 @@ const dark_rum = async (start, end, browser) => {
       try {
         const storeResult = await page.evaluate(async () => {
           const formdata = new FormData();
-          formdata.append("storeid", "37");
+          formdata.append("storeid", "36"); // Liquorland Manukau
           
           const response = await fetch('/api/stores/preferred', {
             method: 'POST',
@@ -178,7 +178,7 @@ const dark_rum = async (start, end, browser) => {
       allProducts.push(...products);
 
       products.forEach(product => {
-        console.log(product.title);
+        console.log({title : product.title, price:product.price});
       });
 
       // Check if we should stop: no products found OR reached the end page

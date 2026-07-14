@@ -51,7 +51,7 @@ const bourbon = async (start, end, browser) => {
       try {
         const storeResult = await page.evaluate(async () => {
           const formdata = new FormData();
-          formdata.append("storeid", "37");
+          formdata.append("storeid", "36"); // Liquorland Manukau
           
           const response = await fetch('/api/stores/preferred', {
             method: 'POST',
