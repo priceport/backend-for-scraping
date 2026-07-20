@@ -157,8 +157,8 @@ const processDataForSpirits = async (data)=>{
 
         try{
             finalData.url = rawData.url;
-            finalData.category = LIFE_PHARMACY_CATEGORY;
-            finalData.sub_category = LIFE_PHARMACY_SUBCATEGORY;
+            finalData.category = rawData.category || LIFE_PHARMACY_CATEGORY;
+            finalData.sub_category = rawData.subcategory || rawData.sub_category || LIFE_PHARMACY_SUBCATEGORY;
 
             let breaktitle = parseProductTitle(rawData.title);
             if(!breaktitle) throw new Error("Invalid pattern for: "+rawData.title);
@@ -167,8 +167,8 @@ const processDataForSpirits = async (data)=>{
             finalData.unit = breaktitle.unit?.toLowerCase();
             finalData.quantity = breaktitle.quantity;
 
-            finalData.brand = null;
-            finalData.source = LIFE_PHARMACY_SOURCE_FALLBACK;
+            finalData.brand = rawData.brand || null;
+            finalData.source = rawData.source || LIFE_PHARMACY_SOURCE_FALLBACK;
             finalData.last_check = Date.now();
 
             finalData.local_price = localPrice;
