@@ -1,12 +1,11 @@
-//processing script imports
+const medicines = require("../scripts/scraping_scripts/domestic/lifepharmacy/medicines");
+const skincare_treatments = require("../scripts/scraping_scripts/domestic/lifepharmacy/skincare_treatments");
 const family_planning = require("../scripts/scraping_scripts/domestic/lifepharmacy/family_planning");
 const first_aid = require("../scripts/scraping_scripts/domestic/lifepharmacy/first_aid");
 const hair_care = require("../scripts/scraping_scripts/domestic/lifepharmacy/hair_care");
 const hair_colour = require("../scripts/scraping_scripts/domestic/lifepharmacy/hair_colour");
 const hair_styling = require("../scripts/scraping_scripts/domestic/lifepharmacy/hair_styling");
 const home_health_devices = require("../scripts/scraping_scripts/domestic/lifepharmacy/home_health_devices");
-const medicines = require("../scripts/scraping_scripts/domestic/lifepharmacy/medicines");
-const skincare_treatments = require("../scripts/scraping_scripts/domestic/lifepharmacy/skincare_treatments");
 const men_fragrance = require("../scripts/scraping_scripts/domestic/lifepharmacy/men_fragrance");
 const womens_fragrance = require("../scripts/scraping_scripts/domestic/lifepharmacy/womens_fragrance");
 const home_fragrance = require("../scripts/scraping_scripts/domestic/lifepharmacy/home_fragrance");
@@ -29,21 +28,15 @@ const skincare_supplements = require("../scripts/scraping_scripts/domestic/lifep
 const facial_wipes = require("../scripts/scraping_scripts/domestic/lifepharmacy/facial_wipes");
 const lash_brow_serums = require("../scripts/scraping_scripts/domestic/lifepharmacy/lash_brow_serums");
 
-
 const processDataForSpirits = require("./data_processing/lifepharmacy/spirits");
 const logError = require("./logError");
-
-//db update imports
 const updateDBEntry = require("./update_db_entry/lifepharmacy/spirits");
-
 
 const scrapeLifepharmacy = async (start,end,state,browser) =>{
     console.log("scraping started for life pharmacy at:"+Date.now());
 
     //variable initialization
-    let medicinesData = [],skincareTreatmentsData = [],familyPlanningData = [],firstAidData = [],hairCareData = [],hairColourData = [],hairStylingData = [],skinCareData = [],homeHealthDevicesData = [],menFragranceData = [],womensFragranceData = [],homeFragranceData = [],faceData = [],eyesData = [],lipsData = [],nailsData = [],makeUpSetsData = [],makeUpAccessoriesData = [],moisturisersData = [],cleansersScrubsData = [],tonersData = [],serumsTreatmentsData = [],eyeTreatmentsData = [],masksPeelsData = [],medicatedSkincareData = [],lipCareData = [],skincareGiftSetsData = [],skincareSupplementsData = [],facialWipesData = [],lashBrowSerumsData = [];
-    
-
+    let medicinesData = [], skincareTreatmentsData = [], familyPlanningData = [], firstAidData = [], hairCareData = [], hairColourData = [], hairStylingData = [], homeHealthDevicesData = [], menFragranceData = [], womensFragranceData = [], homeFragranceData = [], faceData = [], eyesData = [], lipsData = [], nailsData = [], makeUpSetsData = [], makeUpAccessoriesData = [], moisturisersData = [], cleansersScrubsData = [], tonersData = [], serumsTreatmentsData = [], eyeTreatmentsData = [], masksPeelsData = [], medicatedSkincareData = [], lipCareData = [], skincareGiftSetsData = [], skincareSupplementsData = [], facialWipesData = [], lashBrowSerumsData = [];
     if(!state.lifepharmacy.medicines)
     try{
         medicinesData = await medicines(start,end,browser);
@@ -74,7 +67,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    if (!state.lifepharmacy.skincare_treatments&&skincareTreatmentsData?.length==0)
+    if(!state.lifepharmacy.skincare_treatments&&skincareTreatmentsData?.length==0)
     try{
         skincareTreatmentsData = await skincare_treatments(start,end,browser);
         console.log(`${skincareTreatmentsData?.length} data items scraped for skincare treatments`);
@@ -653,9 +646,7 @@ const scrapeLifepharmacy = async (start,end,state,browser) =>{
         logError(err);
     }
 
-    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...hairColourData,...hairStylingData,...skinCareData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData,...faceData,...eyesData,...lipsData,...nailsData,...makeUpSetsData,...makeUpAccessoriesData,...moisturisersData,...cleansersScrubsData,...tonersData,...serumsTreatmentsData,...eyeTreatmentsData,...masksPeelsData,...medicatedSkincareData,...lipCareData,...skincareGiftSetsData,...skincareSupplementsData,...facialWipesData,...lashBrowSerumsData];
-
-
+    let allData = [...medicinesData,...skincareTreatmentsData,...familyPlanningData,...firstAidData,...hairCareData,...hairColourData,...hairStylingData,...homeHealthDevicesData,...menFragranceData,...womensFragranceData,...homeFragranceData,...faceData,...eyesData,...lipsData,...nailsData,...makeUpSetsData,...makeUpAccessoriesData,...moisturisersData,...cleansersScrubsData,...tonersData,...serumsTreatmentsData,...eyeTreatmentsData,...masksPeelsData,...medicatedSkincareData,...lipCareData,...skincareGiftSetsData,...skincareSupplementsData,...facialWipesData,...lashBrowSerumsData];
     // process data
     try{
         allData = await processDataForSpirits(allData);

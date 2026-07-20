@@ -4,10 +4,9 @@ const logError = require('../../../../helpers/logError');
 const { insertScrapingError } = require('../../../../helpers/insertScrapingErrors');
 
 const home_health_devices = async (start, end, browser) => {
-  // One Chromium tab scrapes every page until empty (or safety ceiling).
-  // Do not rely on scrapingService relaunching a browser per page — that OOMs EC2.
-  let pageNo = Math.max(1, start || 1);
-  const maxPage = Math.max(end || 1, 200);
+  // Same pagination contract as other scrapers (e.g. Aelia): scrape pages start..end only.
+  // scrapingService advances start/end each outer loop.
+  let pageNo = start;
   const url = 'https://www.lifepharmacy.co.nz/collections/home-health-devices?page=';
 
   const page = await browser.newPage();
@@ -21,7 +20,7 @@ const home_health_devices = async (start, end, browser) => {
   try {
     await page.setRequestInterception(false);
 
-    while (pageNo <= maxPage) {
+    while (true) {
       console.log(`[LifePharmacy home_health_devices] Loading page ${pageNo}...`);
       await waitForXTime(constants.timeout);
 
@@ -31,11 +30,9 @@ const home_health_devices = async (start, end, browser) => {
       for (let attempt = 1; attempt <= 2; attempt++) {
         try {
           // Shopify/Boost keeps background requests alive — avoid networkidle.
-          // Product cards are hydrated by Boost JS after load; wait for real titles.
           await page.goto(url + pageNo, { waitUntil: 'domcontentloaded', timeout: 60000 });
           gotoOk = true;
 
-          // Trigger lazy/Boost render
           await page.evaluate(async () => {
             const maxHeight = document.body.scrollHeight || 2000;
             for (let pos = 0; pos < maxHeight; pos += 800) {
@@ -69,8 +66,8 @@ const home_health_devices = async (start, end, browser) => {
       }
 
       if (!loaded) {
-        // End of catalogue: page loaded but Boost never rendered titles.
-        if (gotoOk && allProducts.length > 0) {
+        // Empty page (end of catalogue) or failed hydrate — stop this range.
+        if (gotoOk) {
           console.log(
             `[LifePharmacy home_health_devices] No product titles on page ${pageNo}; finished (${allProducts.length} total).`
           );
@@ -80,12 +77,9 @@ const home_health_devices = async (start, end, browser) => {
         throw navErr || new Error(`Failed to load lifepharmacy home_health_devices page ${pageNo}`);
       }
 
-      // Give Boost a beat to finish filling price/image nodes after titles appear
       await waitForXTime(1500);
 
       const [products, missing] = await page.evaluate(() => {
-        // Boost cards may not use .boost-sd__product-item — prefer list children with ids,
-        // then fall back to walking up from titles.
         let productElements = Array.from(
           document.querySelectorAll('.boost-sd__product-list > div[id], .boost-sd__product-item')
         );
@@ -113,7 +107,6 @@ const home_health_devices = async (start, end, browser) => {
             product.querySelector('.boost-sd__product-title, [id^="product-title-"]')
               ?.innerText.trim() || null;
 
-          // Prefer sale price if present, else first currency span
           const salePrice = product
             .querySelector('.boost-sd__product-price--sale .boost-sd__format-currency')
             ?.innerText.trim();
@@ -182,23 +175,13 @@ const home_health_devices = async (start, end, browser) => {
         console.log({ title: product.title, price: product.price })
       );
 
-      // Empty page = end of catalogue. Stay on one browser instance for all pages.
-      if (products.length === 0) {
-        console.log(
-          `[LifePharmacy home_health_devices] No products on page ${pageNo}; finished (${allProducts.length} total).`
-        );
+      if (products.length === 0 || pageNo == end) {
         await page.close();
         return allProducts;
       }
 
       pageNo++;
     }
-
-    console.log(
-      `[LifePharmacy home_health_devices] Reached safety max page ${maxPage}; finished (${allProducts.length} total).`
-    );
-    await page.close();
-    return allProducts;
   } catch (err) {
     logError(err);
     await insertScrapingError(
