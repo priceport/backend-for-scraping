@@ -62,10 +62,10 @@
 <body>
     <div class="container">
         <h1>Scrape product count below <%= thresholdPct %>%</h1>
-        <p class="meta">Checked at <%= checkedAt %> (DB server date)</p>
+        <p class="meta">Checked at <%= checkedAt %> (Auckland calendar days; last_checked stored as UTC)</p>
         <p>
             The websites below scraped fewer than <%= thresholdPct %>% of yesterday's
-            product count. Investigate incomplete scrapes or scraper failures.
+            Auckland-day product count. Investigate incomplete scrapes or scraper failures.
         </p>
 
         <h2 style="font-size:16px;">Failing websites</h2>

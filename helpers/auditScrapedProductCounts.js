@@ -7,27 +7,30 @@ function getAlertRecipients() {
   return process.env.USER_MAIL ? [process.env.USER_MAIL] : [];
 }
 
-/**
- * After daily scrapes finish, compare today's product counts vs yesterday
- * per website. Email admins for any site under 80% of yesterday's count.
- */
+
 const auditScrapedProductCounts = async () => {
-  console.log("[scrape-count-audit] Checking product counts vs yesterday...");
+  console.log(
+    "[scrape-count-audit] Checking product counts vs yesterday (Auckland days)..."
+  );
 
   const { rows } = await pool.query(`
-    WITH counts AS (
+    WITH nz AS (
+      SELECT (now() AT TIME ZONE 'Pacific/Auckland')::date AS today_nz
+    ),
+    counts AS (
       SELECT
-        website,
+        p.website,
         COUNT(*) FILTER (
-          WHERE last_checked >= CURRENT_DATE
-            AND last_checked < CURRENT_DATE + 1
+          WHERE (p.last_checked AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific/Auckland')::date
+                = nz.today_nz
         ) AS today_count,
         COUNT(*) FILTER (
-          WHERE last_checked >= CURRENT_DATE - 1
-            AND last_checked < CURRENT_DATE
+          WHERE (p.last_checked AT TIME ZONE 'UTC' AT TIME ZONE 'Pacific/Auckland')::date
+                = nz.today_nz - 1
         ) AS yesterday_count
-      FROM product
-      GROUP BY website
+      FROM product p
+      CROSS JOIN nz
+      GROUP BY p.website
     )
     SELECT
       website,
