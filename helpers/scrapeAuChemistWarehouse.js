@@ -52,90 +52,90 @@ const scrapeAuChemistWarehouse = async (start, end, state) => {
       logError(err);
     }
 
-  if (!state.auChemistWarehouse.cosmetics)
-    try {
-      cosmeticsData = await cosmetics(start, end, browser);
-      console.log(`${cosmeticsData?.length} data items scraped for cosmetics`);
-    } catch (err) {
-      console.log("There was an error while scraping cosmetics");
-      logError(err);
-    }
+  // if (!state.auChemistWarehouse.cosmetics)
+  //   try {
+  //     cosmeticsData = await cosmetics(start, end, browser);
+  //     console.log(`${cosmeticsData?.length} data items scraped for cosmetics`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping cosmetics");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.cosmetics && cosmeticsData?.length == 0)
-    try {
-      cosmeticsData = await cosmetics(start, end, browser);
-      console.log(`${cosmeticsData?.length} data items scraped for cosmetics`);
+  // if (!state.auChemistWarehouse.cosmetics && cosmeticsData?.length == 0)
+  //   try {
+  //     cosmeticsData = await cosmetics(start, end, browser);
+  //     console.log(`${cosmeticsData?.length} data items scraped for cosmetics`);
 
-      if (cosmeticsData?.length == 0) state.auChemistWarehouse.cosmetics = true;
-    } catch (err) {
-      console.log("There was an error while scraping cosmetics");
-      logError(err);
-    }
+  //     if (cosmeticsData?.length == 0) state.auChemistWarehouse.cosmetics = true;
+  //   } catch (err) {
+  //     console.log("There was an error while scraping cosmetics");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.skincare)
-    try {
-      skincareData = await skincare(start, end, browser);
-      console.log(`${skincareData?.length} data items scraped for skincare`);
-    } catch (err) {
-      console.log("There was an error while scraping skincare");
-      logError(err);
-    }
+  // if (!state.auChemistWarehouse.skincare)
+  //   try {
+  //     skincareData = await skincare(start, end, browser);
+  //     console.log(`${skincareData?.length} data items scraped for skincare`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping skincare");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.skincare && skincareData?.length == 0)
-    try {
-      skincareData = await skincare(start, end, browser);
-      console.log(`${skincareData?.length} data items scraped for skincare`);
+  // if (!state.auChemistWarehouse.skincare && skincareData?.length == 0)
+  //   try {
+  //     skincareData = await skincare(start, end, browser);
+  //     console.log(`${skincareData?.length} data items scraped for skincare`);
 
-      if (skincareData?.length == 0) state.auChemistWarehouse.skincare = true;
-    } catch (err) {
-      console.log("There was an error while scraping skincare");
-      logError(err);
-    }
+  //     if (skincareData?.length == 0) state.auChemistWarehouse.skincare = true;
+  //   } catch (err) {
+  //     console.log("There was an error while scraping skincare");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.haircare)
-    try {
-      haircareData = await haircare(start, end, browser);
-      console.log(`${haircareData?.length} data items scraped for haircare`);
-    } catch (err) {
-      console.log("There was an error while scraping haircare");
-      logError(err);
-    }
+  // if (!state.auChemistWarehouse.haircare)
+  //   try {
+  //     haircareData = await haircare(start, end, browser);
+  //     console.log(`${haircareData?.length} data items scraped for haircare`);
+  //   } catch (err) {
+  //     console.log("There was an error while scraping haircare");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.haircare && haircareData?.length == 0)
-    try {
-      haircareData = await haircare(start, end, browser);
-      console.log(`${haircareData?.length} data items scraped for haircare`);
+  // if (!state.auChemistWarehouse.haircare && haircareData?.length == 0)
+  //   try {
+  //     haircareData = await haircare(start, end, browser);
+  //     console.log(`${haircareData?.length} data items scraped for haircare`);
 
-      if (haircareData?.length == 0) state.auChemistWarehouse.haircare = true;
-    } catch (err) {
-      console.log("There was an error while scraping haircare");
-      logError(err);
-    }
+  //     if (haircareData?.length == 0) state.auChemistWarehouse.haircare = true;
+  //   } catch (err) {
+  //     console.log("There was an error while scraping haircare");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.personal_care)
-    try {
-      personalCareData = await personal_care(start, end, browser);
-      console.log(
-        `${personalCareData?.length} data items scraped for personal_care`
-      );
-    } catch (err) {
-      console.log("There was an error while scraping personal_care");
-      logError(err);
-    }
+  // if (!state.auChemistWarehouse.personal_care)
+  //   try {
+  //     personalCareData = await personal_care(start, end, browser);
+  //     console.log(
+  //       `${personalCareData?.length} data items scraped for personal_care`
+  //     );
+  //   } catch (err) {
+  //     console.log("There was an error while scraping personal_care");
+  //     logError(err);
+  //   }
 
-  if (!state.auChemistWarehouse.personal_care && personalCareData?.length == 0)
-    try {
-      personalCareData = await personal_care(start, end, browser);
-      console.log(
-        `${personalCareData?.length} data items scraped for personal_care`
-      );
+  // if (!state.auChemistWarehouse.personal_care && personalCareData?.length == 0)
+  //   try {
+  //     personalCareData = await personal_care(start, end, browser);
+  //     console.log(
+  //       `${personalCareData?.length} data items scraped for personal_care`
+  //     );
 
-      if (personalCareData?.length == 0)
-        state.auChemistWarehouse.personal_care = true;
-    } catch (err) {
-      console.log("There was an error while scraping personal_care");
-      logError(err);
-    }
+  //     if (personalCareData?.length == 0)
+  //       state.auChemistWarehouse.personal_care = true;
+  //   } catch (err) {
+  //     console.log("There was an error while scraping personal_care");
+  //     logError(err);
+  //   }
 
   fragranceData = [
     ...fragranceData,

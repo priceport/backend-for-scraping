@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrape Count Alert</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            color: #222;
+        }
+        .container {
+            background-color: #fff;
+            margin: 20px auto;
+            padding: 32px;
+            width: 90%;
+            max-width: 720px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        h1 {
+            font-size: 20px;
+            margin: 0 0 8px;
+            color: #b00020;
+        }
+        .meta {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 10px;
+            text-align: left;
+        }
+        th {
+            background: #f0f0f0;
+        }
+        .fail {
+            background: #fff0f0;
+            font-weight: bold;
+        }
+        .ok {
+            color: #2e7d32;
+        }
+        .footer {
+            color: #666;
+            font-size: 12px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Scrape product count below <%= thresholdPct %>%</h1>
+        <p class="meta">Checked at <%= checkedAt %> (DB server date)</p>
+        <p>
+            The websites below scraped fewer than <%= thresholdPct %>% of yesterday's
+            product count. Investigate incomplete scrapes or scraper failures.
+        </p>
+
+        <h2 style="font-size:16px;">Failing websites</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>Yesterday</th>
+                    <th>Today</th>
+                    <th>% of yesterday</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% failing.forEach(function(row) { %>
+                <tr class="fail">
+                    <td><%= row.website %></td>
+                    <td><%= row.yesterday_count %></td>
+                    <td><%= row.today_count %></td>
+                    <td><%= row.pct_of_yesterday != null ? row.pct_of_yesterday + '%' : 'n/a' %></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+
+        <h2 style="font-size:16px;">All websites</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Website</th>
+                    <th>Yesterday</th>
+                    <th>Today</th>
+                    <th>% of yesterday</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% all.forEach(function(row) {
+                    var under = Number(row.today_count) < (thresholdPct / 100) * Number(row.yesterday_count);
+                %>
+                <tr class="<%= under ? 'fail' : '' %>">
+                    <td><%= row.website %></td>
+                    <td><%= row.yesterday_count %></td>
+                    <td><%= row.today_count %></td>
+                    <td class="<%= under ? '' : 'ok' %>">
+                        <%= row.pct_of_yesterday != null ? row.pct_of_yesterday + '%' : 'n/a' %>
+                    </td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+
+        <p class="footer">Warm Regards,<br/>Team Priceport</p>
+    </div>
+</body>
+</html>

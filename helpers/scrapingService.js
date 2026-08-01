@@ -31,27 +31,28 @@ const { precomputeLivePriceChanges } = require("./precompuetLivePriceChanges");
 
 
 const { loadExchangeRates } = require("./currency_conversion/exchangeRates");
+const auditScrapedProductCounts = require("./auditScrapedProductCounts");
 
 const scrapingService =async ()=>{
   await loadExchangeRates();
 
   // Domestic websites
-  let doneWhiskyAndMore = false,
-    doneNzLiquor = false,
-    doneLiquorland = false,
-    doneBigBarrel = false,
-    doneSephora = false,
-    doneBeautyBliss = false,
-    doneMecca = false,
+  let doneWhiskyAndMore = true,
+    doneNzLiquor = true,
+    doneLiquorland = true,
+    doneBigBarrel = true,
+    doneSephora = true,
+    doneBeautyBliss = true,
+    doneMecca = true,
     doneFarmers = true,
-    doneChemistWarehouse = false,
-    doneTheIconic = false,
-    doneAuMecca = false,
-    doneAuSephora = false,
+    doneChemistWarehouse = true,
+    doneTheIconic = true,
+    doneAuMecca = true,
+    doneAuSephora = true,
     doneAuChemistWarehouse = false,
-    doneDanMurphy = false,
+    doneDanMurphy = true,
     doneLifepharmacy = false,
-    doneLiquorlandAus = false
+    doneLiquorlandAus = true
 
 
   let start_page = 1,
@@ -567,6 +568,13 @@ const scrapingService =async ()=>{
     start_page += 1;
 
     await waitForXTime(10000);
+  }
+
+  try {
+    await auditScrapedProductCounts();
+  } catch (err) {
+    console.error("[scrape-count-audit] failed:", err?.message || err);
+    logError(err);
   }
 };
 
