@@ -37,22 +37,22 @@ const scrapingService =async ()=>{
   await loadExchangeRates();
 
   // Domestic websites
-  let doneWhiskyAndMore = true,
-    doneNzLiquor = true,
-    doneLiquorland = true,
-    doneBigBarrel = true,
-    doneSephora = true,
-    doneBeautyBliss = true,
+  let doneWhiskyAndMore = false,
+    doneNzLiquor = false,
+    doneLiquorland = false,
+    doneBigBarrel = false,
+    doneSephora = false,
+    doneBeautyBliss = false,
     doneMecca = false,
     doneFarmers = true,
-    doneChemistWarehouse = true,
-    doneTheIconic = true,
-    doneAuMecca = true,
-    doneAuSephora = true,
-    doneAuChemistWarehouse = true,
-    doneDanMurphy = true,
-    doneLifepharmacy = true,
-    doneLiquorlandAus = true
+    doneChemistWarehouse = false,
+    doneTheIconic = false,
+    doneAuMecca = false,
+    doneAuSephora = false,
+    doneAuChemistWarehouse = false,
+    doneDanMurphy = false,
+    doneLifepharmacy = false,
+    doneLiquorlandAus = false
 
 
   let start_page = 1,
