@@ -371,200 +371,200 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    // if (!doneNzLiquor)
+    if (!doneNzLiquor)
+      try {
+        doneNzLiquor = await scrapeNzLiquor(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from nz liquor");
+        logError(err);
+      }
+
+    if (!doneLiquorland) {
+      try {
+        doneLiquorland = await scrapeLiquorland(
+            start_page,
+            end_page,
+            internalStates,
+            browser
+          );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland");
+        logError(err);
+      }
+    }
+
+    if (!doneBigBarrel)
+      try {
+        doneBigBarrel = await scrapeBigBarrel(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from big barrel");
+        logError(err);
+      }
+
+
+    if (!doneMecca)
+      try {
+        doneMecca = await scrapeMecca(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from mecca");
+        logError(err);
+      }
+
+    // if (!doneFarmers)
     //   try {
-    //     doneNzLiquor = await scrapeNzLiquor(
+    //     doneFarmers = await scrapeFarmers(
     //       start_page,
     //       end_page,
     //       internalStates,
     //       browser
     //     );
     //   } catch (err) {
-    //     console.log("There was an error while scraping from nz liquor");
+    //     console.log("There was an error while scraping from farmers");
     //     logError(err);
     //   }
 
-    // if (!doneLiquorland) {
-    //   try {
-    //     doneLiquorland = await scrapeLiquorland(
-    //         start_page,
-    //         end_page,
-    //         internalStates,
-    //         browser
-    //       );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from liquorland");
-    //     logError(err);
-    //   }
-    // }
-
-    // if (!doneBigBarrel)
-    //   try {
-    //     doneBigBarrel = await scrapeBigBarrel(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from big barrel");
-    //     logError(err);
-    //   }
+    if (!doneLiquorlandAus)
+      try {
+        doneLiquorlandAus = await scrapeLiquorlandAus(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from liquorland aus");
+        logError(err);
+      }
 
 
-    // if (!doneMecca)
-    //   try {
-    //     doneMecca = await scrapeMecca(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from mecca");
-    //     logError(err);
-    //   }
+    if (!doneAuMecca)
+      try {
+        doneAuMecca = await scrapeAuMecca(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from australia mecca");
+        logError(err);
+      }
 
-    // // if (!doneFarmers)
-    // //   try {
-    // //     doneFarmers = await scrapeFarmers(
-    // //       start_page,
-    // //       end_page,
-    // //       internalStates,
-    // //       browser
-    // //     );
-    // //   } catch (err) {
-    // //     console.log("There was an error while scraping from farmers");
-    // //     logError(err);
-    // //   }
+    if (!doneAuSephora)
+      try {
+        doneAuSephora = await scrapeAuSephora(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from australia sephora");
+        logError(err);
+      }
 
-    // if (!doneLiquorlandAus)
-    //   try {
-    //     doneLiquorlandAus = await scrapeLiquorlandAus(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from liquorland aus");
-    //     logError(err);
-    //   }
-
-
-    // if (!doneAuMecca)
-    //   try {
-    //     doneAuMecca = await scrapeAuMecca(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from australia mecca");
-    //     logError(err);
-    //   }
-
-    // if (!doneAuSephora)
-    //   try {
-    //     doneAuSephora = await scrapeAuSephora(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from australia sephora");
-    //     logError(err);
-    //   }
-
-    // if (!doneLifepharmacy)
-    //   try {
-    //     doneLifepharmacy = await scrapeLifepharmacy(
-    //       start_page,
-    //       end_page,
-    //       internalStates,
-    //       browser
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from lifepharmacy");
-    //     logError(err);
-    //   }
+    if (!doneLifepharmacy)
+      try {
+        doneLifepharmacy = await scrapeLifepharmacy(
+          start_page,
+          end_page,
+          internalStates,
+          browser
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from lifepharmacy");
+        logError(err);
+      }
 
     await browser.close();
 
-    // if (!doneBeautyBliss)
-    //   try {
-    //     doneBeautyBliss = await scrapeBeautyBliss(
-    //       start_page,
-    //       end_page,
-    //       internalStates
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from beauty bliss");
-    //     logError(err);
-    //   }
+    if (!doneBeautyBliss)
+      try {
+        doneBeautyBliss = await scrapeBeautyBliss(
+          start_page,
+          end_page,
+          internalStates
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from beauty bliss");
+        logError(err);
+      }
 
-    // if(!doneDanMurphy)
-    //   try{
-    //       doneDanMurphy = await scrapeDanMurphy(start_page);
-    //   }catch(err){
-    //      console.log("There was an error while scraping from dan murphy");
-    //      logError(err);
-    //   }
+    if(!doneDanMurphy)
+      try{
+          doneDanMurphy = await scrapeDanMurphy(start_page);
+      }catch(err){
+         console.log("There was an error while scraping from dan murphy");
+         logError(err);
+      }
 
-    // if (!doneSephora)
-    //     try {
-    //       doneSephora = await scrapeSephora(
-    //         start_page,
-    //         end_page,
-    //         internalStates
-    //       );
-    //     } catch (err) {
-    //       console.log("There was an error while scraping from sephora");
-    //       logError(err);
-    // }
+    if (!doneSephora)
+        try {
+          doneSephora = await scrapeSephora(
+            start_page,
+            end_page,
+            internalStates
+          );
+        } catch (err) {
+          console.log("There was an error while scraping from sephora");
+          logError(err);
+    }
     
-    // if (!doneChemistWarehouse)
-    //   try {
-    //     doneChemistWarehouse = await scrapeChemistWarehouse(
-    //       (end_page / 1 - 1) * 5 + 1,
-    //       (end_page / 1) * 5,
-    //       internalStates
-    //     );
-    //   } catch (err) {
-    //     console.log("There was an error while scraping from chemist warehouse");
-    //     logError(err);
-    //   }
+    if (!doneChemistWarehouse)
+      try {
+        doneChemistWarehouse = await scrapeChemistWarehouse(
+          (end_page / 1 - 1) * 5 + 1,
+          (end_page / 1) * 5,
+          internalStates
+        );
+      } catch (err) {
+        console.log("There was an error while scraping from chemist warehouse");
+        logError(err);
+      }
 
-    //   if (!doneTheIconic)
-    //     try {
-    //       doneTheIconic = await scrapeTheIconic(
-    //         start_page,
-    //         end_page,
-    //         internalStates
-    //       );
-    //     } catch (err) {
-    //       console.log(
-    //         "There was an error while scraping from australia the iconic"
-    //       );
-    //       logError(err);
-    //     }
+      if (!doneTheIconic)
+        try {
+          doneTheIconic = await scrapeTheIconic(
+            start_page,
+            end_page,
+            internalStates
+          );
+        } catch (err) {
+          console.log(
+            "There was an error while scraping from australia the iconic"
+          );
+          logError(err);
+        }
 
-    //     if (!doneAuChemistWarehouse) {
-    //       try {
-    //         doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
-    //           start_page,
-    //           end_page,
-    //           internalStates
-    //         );
-    //       } catch (err) {
-    //         console.log(
-    //           "There was an error while scraping from australia chemist warehouse"
-    //         );
-    //         logError(err);
-    //       }
-    //     }  
+        if (!doneAuChemistWarehouse) {
+          try {
+            doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
+              start_page,
+              end_page,
+              internalStates
+            );
+          } catch (err) {
+            console.log(
+              "There was an error while scraping from australia chemist warehouse"
+            );
+            logError(err);
+          }
+        }  
 
     end_page += 1;
     start_page += 1;
