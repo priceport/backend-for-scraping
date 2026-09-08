@@ -2,6 +2,8 @@
 const blended_whisky = require("../scripts/scraping_scripts/domestic/whisky_and_more/blended_whisky");
 const craft_beer = require("../scripts/scraping_scripts/domestic/whisky_and_more/craft_beer");
 const international_whisky = require("../scripts/scraping_scripts/domestic/whisky_and_more/international_whisky");
+const other = require("../scripts/scraping_scripts/domestic/whisky_and_more/other");
+const scotch_blended_whisky = require("../scripts/scraping_scripts/domestic/whisky_and_more/scotch_blended_whisky");
 const single_malt = require("../scripts/scraping_scripts/domestic/whisky_and_more/single_malt");
 const wine = require("../scripts/scraping_scripts/domestic/whisky_and_more/wine");
 
@@ -20,9 +22,54 @@ const scrapeWhiskyAndMore = async (start,end,state) =>{
     const browser = await puppeteer.launch({headless:true,ignoreHTTPSErrors: true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
     //variable initialization
-    let whiskyData=[],maltData=[],intlWhiskyData=[],beerData=[],wineData=[];
+    let whiskyData=[],maltData=[],intlWhiskyData=[],beerData=[],wineData=[],scotchBlendedWhiskyData=[],otherData=[];
 
     //scrape each category
+
+    if(!state.whiskyAndMore.scotchBlendedWhisky)
+    try{
+        scotchBlendedWhiskyData = await scotch_blended_whisky(start,end,browser);
+        console.log(`${scotchBlendedWhiskyData?.length} data items scraped for scotch blended whisky`);
+    }catch(err){
+        console.log("There was an error while scraping scotch blended whisky");
+        logError(err);
+    }
+
+    if(!state.whiskyAndMore.scotchBlendedWhisky&&scotchBlendedWhiskyData?.length==0)
+    try{
+        scotchBlendedWhiskyData = await scotch_blended_whisky(start,end,browser);
+        console.log(`${scotchBlendedWhiskyData?.length} data items scraped for scotch blended whisky`);
+
+        if(scotchBlendedWhiskyData?.length==0){
+            state.whiskyAndMore.scotchBlendedWhisky = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping scotch blended whisky");
+        logError(err);
+    }
+
+    if(!state.whiskyAndMore.other)
+    try{
+        otherData = await other(start,end,browser);
+        console.log(`${otherData?.length} data items scraped for other`);
+    }catch(err){
+        console.log("There was an error while scraping other");
+        logError(err);
+    }
+    
+    if(!state.whiskyAndMore.other&&otherData?.length==0)
+    try{
+        otherData = await other(start,end,browser);
+        console.log(`${otherData?.length} data items scraped for other`);
+
+        if(otherData?.length==0){
+            state.whiskyAndMore.other = true;
+        }
+    }catch(err){
+        console.log("There was an error while scraping other");
+        logError(err);
+    }
+
     if(!state.whiskyAndMore.whisky)
     try{
         whiskyData = await blended_whisky(start,end,browser);
