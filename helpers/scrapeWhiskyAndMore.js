@@ -19,7 +19,7 @@ const puppeteer = require('puppeteer');
 const scrapeWhiskyAndMore = async (start,end,state) =>{
     console.log("scraping started for whisky and more at:"+Date.now());
 
-    const browser = await puppeteer.launch({headless:false,ignoreHTTPSErrors: true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
+    const browser = await puppeteer.launch({headless:true,ignoreHTTPSErrors: true, args: ['--no-sandbox', '--disable-setuid-sandbox']});
 
     //variable initialization
     let whiskyData=[],maltData=[],intlWhiskyData=[],beerData=[],wineData=[],scotchBlendedWhiskyData=[],otherData=[];
