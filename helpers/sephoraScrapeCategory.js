@@ -13,6 +13,14 @@ const scrapeSephoraCategory = async (start, end, browser, { urlTemplate, subcate
   const page = await browser.newPage();
   await page.setViewport({ width: 1920, height: 1080 });
 
+  // New tabs need proxy auth separately from the warmup page
+  if (process.env.SEPHORA_PROXY_USERNAME && process.env.SEPHORA_PROXY_PASSWORD) {
+    await page.authenticate({
+      username: process.env.SEPHORA_PROXY_USERNAME,
+      password: process.env.SEPHORA_PROXY_PASSWORD,
+    });
+  }
+
   const allProducts = [];
 
   try {
@@ -22,6 +30,16 @@ const scrapeSephoraCategory = async (start, end, browser, { urlTemplate, subcate
         waitUntil: 'domcontentloaded',
         timeout: 90000,
       });
+
+      const title = (await page.title()).toLowerCase();
+      if (
+        title.includes('access denied') ||
+        title.includes('just a moment') ||
+        title.includes('attention required')
+      ) {
+        throw new Error(`Sephora blocked (${title}) on ${subcategory} page ${pageNo}`);
+      }
+
       await page.waitForSelector(PRODUCT_SELECTOR, { visible: true, timeout: 90000 });
 
       const [products, missing] = await page.evaluate(

@@ -18,13 +18,43 @@ const waitForXTime = require("./waitForXTime");
 const updateDBEntry = require("./update_db_entry/sephora/beauty");
 
 const HOMEPAGE = 'https://www.sephora.nz';
+const WARMUP_ATTEMPTS = 3;
+
+/** Optional residential proxy — Akamai often Access-Denies bare EC2/datacenter IPs. */
+const getSephoraProxy = () => {
+    const host = process.env.SEPHORA_PROXY_HOST;
+    const port = process.env.SEPHORA_PROXY_PORT;
+    if (!host || !port) return undefined;
+    return {
+        host,
+        port,
+        username: process.env.SEPHORA_PROXY_USERNAME,
+        password: process.env.SEPHORA_PROXY_PASSWORD,
+    };
+};
+
+const isSephoraBlocked = async (page) => {
+    try {
+        const title = (await page.title()).toLowerCase();
+        return (
+            title.includes('access denied') ||
+            title.includes('just a moment') ||
+            title.includes('attention required')
+        );
+    } catch {
+        return true;
+    }
+};
 
 const scrapeSephora = async (start,end,state) =>{
     console.log("scraping started for sephora at:"+Date.now());
 
     // Akamai blocks normal puppeteer/stealth; real browser + headed mode is required.
     // On Linux servers, keep disableXvfb false and install xvfb.
+    // If title stays "Access Denied" on EC2, set SEPHORA_PROXY_HOST/PORT
+    // (and optional USERNAME/PASSWORD) to a residential proxy.
     const showBrowser = process.env.SEPHORA_SHOW_BROWSER === '1';
+    const proxy = getSephoraProxy();
     const args = [
         '--start-maximized',
         '--no-sandbox',
@@ -34,26 +64,45 @@ const scrapeSephora = async (start,end,state) =>{
         args.push('--window-position=-2400,-2400', '--window-size=1920,1080');
     }
 
-    const { browser, page } = await connect({
+    const connectOptions = {
         headless: false,
         turnstile: true,
         disableXvfb: showBrowser,
         args,
         connectOption: { defaultViewport: null },
-    });
+    };
+    if (proxy) {
+        connectOptions.proxy = proxy;
+        console.log(`sephora: using proxy ${proxy.host}:${proxy.port}`);
+    }
+
+    const { browser, page } = await connect(connectOptions);
 
     console.log("sephora: real browser launched");
 
     try {
         console.log("sephora: warming up on homepage...");
-        await page.goto(HOMEPAGE, { waitUntil: 'domcontentloaded', timeout: 90000 });
-        await waitForXTime(5000);
-        const title = await page.title();
-        if (title.toLowerCase().includes('access denied') || title.toLowerCase().includes('just a moment')) {
-            console.log("sephora: still blocked after warmup, title=", title);
-            await waitForXTime(10000);
-        } else {
-            console.log("sephora: warmup ok, title=", title);
+        let passed = false;
+        for (let attempt = 1; attempt <= WARMUP_ATTEMPTS; attempt++) {
+            await page.goto(HOMEPAGE, { waitUntil: 'domcontentloaded', timeout: 90000 });
+            await waitForXTime(8000);
+            const title = await page.title();
+            if (!(await isSephoraBlocked(page))) {
+                console.log("sephora: warmup ok, title=", title);
+                passed = true;
+                break;
+            }
+            console.log(`sephora: blocked after warmup attempt ${attempt}/${WARMUP_ATTEMPTS}, title=`, title);
+            await waitForXTime(5000);
+        }
+
+        if (!passed) {
+            console.log(
+                "sephora: Akamai Access Denied after retries. EC2/datacenter IPs are often blocked — set SEPHORA_PROXY_HOST and SEPHORA_PROXY_PORT (optional SEPHORA_PROXY_USERNAME / SEPHORA_PROXY_PASSWORD)."
+            );
+            try { await page.close(); } catch (_) {}
+            await browser.close();
+            return true;
         }
     } catch (err) {
         console.log("sephora: warmup error:", err.message);
