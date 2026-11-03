@@ -352,7 +352,11 @@ const scrapingService =async ()=>{
     console.log("current page",start_page);
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-blink-features=AutomationControlled",
+      ],
     });
 
     console.log("browser launched");
@@ -438,45 +442,45 @@ const scrapingService =async ()=>{
     //     logError(err);
     //   }
 
-    if (!doneLiquorlandAus)
-      try {
-        doneLiquorlandAus = await scrapeLiquorlandAus(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from liquorland aus");
-        logError(err);
-      }
+    // if (!doneLiquorlandAus)
+    //   try {
+    //     doneLiquorlandAus = await scrapeLiquorlandAus(
+    //       start_page,
+    //       end_page,
+    //       internalStates,
+    //       browser
+    //     );
+    //   } catch (err) {
+    //     console.log("There was an error while scraping from liquorland aus");
+    //     logError(err);
+    //   }
 
 
-    if (!doneAuMecca)
-      try {
-        doneAuMecca = await scrapeAuMecca(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from australia mecca");
-        logError(err);
-      }
+    // if (!doneAuMecca)
+    //   try {
+    //     doneAuMecca = await scrapeAuMecca(
+    //       start_page,
+    //       end_page,
+    //       internalStates,
+    //       browser
+    //     );
+    //   } catch (err) {
+    //     console.log("There was an error while scraping from australia mecca");
+    //     logError(err);
+    //   }
 
-    if (!doneAuSephora)
-      try {
-        doneAuSephora = await scrapeAuSephora(
-          start_page,
-          end_page,
-          internalStates,
-          browser
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from australia sephora");
-        logError(err);
-      }
+    // if (!doneAuSephora)
+    //   try {
+    //     doneAuSephora = await scrapeAuSephora(
+    //       start_page,
+    //       end_page,
+    //       internalStates,
+    //       browser
+    //     );
+    //   } catch (err) {
+    //     console.log("There was an error while scraping from australia sephora");
+    //     logError(err);
+    //   }
 
     if (!doneLifepharmacy)
       try {
@@ -505,13 +509,13 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-    if(!doneDanMurphy)
-      try{
-          doneDanMurphy = await scrapeDanMurphy(start_page);
-      }catch(err){
-         console.log("There was an error while scraping from dan murphy");
-         logError(err);
-      }
+    // if(!doneDanMurphy)
+    //   try{
+    //       doneDanMurphy = await scrapeDanMurphy(start_page);
+    //   }catch(err){
+    //      console.log("There was an error while scraping from dan murphy");
+    //      logError(err);
+    //   }
 
     if (!doneSephora)
         try {
@@ -537,34 +541,34 @@ const scrapingService =async ()=>{
         logError(err);
       }
 
-      if (!doneTheIconic)
-        try {
-          doneTheIconic = await scrapeTheIconic(
-            start_page,
-            end_page,
-            internalStates
-          );
-        } catch (err) {
-          console.log(
-            "There was an error while scraping from australia the iconic"
-          );
-          logError(err);
-        }
+      // if (!doneTheIconic)
+      //   try {
+      //     doneTheIconic = await scrapeTheIconic(
+      //       start_page,
+      //       end_page,
+      //       internalStates
+      //     );
+      //   } catch (err) {
+      //     console.log(
+      //       "There was an error while scraping from australia the iconic"
+      //     );
+      //     logError(err);
+      //   }
 
-        if (!doneAuChemistWarehouse) {
-          try {
-            doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
-              start_page,
-              end_page,
-              internalStates
-            );
-          } catch (err) {
-            console.log(
-              "There was an error while scraping from australia chemist warehouse"
-            );
-            logError(err);
-          }
-        }  
+        // if (!doneAuChemistWarehouse) {
+        //   try {
+        //     doneAuChemistWarehouse = await scrapeAuChemistWarehouse(
+        //       start_page,
+        //       end_page,
+        //       internalStates
+        //     );
+        //   } catch (err) {
+        //     console.log(
+        //       "There was an error while scraping from australia chemist warehouse"
+        //     );
+        //     logError(err);
+        //   }
+        // }  
 
     end_page += 1;
     start_page += 1;

@@ -1,3 +1,5 @@
+const { connect } = require('puppeteer-real-browser');
+
 //scraping script imports
 const bath = require("../scripts/scraping_scripts/domestic/sephora/bath");
 const clean = require("../scripts/scraping_scripts/domestic/sephora/clean");
@@ -10,13 +12,57 @@ const tools = require("../scripts/scraping_scripts/domestic/sephora/tools");
 //processing script imports
 const processDataForBeauty = require("./data_processing/sephora/beauty");
 const logError = require("./logError");
+const waitForXTime = require("./waitForXTime");
 
 //db update imports
 const updateDBEntry = require("./update_db_entry/sephora/beauty");
 
+const HOMEPAGE = 'https://www.sephora.nz';
 
-const scrapeSephora = async (start,end,state,browser) =>{
+const scrapeSephora = async (start,end,state) =>{
     console.log("scraping started for sephora at:"+Date.now());
+
+    // Akamai blocks normal puppeteer/stealth; real browser + headed mode is required.
+    // On Linux servers, keep disableXvfb false and install xvfb.
+    const showBrowser = process.env.SEPHORA_SHOW_BROWSER === '1';
+    const args = [
+        '--start-maximized',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+    ];
+    if (process.platform === 'darwin') {
+        args.push('--window-position=-2400,-2400', '--window-size=1920,1080');
+    }
+
+    const { browser, page } = await connect({
+        headless: false,
+        turnstile: true,
+        disableXvfb: showBrowser,
+        args,
+        connectOption: { defaultViewport: null },
+    });
+
+    console.log("sephora: real browser launched");
+
+    try {
+        console.log("sephora: warming up on homepage...");
+        await page.goto(HOMEPAGE, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        await waitForXTime(5000);
+        const title = await page.title();
+        if (title.toLowerCase().includes('access denied') || title.toLowerCase().includes('just a moment')) {
+            console.log("sephora: still blocked after warmup, title=", title);
+            await waitForXTime(10000);
+        } else {
+            console.log("sephora: warmup ok, title=", title);
+        }
+    } catch (err) {
+        console.log("sephora: warmup error:", err.message);
+        try { await page.close(); } catch (_) {}
+        await browser.close();
+        return true;
+    }
+
+    try { await page.close(); } catch (_) {}
 
     //variable initialization
     let makeupData=[],skincareData=[],toolsData=[],hairData=[],fragranceData=[],cleanData=[],bathData=[];
@@ -197,6 +243,8 @@ const scrapeSephora = async (start,end,state,browser) =>{
         console.log("There was an error while updating data");
         logError(err);
     }
+
+    await browser.close();
     
     console.log("entries updated for sephora");
     return makeupData?.length==0;

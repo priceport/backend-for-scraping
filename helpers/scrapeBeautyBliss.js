@@ -9,15 +9,87 @@ const processDataForBeauty = require("./data_processing/beauty_bliss/beauty");
 const logError = require("./logError");
 const updateDBEntry = require("./update_db_entry/beauty_bliss/beauty");
 const waitForXTime = require("./waitForXTime");
+const { hasCfClearance, isCloudflareChallenge } = require("./beautyBlissWaitForProducts");
+
+const HOMEPAGE = 'https://beautybliss.co.nz';
+const MAX_GOTO_RETRIES = 3;
+const CF_POLL_MS = 90000;
+
+const waitForCloudflareClearance = async (page) => {
+  const deadline = Date.now() + CF_POLL_MS;
+
+  while (Date.now() < deadline) {
+    const clearedCookie = await hasCfClearance(page);
+    const onChallenge = await isCloudflareChallenge(page);
+
+    if (clearedCookie || !onChallenge) {
+      // Brief settle after challenge reload
+      await waitForXTime(2000);
+      if (!(await isCloudflareChallenge(page)) || (await hasCfClearance(page))) {
+        return true;
+      }
+    }
+
+    await waitForXTime(1500);
+  }
+
+  return false;
+};
+
+const warmupCloudflare = async (page) => {
+  console.log("beauty bliss: warming up on homepage to get cf_clearance cookie...");
+
+  for (let attempt = 1; attempt <= MAX_GOTO_RETRIES; attempt++) {
+    try {
+      await page.goto(HOMEPAGE, { waitUntil: 'domcontentloaded', timeout: 90000 });
+      break;
+    } catch (err) {
+      const destroyed = (err.message || '').includes('Execution context was destroyed');
+      console.log(`beauty bliss: warmup navigation error (attempt ${attempt}/${MAX_GOTO_RETRIES}):`, err.message);
+      if (!destroyed || attempt === MAX_GOTO_RETRIES) {
+        throw err;
+      }
+      await waitForXTime(2000);
+    }
+  }
+
+  const passed = await waitForCloudflareClearance(page);
+  if (!passed) {
+    throw new Error('Cloudflare clearance not obtained within timeout');
+  }
+
+  console.log("beauty bliss: Cloudflare passed, cf_clearance cookie set");
+};
+
+const buildBeautyBlissBrowserArgs = () => {
+    const args = [
+        '--start-maximized',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+    ];
+
+    // macOS has no Xvfb path — keep Chrome headed (CF-safe) but off-screen
+    if (process.platform === 'darwin') {
+        args.push('--window-position=-2400,-2400', '--window-size=1920,1080');
+    }
+
+    return args;
+};
 
 const scrapeBeautyBliss = async (start,end,state) =>{
     console.log("scraping started for beauty bliss at:"+Date.now());
 
+    // Keep headless: false — Cloudflare Turnstile fails under true headless.
+    // On Linux servers, puppeteer-real-browser starts Xvfb when disableXvfb is false
+    // (requires system package: apt-get install -y xvfb). Set BEAUTY_BLISS_SHOW_BROWSER=1
+    // to disable Xvfb and watch the browser on a machine with a display.
+    const showBrowser = process.env.BEAUTY_BLISS_SHOW_BROWSER === '1';
+
     const { browser, page } = await connect({
         headless: false,
         turnstile: true,
-        disableXvfb: false,
-        args: ['--start-maximized'],
+        disableXvfb: showBrowser,
+        args: buildBeautyBlissBrowserArgs(),
         connectOption: {
             defaultViewport: null,
         },
@@ -26,21 +98,17 @@ const scrapeBeautyBliss = async (start,end,state) =>{
     console.log("beauty bliss: real browser launched with turnstile bypass");
 
     try {
-        console.log("beauty bliss: warming up on homepage to get cf_clearance cookie...");
-        await page.goto('https://beautybliss.co.nz', { waitUntil: 'networkidle2', timeout: 90000 });
-        await waitForXTime(5000);
-
-        const passed = await page.evaluate(() => !document.title.toLowerCase().includes('just a moment'));
-        if (passed) {
-            console.log("beauty bliss: Cloudflare passed, cf_clearance cookie set");
-        } else {
-            console.log("beauty bliss: waiting for Turnstile auto-click...");
-            await waitForXTime(15000);
-        }
+        await warmupCloudflare(page);
     } catch (err) {
-        console.log("beauty bliss: warmup navigation error:", err.message);
+        console.log("beauty bliss: Cloudflare warmup failed:", err.message);
+        try { await page.close(); } catch (_) {}
+        await browser.close();
+        return true; // not done / retry later — zero items
     }
-    await page.close();
+
+    try {
+        await page.close();
+    } catch (_) {}
 
     let makeupData=[],skincareData=[],toolsData=[],hairData=[],bathData=[];
 
