@@ -106,8 +106,11 @@ const scrapeBeautyBliss = async (start,end,state) =>{
         return true; // not done / retry later — zero items
     }
 
+    // Keep at least one tab open. Closing the last tab under
+    // puppeteer-real-browser + Xvfb often kills Chrome
+    // ("Failed to open a new tab" / "Target closed").
     try {
-        await page.close();
+        await page.goto('about:blank');
     } catch (_) {}
 
     let makeupData=[],skincareData=[],toolsData=[],hairData=[],bathData=[];

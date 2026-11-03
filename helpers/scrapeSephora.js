@@ -62,7 +62,12 @@ const scrapeSephora = async (start,end,state) =>{
         return true;
     }
 
-    try { await page.close(); } catch (_) {}
+    // Keep at least one tab open. Closing the last tab under
+    // puppeteer-real-browser + Xvfb often kills Chrome
+    // ("Failed to open a new tab" / "Target closed").
+    try {
+        await page.goto('about:blank');
+    } catch (_) {}
 
     //variable initialization
     let makeupData=[],skincareData=[],toolsData=[],hairData=[],fragranceData=[],cleanData=[],bathData=[];
