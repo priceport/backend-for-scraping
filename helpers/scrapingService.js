@@ -497,17 +497,17 @@ const scrapingService =async ()=>{
 
     await browser.close();
 
-    if (!doneBeautyBliss)
-      try {
-        doneBeautyBliss = await scrapeBeautyBliss(
-          start_page,
-          end_page,
-          internalStates
-        );
-      } catch (err) {
-        console.log("There was an error while scraping from beauty bliss");
-        logError(err);
-      }
+    // if (!doneBeautyBliss)
+    //   try {
+    //     doneBeautyBliss = await scrapeBeautyBliss(
+    //       start_page,
+    //       end_page,
+    //       internalStates
+    //     );
+    //   } catch (err) {
+    //     console.log("There was an error while scraping from beauty bliss");
+    //     logError(err);
+    //   }
 
     // if(!doneDanMurphy)
     //   try{
@@ -517,17 +517,17 @@ const scrapingService =async ()=>{
     //      logError(err);
     //   }
 
-    if (!doneSephora)
-        try {
-          doneSephora = await scrapeSephora(
-            start_page,
-            end_page,
-            internalStates
-          );
-        } catch (err) {
-          console.log("There was an error while scraping from sephora");
-          logError(err);
-    }
+    // if (!doneSephora)
+    //     try {
+    //       doneSephora = await scrapeSephora(
+    //         start_page,
+    //         end_page,
+    //         internalStates
+    //       );
+    //     } catch (err) {
+    //       console.log("There was an error while scraping from sephora");
+    //       logError(err);
+    // }
     
     if (!doneChemistWarehouse)
       try {
